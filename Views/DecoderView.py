@@ -20,6 +20,7 @@ class DecoderView(QWidget):
 
         self.button_remove_decoder = QToolButton()
         self.button_remove_decoder.setText("Remove Decoder")
+        self.button_remove_decoder.setEnabled(False)
         self.button_remove_decoder.clicked.connect(self.remove_decoder)
         self.toolbar.addWidget(self.button_remove_decoder)
 
@@ -31,6 +32,10 @@ class DecoderView(QWidget):
 
     def add_decoder(self, decoder_type):
         self.main_view.add_decoder(decoder_type)
+        self.button_add_decoder.setEnabled(False)
+        self.button_remove_decoder.setEnabled(True)
 
     def remove_decoder(self):
-        self.main_view.remove_deocder()
+        self.main_view.remove_decoder()
+        self.button_remove_decoder.setEnabled(False)
+        self.button_add_decoder.setEnabled(True)

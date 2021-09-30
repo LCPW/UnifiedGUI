@@ -39,7 +39,8 @@ class Controller:
         app.setStyle('Fusion')
         self.view = MainView.MainView(self)
         self.view.show()
-        sys.exit(app.exec_())
+        app.exec_()
+        #sys.exit(app.exec_())
 
     def add_encoder(self, encoder_type):
         self.model.add_encoder(encoder_type)

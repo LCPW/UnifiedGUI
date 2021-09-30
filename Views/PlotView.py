@@ -30,9 +30,12 @@ class PlotView(pg.PlotWidget):
             self.timestamps.append(t)
             #self.timestamps.append(len(self.timestamps))
             self.y.append(x)
-        self.data_line.setData(x=[x.timestamp() for x in self.timestamps], y=self.y)
+        tx = [x.timestamp() for x in self.timestamps]
+        # print(tx)
+        self.data_line.setData(x=tx, y=self.y)
 
 
 class TimeAxisItem(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):
-        return [datetime.fromtimestamp(value) for value in values]
+        x = [datetime.fromtimestamp(value) for value in values]
+        return x

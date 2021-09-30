@@ -2,7 +2,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
-from Views import PlotView, TableView
+from Views import PlotView, TablesView
 
 
 class DataView(QWidget):
@@ -11,10 +11,10 @@ class DataView(QWidget):
         layout = QVBoxLayout()
 
         self.tabs = QTabWidget()
-        self.tab_table = TableView.TableView()
+        self.tab_table = TablesView.TablesView()
         self.tab_plot = PlotView.PlotView()
 
-        self.tabs.addTab(self.tab_table, "Table")
+        self.tabs.addTab(self.tab_table, "Tables")
         self.tabs.addTab(self.tab_plot, "Plot")
 
         layout.addWidget(self.tabs)
