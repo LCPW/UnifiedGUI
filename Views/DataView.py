@@ -11,16 +11,19 @@ class DataView(QWidget):
         layout = QVBoxLayout()
 
         self.tabs = QTabWidget()
-        self.tab_table = TablesView.TablesView()
+        self.tab_tables = TablesView.TablesView()
         self.tab_plot = PlotView.PlotView()
 
-        self.tabs.addTab(self.tab_table, "Tables")
+        self.tabs.addTab(self.tab_tables, "Tables")
         self.tabs.addTab(self.tab_plot, "Plot")
 
         layout.addWidget(self.tabs)
 
         self.setLayout(layout)
 
+    def add_receivers(self, count):
+        self.tab_tables.add_tables(count)
+
     def update_values(self, vals):
-        self.tab_table.update_values(vals)
-        self.tab_plot.update_values(vals)
+        self.tab_tables.update_values(vals)
+        #self.tab_plot.update_values(vals)

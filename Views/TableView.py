@@ -7,7 +7,7 @@ class TableView(QTableWidget):
     def __init__(self):
         super().__init__()
 
-        headers = ["Spalte1", "Spalte2"]
+        headers = ["Timestamp", "Value"]
 
         # Row count
         self.setRowCount(0)

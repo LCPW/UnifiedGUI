@@ -8,7 +8,7 @@ class Model:
         self.encoder = None
         self.decoder = None
 
-    def is_encoder_availabe(self):
+    def is_encoder_available(self):
         return self.encoder is not None
 
     def add_encoder(self, encoder_type):
@@ -21,11 +21,14 @@ class Model:
         self.encoder = None
 
     def is_decoder_available(self):
-        return self.decoder is not None
+        return self.decoder is not None and self.decoder.is_active()
 
     def add_decoder(self, decoder_type):
         if decoder_type == "ExampleDecoder":
             self.decoder = ExampleDecoder.ExampleDecoder()
+
+    def start_decoder(self):
+        self.decoder.start()
 
     def remove_decoder(self):
         self.decoder = None
@@ -35,7 +38,7 @@ class Model:
 
     def get_received(self):
         if not self.is_decoder_available():
-            return []
+            return None
         else:
             return self.decoder.get_received()
 

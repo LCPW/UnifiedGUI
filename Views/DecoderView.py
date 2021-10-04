@@ -24,6 +24,12 @@ class DecoderView(QWidget):
         self.button_remove_decoder.clicked.connect(self.remove_decoder)
         self.toolbar.addWidget(self.button_remove_decoder)
 
+        self.button_start_decoder = QToolButton()
+        self.button_start_decoder.setText("Start Decoder")
+        self.button_start_decoder.setEnabled(True)
+        self.button_start_decoder.clicked.connect(self.start_decoder)
+        self.toolbar.addWidget(self.button_start_decoder)
+
         label = QLabel("Decoder")
         layout.addWidget(label)
 
@@ -39,3 +45,6 @@ class DecoderView(QWidget):
         self.main_view.remove_decoder()
         self.button_remove_decoder.setEnabled(False)
         self.button_add_decoder.setEnabled(True)
+
+    def start_decoder(self):
+        self.main_view.start_decoder()

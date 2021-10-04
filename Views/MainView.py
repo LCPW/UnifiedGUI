@@ -40,8 +40,12 @@ class MainView(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
+    def view_add_decoder(self, num_receivers):
+        self.data.add_receivers(num_receivers)
+
     def update_values(self, vals):
-        self.data.update_values(vals)
+        if vals is not None:
+            self.data.update_values(vals)
 
     def add_encoder(self, encoder_type):
         self.controller.add_encoder(encoder_type)
@@ -54,6 +58,9 @@ class MainView(QMainWindow):
 
     def remove_decoder(self):
         self.controller.remove_decoder()
+
+    def start_decoder(self):
+        self.controller.start_decoder()
 
     def closeEvent(self, close_event: QCloseEvent):
         msg = QMessageBox()

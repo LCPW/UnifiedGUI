@@ -50,6 +50,11 @@ class Controller:
 
     def add_decoder(self, decoder_type):
         self.model.add_decoder(decoder_type)
+        num_receivers = self.model.get_num_receivers()
+        self.view.view_add_decoder(num_receivers)
+
+    def start_decoder(self):
+        self.model.start_decoder()
 
     def remove_decoder(self):
         self.model.remove_decoder()
