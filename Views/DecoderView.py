@@ -2,6 +2,8 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
+import os
+
 
 class DecoderView(QWidget):
     def __init__(self, main_view):
@@ -9,13 +11,20 @@ class DecoderView(QWidget):
 
         self.main_view = main_view
 
+        # Get a list of all available decoders by searching for .py files in the implementations folder
+        self.available_decoders = []
+        for file in os.listdir('./Models/Implementations/Decoders'):
+            name, extension = os.path.splitext(file)
+            if extension == '.py':
+                self.available_decoders.append(name)
+
         layout = QVBoxLayout()
 
         self.toolbar = QToolBar()
 
         self.button_add_decoder = QToolButton()
         self.button_add_decoder.setText("Add Decoder")
-        self.button_add_decoder.clicked.connect(lambda: self.add_decoder("ExampleDecoder"))
+        self.button_add_decoder.clicked.connect(self.add_decoder)
         self.toolbar.addWidget(self.button_add_decoder)
 
         self.button_remove_decoder = QToolButton()
@@ -36,10 +45,12 @@ class DecoderView(QWidget):
         layout.addWidget(self.toolbar)
         self.setLayout(layout)
 
-    def add_decoder(self, decoder_type):
-        self.main_view.add_decoder(decoder_type)
-        self.button_add_decoder.setEnabled(False)
-        self.button_remove_decoder.setEnabled(True)
+    def add_decoder(self):
+        decoder_type, ok = QInputDialog.getItem(self, "Add Decoder", "Decoder type", self.available_decoders, 0, False)
+        if ok:
+            self.main_view.add_decoder(decoder_type)
+            self.button_add_decoder.setEnabled(False)
+            self.button_remove_decoder.setEnabled(True)
 
     def remove_decoder(self):
         self.main_view.remove_decoder()

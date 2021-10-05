@@ -1,10 +1,10 @@
-from Models import Receiver
+from Models.Interfaces.ReceiverInterface import ReceiverInterface
 import time
 from datetime import datetime
 import random
 
 
-class ExampleReceiver(Receiver.Receiver):
+class ExampleReceiver(ReceiverInterface):
     def __init__(self):
         super().__init__()
         self.buffer = []

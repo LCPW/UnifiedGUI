@@ -26,4 +26,4 @@ class DataView(QWidget):
 
     def update_values(self, vals):
         self.tab_tables.update_values(vals)
-        #self.tab_plot.update_values(vals)
+        self.tab_plot.update_values(vals)

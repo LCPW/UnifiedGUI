@@ -1,4 +1,4 @@
-class Encoder:
+class EncoderInterface:
     def __init__(self):
         pass
 

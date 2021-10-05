@@ -24,15 +24,20 @@ class PlotView(pg.PlotWidget):
         self.data_line = self.plot([], [], name="1")
 
     def update_values(self, vals):
-        self.timestamps = []
-        self.y = []
-        for t, x in vals:
-            self.timestamps.append(t)
-            #self.timestamps.append(len(self.timestamps))
+        vals = vals[0]
+        for i in range(len(self.y), len(vals)):
+            t, x = vals[i]
+            self.timestamps.append(t.timestamp())
             self.y.append(x)
-        tx = [x.timestamp() for x in self.timestamps]
+        #self.timestamps = []
+        #self.y = []
+        #for t, x in vals:
+        #    self.timestamps.append(t)
+            #self.timestamps.append(len(self.timestamps))
+        #    self.y.append(x)
+        #tx = [x.timestamp() for x in self.timestamps]
         # print(tx)
-        self.data_line.setData(x=tx, y=self.y)
+        self.data_line.setData(x=self.timestamps, y=self.y)
 
 
 class TimeAxisItem(pg.AxisItem):

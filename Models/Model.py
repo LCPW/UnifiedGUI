@@ -1,6 +1,4 @@
-from Models import Encoder, Decoder, ExampleDecoder
-import time
-import threading
+from Models.Implementations.Decoders import ExampleDecoder
 
 
 class Model:
