@@ -35,9 +35,15 @@ class DecoderView(QWidget):
 
         self.button_start_decoder = QToolButton()
         self.button_start_decoder.setText("Start Decoder")
-        self.button_start_decoder.setEnabled(True)
+        self.button_start_decoder.setEnabled(False)
         self.button_start_decoder.clicked.connect(self.start_decoder)
         self.toolbar.addWidget(self.button_start_decoder)
+
+        self.button_stop_decoder = QToolButton()
+        self.button_stop_decoder.setText("Stop Decoder")
+        self.button_stop_decoder.setEnabled(False)
+        self.button_stop_decoder.clicked.connect(self.stop_decoder)
+        self.toolbar.addWidget(self.button_stop_decoder)
 
         label = QLabel("Decoder")
         layout.addWidget(label)
@@ -48,14 +54,38 @@ class DecoderView(QWidget):
     def add_decoder(self):
         decoder_type, ok = QInputDialog.getItem(self, "Add Decoder", "Decoder type", self.available_decoders, 0, False)
         if ok:
-            self.main_view.add_decoder(decoder_type)
-            self.button_add_decoder.setEnabled(False)
-            self.button_remove_decoder.setEnabled(True)
+            self.main_view.controller.add_decoder(decoder_type)
 
     def remove_decoder(self):
-        self.main_view.remove_decoder()
-        self.button_remove_decoder.setEnabled(False)
-        self.button_add_decoder.setEnabled(True)
+        self.main_view.controller.remove_decoder()
 
     def start_decoder(self):
-        self.main_view.start_decoder()
+        self.main_view.controller.start_decoder()
+
+    def stop_decoder(self):
+        # TODO: Confirmation window
+        self.main_view.controller.stop_decoder()
+
+    def decoder_added(self):
+        self.button_add_decoder.setEnabled(False)
+        self.button_remove_decoder.setEnabled(True)
+        self.button_start_decoder.setEnabled(True)
+        self.button_stop_decoder.setEnabled(False)
+
+    def decoder_removed(self):
+        self.button_add_decoder.setEnabled(True)
+        self.button_remove_decoder.setEnabled(False)
+        self.button_start_decoder.setEnabled(False)
+        self.button_stop_decoder.setEnabled(False)
+
+    def decoder_started(self):
+        self.button_add_decoder.setEnabled(False)
+        self.button_remove_decoder.setEnabled(False)
+        self.button_start_decoder.setEnabled(False)
+        self.button_stop_decoder.setEnabled(True)
+
+    def decoder_stopped(self):
+        self.button_add_decoder.setEnabled(False)
+        self.button_remove_decoder.setEnabled(True)
+        self.button_start_decoder.setEnabled(False)
+        self.button_stop_decoder.setEnabled(False)

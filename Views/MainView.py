@@ -27,40 +27,31 @@ class MainView(QMainWindow):
         layout = QHBoxLayout()
         splitter = QSplitter(Qt.Horizontal)
 
-        encoder_view = EncoderView.EncoderView()
-        self.data = DataView.DataView()
-        decoder = DecoderView.DecoderView(self)
+        self.encoder_view = EncoderView.EncoderView()
+        self.data_view = DataView.DataView()
+        self.decoder_view = DecoderView.DecoderView(self)
 
-        splitter.addWidget(encoder_view)
-        splitter.addWidget(self.data)
-        splitter.addWidget(decoder)
+        splitter.addWidget(self.encoder_view)
+        splitter.addWidget(self.data_view)
+        splitter.addWidget(self.decoder_view)
 
         layout.addWidget(splitter)
         central_widget.setLayout(layout)
 
         self.setCentralWidget(central_widget)
 
-    def view_add_decoder(self, num_receivers):
-        self.data.add_receivers(num_receivers)
+    def decoder_added(self, receiver_info):
+        # TODO: Update decoder view
+        # Update data view
+        self.data_view.add_receivers(receiver_info)
+
+    def decoder_removed(self):
+        # TODO
+        pass
 
     def update_values(self, vals):
         if vals is not None:
-            self.data.update_values(vals)
-
-    def add_encoder(self, encoder_type):
-        self.controller.add_encoder(encoder_type)
-
-    def remove_encoder(self):
-        self.controller.remove_encoder()
-
-    def add_decoder(self, decoder_type):
-        self.controller.add_decoder(decoder_type)
-
-    def remove_decoder(self):
-        self.controller.remove_decoder()
-
-    def start_decoder(self):
-        self.controller.start_decoder()
+            self.data_view.update_values(vals)
 
     def closeEvent(self, close_event: QCloseEvent):
         msg = QMessageBox()
@@ -76,5 +67,3 @@ class MainView(QMainWindow):
             close_event.accept()
         else:
             close_event.ignore()
-
-

@@ -14,23 +14,23 @@ class TablesView(QWidget):
 
         self.tabs = QTabWidget()
         self.tables = []
-        #self.tab_table1 = TableView.TableView()
-        #self.tab_table2 = TableView.TableView()
-
-        #self.tabs.addTab(self.tab_table1, "Table1")
-        #self.tabs.addTab(self.tab_table2, "Table2")
 
         layout.addWidget(self.tabs)
 
         self.setLayout(layout)
 
-    def add_tables(self, count):
-        for i in range(count):
-            self.tables.append(TableView.TableView())
-            self.tabs.addTab(self.tables[i], str(i))
+    def add_tables(self, receiver_info):
+        for i in range(len(receiver_info)):
+            description, sensor_descriptions = receiver_info[i]
+            table = TableView.TableView(sensor_descriptions)
+            self.tables.append(table)
+            self.tabs.addTab(self.tables[i], str(description))
+
+    def remove_tables(self):
+        for table in self.tables:
+            self.tabs.removeTab(self.tabs.indexOf(table))
+        self.tables = []
 
     def update_values(self, vals):
         for i in range(len(vals)):
             self.tables[i].update_values(vals[i])
-        #self.tab_table1.update_values(vals[0])
-        #self.tab_table2.update_values(vals[1])

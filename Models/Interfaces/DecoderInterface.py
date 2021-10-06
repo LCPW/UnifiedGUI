@@ -10,9 +10,7 @@ class DecoderInterface:
 
         self.receivers = []
         self.receiver_buffer = []
-        self.decoded = []
 
-    def start(self):
         for i in range(self.num_receivers):
             # Dynamically import the module of the implementation
             my_module = importlib.import_module('.' + self.receiver_types[i], package='Models.Implementations.Receivers')
@@ -20,6 +18,11 @@ class DecoderInterface:
             instance = getattr(my_module, self.receiver_types[i])()
             self.receivers.append(instance)
             self.receiver_buffer.append([])
+
+        self.decoded = []
+
+    def start(self):
+        for i in range(self.num_receivers):
             thread = threading.Thread(target=self.receivers[i].listen)
             thread.start()
         self.active = True
@@ -27,17 +30,23 @@ class DecoderInterface:
     def get_num_receivers(self):
         return self.num_receivers
 
+    def get_receiver_info(self):
+        x = []
+        for receiver in self.receivers:
+            x.append((receiver.description, receiver.sensor_descriptions))
+        return x
+
     def is_active(self):
         return self.active
 
     def get_received(self):
+        self.empty_receiver_buffers()
         return self.receiver_buffer
 
     def get_decoded(self):
-        self.empty_buffers()
         return self.decoded
 
-    def empty_buffers(self):
+    def empty_receiver_buffers(self):
         for i in range(len(self.receivers)):
             n = self.receivers[i].get_available()
             for j in range(n):

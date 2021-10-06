@@ -27,10 +27,13 @@ class Controller:
         while self.running:
             self.run(sleep_time=1.0/FRAMES_PER_SECOND)
 
+        # TODO: Close all other running threads
+
     def run(self, sleep_time):
-        decoded = self.model.get_decoded()
-        received = self.model.get_received()
-        self.view.update_values(received)
+        if self.model.is_decoder_available():
+            decoded = self.model.get_decoded()
+            received = self.model.get_received()
+            self.view.update_values(received)
         # This is necessary in order for the GUI not to freeze and crash at some point
         time.sleep(sleep_time)
 
@@ -50,14 +53,22 @@ class Controller:
 
     def add_decoder(self, decoder_type):
         self.model.add_decoder(decoder_type)
-        num_receivers = self.model.get_num_receivers()
-        self.view.view_add_decoder(num_receivers)
-
-    def start_decoder(self):
-        self.model.start_decoder()
+        receiver_info = self.model.get_receiver_info()
+        self.view.decoder_added(receiver_info)
+        self.view.decoder_view.decoder_added()
 
     def remove_decoder(self):
         self.model.remove_decoder()
+        self.view.data_view.remove_receivers()
+        self.view.decoder_view.decoder_removed()
+
+    def start_decoder(self):
+        self.model.start_decoder()
+        self.view.decoder_view.decoder_started()
+
+    def stop_decoder(self):
+        # TODO
+        pass
 
     def close(self):
         self.running = False

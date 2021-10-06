@@ -4,6 +4,7 @@ from PyQt5.QtWidgets import *
 
 
 class EncoderView(QWidget):
+    # TODO
     def __init__(self):
         super().__init__()
 

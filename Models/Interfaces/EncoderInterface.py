@@ -1,4 +1,5 @@
 class EncoderInterface:
+    # TODO
     def __init__(self):
         pass
 

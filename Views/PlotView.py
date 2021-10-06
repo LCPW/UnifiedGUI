@@ -24,6 +24,7 @@ class PlotView(pg.PlotWidget):
         self.data_line = self.plot([], [], name="1")
 
     def update_values(self, vals):
+        # TODO: Implement properly
         vals = vals[0]
         for i in range(len(self.y), len(vals)):
             t, x = vals[i]

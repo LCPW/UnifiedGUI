@@ -1,4 +1,4 @@
-from Models.Implementations.Decoders import ExampleDecoder
+import importlib
 
 
 class Model:
@@ -10,6 +10,7 @@ class Model:
         return self.encoder is not None
 
     def add_encoder(self, encoder_type):
+        # TODO
         pass
 
     def encode_message(self, msg):
@@ -22,8 +23,10 @@ class Model:
         return self.decoder is not None and self.decoder.is_active()
 
     def add_decoder(self, decoder_type):
-        if decoder_type == "ExampleDecoder":
-            self.decoder = ExampleDecoder.ExampleDecoder()
+        # Dynamically import the module of the implementation
+        my_module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        # Create an instance of the class in the said module (e.g. ExampleDecoder.ExampleDecoder())
+        self.decoder = getattr(my_module, decoder_type)()
 
     def start_decoder(self):
         self.decoder.start()
@@ -33,6 +36,9 @@ class Model:
 
     def get_num_receivers(self):
         return self.decoder.get_num_receivers()
+
+    def get_receiver_info(self):
+        return self.decoder.get_receiver_info()
 
     def get_received(self):
         if not self.is_decoder_available():
@@ -45,4 +51,3 @@ class Model:
             return []
         else:
             return self.decoder.get_decoded()
-
