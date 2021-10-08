@@ -17,7 +17,7 @@ class Controller:
 
         self.running = True
 
-        thread_gui = threading.Thread(target=self.run_gui)
+        thread_gui = threading.Thread(target=self.run_gui, daemon=True)
         thread_gui.start()
 
         while self.view is None:
@@ -67,8 +67,8 @@ class Controller:
         self.view.decoder_view.decoder_started()
 
     def stop_decoder(self):
-        # TODO
-        pass
+        self.model.stop_decoder()
+        self.view.decoder_view.decoder_stopped()
 
     def close(self):
         self.running = False

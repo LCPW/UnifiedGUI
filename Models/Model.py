@@ -24,12 +24,15 @@ class Model:
 
     def add_decoder(self, decoder_type):
         # Dynamically import the module of the implementation
-        my_module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
         # Create an instance of the class in the said module (e.g. ExampleDecoder.ExampleDecoder())
-        self.decoder = getattr(my_module, decoder_type)()
+        self.decoder = getattr(module, decoder_type)()
 
     def start_decoder(self):
         self.decoder.start()
+
+    def stop_decoder(self):
+        self.decoder.stop()
 
     def remove_decoder(self):
         self.decoder = None

@@ -18,7 +18,7 @@ class DecoderView(QWidget):
             if extension == '.py':
                 self.available_decoders.append(name)
 
-        layout = QVBoxLayout()
+        self.layout = QVBoxLayout()
 
         self.toolbar = QToolBar()
 
@@ -46,10 +46,11 @@ class DecoderView(QWidget):
         self.toolbar.addWidget(self.button_stop_decoder)
 
         label = QLabel("Decoder")
-        layout.addWidget(label)
+        self.layout.addWidget(label)
+        self.layout.addStretch(1)
 
-        layout.addWidget(self.toolbar)
-        self.setLayout(layout)
+        self.layout.addWidget(self.toolbar)
+        self.setLayout(self.layout)
 
     def add_decoder(self):
         decoder_type, ok = QInputDialog.getItem(self, "Add Decoder", "Decoder type", self.available_decoders, 0, False)
@@ -67,6 +68,10 @@ class DecoderView(QWidget):
         self.main_view.controller.stop_decoder()
 
     def decoder_added(self):
+        # TODO: Add information about decoder and receivers in the GUI
+        self.label = QLabel("Blabla")
+        self.layout.addWidget(self.label)
+
         self.button_add_decoder.setEnabled(False)
         self.button_remove_decoder.setEnabled(True)
         self.button_start_decoder.setEnabled(True)

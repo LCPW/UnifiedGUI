@@ -8,7 +8,7 @@ class TableView(QTableWidget):
         super().__init__()
 
         self.old_length = 0
-        self.num_columns = len(column_names)
+        self.num_columns = len(column_names) + 1
 
         # Row count
         self.setRowCount(0)
@@ -16,7 +16,7 @@ class TableView(QTableWidget):
         # Column count
         self.setColumnCount(self.num_columns)
 
-        self.setHorizontalHeaderLabels(column_names)
+        self.setHorizontalHeaderLabels(["Timestamp"] + column_names)
 
         # Table will fit the screen horizontally
         self.horizontalHeader().setStretchLastSection(True)
@@ -26,6 +26,8 @@ class TableView(QTableWidget):
         len_vals = len(vals)
         self.setRowCount(len_vals)
         for i in range(self.old_length, len_vals):
-            for j in range(self.num_columns):
-                self.setItem(i, j, QTableWidgetItem(str(vals[i][j])))
+            timestamp, values = vals[i]['timestamp'], vals[i]['values']
+            self.setItem(i, 0, QTableWidgetItem(str(timestamp)))
+            for j in range(0, len(values)):
+                self.setItem(i, j+1, QTableWidgetItem(str(values[j])))
         self.old_length = len_vals

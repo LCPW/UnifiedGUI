@@ -40,6 +40,15 @@ class MainView(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
+        self.timer = QTimer()
+        # TODO
+        self.timer.setInterval(20)
+        self.timer.timeout.connect(self.update)
+        self.timer.start()
+
+    def update(self):
+        self.data_view.update()
+
     def decoder_added(self, receiver_info):
         # TODO: Update decoder view
         # Update data view

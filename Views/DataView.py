@@ -21,9 +21,12 @@ class DataView(QWidget):
 
         self.setLayout(layout)
 
+    def update(self):
+        self.tab_plot.update()
+
     def add_receivers(self, receiver_info):
         self.tab_tables.add_tables(receiver_info)
-        # TODO: Plot
+        self.tab_plot.add_datalines(receiver_info)
 
     def remove_receivers(self):
         self.tab_tables.remove_tables()
@@ -31,4 +34,4 @@ class DataView(QWidget):
 
     def update_values(self, vals):
         self.tab_tables.update_values(vals)
-        # self.tab_plot.update_values(vals)
+        self.tab_plot.update_values(vals)

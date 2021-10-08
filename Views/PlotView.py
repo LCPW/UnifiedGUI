@@ -5,6 +5,11 @@ import pyqtgraph as pg
 from datetime import datetime
 
 
+# TODO: Make non-ugly
+COLORS = [pg.mkColor("#0000ff"), pg.mkColor("#cc0029"), pg.mkColor("#00d5ff"), pg.mkColor("#b3ff00"),
+          pg.mkColor("#ff8000"), pg.mkColor("#ff0000"), pg.mkColor("#000000")]
+
+
 class PlotView(pg.PlotWidget):
     def __init__(self):
         super().__init__(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
@@ -13,35 +18,67 @@ class PlotView(pg.PlotWidget):
         self.setBackground('w')
 
         # Axis labels left and bottom
-        self.setLabel('left', "y")
-        self.setLabel('bottom', "x")
+        self.setLabel('left', "Value")
+        self.setLabel('bottom', "Time")
 
         # Grid
         self.showGrid(x=True, y=True)
 
-        self.timestamps = []
-        self.y = []
-        self.data_line = self.plot([], [], name="1")
+        self.receiver_data_lines = []
+
+        self.addLegend()
+
+        #self.legend = pg.LegendItem()
+        #self.legend.setParentItem(self.getPlotItem())
+
+    def update(self):
+        for receiver_data_lines in self.receiver_data_lines:
+            receiver_data_lines.update()
+
+    def add_datalines(self, receiver_info):
+        for i in range(len(receiver_info)):
+            description, sensor_descriptions = receiver_info[i]['description'], receiver_info[i]['sensor_descriptions']
+            data_line = ReceiverDataLines(self, description, sensor_descriptions)
+            self.receiver_data_lines.append(data_line)
+
+    def remove_datalines(self):
+        # TODO: Empty all lists before deleting?
+        self.receiver_data_lines = []
 
     def update_values(self, vals):
-        # TODO: Implement properly
-        vals = vals[0]
-        for i in range(len(self.y), len(vals)):
-            t, x = vals[i]
-            self.timestamps.append(t.timestamp())
-            self.y.append(x)
-        #self.timestamps = []
-        #self.y = []
-        #for t, x in vals:
-        #    self.timestamps.append(t)
-            #self.timestamps.append(len(self.timestamps))
-        #    self.y.append(x)
-        #tx = [x.timestamp() for x in self.timestamps]
-        # print(tx)
-        self.data_line.setData(x=self.timestamps, y=self.y)
+        for i in range(len(vals)):
+            self.receiver_data_lines[i].update_values(vals[i])
+
+
+class ReceiverDataLines:
+    def __init__(self, plot_widget, description, sensor_descriptions):
+        self.plot_widget = plot_widget
+        self.description = description
+        self.sensor_descriptions = sensor_descriptions
+        self.timestamps = []
+        self.values = []
+        self.data_lines = []
+
+        for i in range(len(sensor_descriptions)):
+            self.values.append([])
+            # pg.intColor evtl. verwenden
+            pen = pg.mkPen(width=2, color=COLORS.pop(0))
+            self.data_lines.append(self.plot_widget.plot([], [], name=self.description + ": " + self.sensor_descriptions[i], pen=pen))
+
+    def update_values(self, vals):
+        for i in range(len(self.timestamps), len(vals)):
+            timestamp, values = vals[i]['timestamp'], vals[i]['values']
+            self.timestamps.append(timestamp.timestamp())
+            for j in range(len(values)):
+                self.values[j].append(values[j])
+
+    def update(self):
+        for i in range(len(self.data_lines)):
+            self.data_lines[i].setData(self.timestamps, self.values[i])
 
 
 class TimeAxisItem(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):
+        # print(values)
         x = [datetime.fromtimestamp(value) for value in values]
         return x
