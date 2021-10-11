@@ -39,7 +39,6 @@ class DecoderInterface:
         x = []
         for receiver in self.receivers:
             x.append({'description': receiver.description, 'sensor_descriptions': receiver.sensor_descriptions})
-            # x.append((receiver.description, receiver.sensor_descriptions))
         return x
 
     def is_active(self):
@@ -56,7 +55,7 @@ class DecoderInterface:
         for i in range(len(self.receivers)):
             n = self.receivers[i].get_available()
             for j in range(n):
-                self.receiver_buffer[i].append(self.receivers[i].get(j))
+                self.receiver_buffer[i].append(self.receivers[i].get(0))
 
         # self.decoded = []
         # for i in range(0, len(self.receiver_buffer[0])):
