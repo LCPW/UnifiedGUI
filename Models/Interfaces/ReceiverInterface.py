@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 
 
 class ReceiverInterface:
@@ -9,11 +9,12 @@ class ReceiverInterface:
         self.buffer = []
 
     def get_available(self):
-        return len(self.buffer)
+        x = len(self.buffer)
+        return x
 
     def get(self, idx):
         return self.buffer.pop(idx)
 
     def append_values(self, values):
-        timestamp = datetime.now()
+        timestamp = time.time()
         self.buffer.append({'timestamp': timestamp, 'values': values})

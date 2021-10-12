@@ -1,6 +1,7 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from datetime import datetime
 
 
 class TableView(QTableWidget):
@@ -27,7 +28,7 @@ class TableView(QTableWidget):
         self.setRowCount(len_vals)
         for i in range(self.old_length, len_vals):
             timestamp, values = vals[i]['timestamp'], vals[i]['values']
-            self.setItem(i, 0, QTableWidgetItem(str(timestamp)))
+            self.setItem(i, 0, QTableWidgetItem(str(datetime.fromtimestamp(timestamp))))
             for j in range(0, len(values)):
                 self.setItem(i, j+1, QTableWidgetItem(str(values[j])))
         self.old_length = len_vals

@@ -1,84 +1,78 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import pyqtgraph as pg
-from datetime import datetime
+
+from Views import PlotWidgetView, PlotSettingsDialog
 
 
-# TODO: Make non-ugly
-COLORS = [pg.mkColor("#0000ff"), pg.mkColor("#cc0029"), pg.mkColor("#00d5ff"), pg.mkColor("#b3ff00"),
-          pg.mkColor("#ff8000"), pg.mkColor("#ff0000"), pg.mkColor("#000000")]
-
-
-class PlotView(pg.PlotWidget):
+class PlotView(QWidget):
     def __init__(self):
-        super().__init__(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+        super().__init__()
 
-        # Set background color to white
-        self.setBackground('w')
+        layout = QVBoxLayout()
 
-        # Axis labels left and bottom
-        self.setLabel('left', "Value")
-        self.setLabel('bottom', "Time")
+        self.plot_settings_dialog = PlotSettingsDialog.PlotSettingsDialog(self)
+        self.plot_widget = PlotWidgetView.PlotWidgetView()
 
-        # Grid
-        self.showGrid(x=True, y=True)
+        self.toolbar = QToolBar()
+        self.button_settings = QToolButton()
+        self.button_settings.setText("Settings")
+        self.button_settings.clicked.connect(self.show_settings)
+        self.toolbar.addWidget(self.button_settings)
 
-        self.receiver_data_lines = []
+        self.button_clear = QToolButton()
+        self.button_clear.setText("Clear")
+        self.button_clear.clicked.connect(self.plot_widget.clear)
+        self.toolbar.addWidget(self.button_clear)
 
-        self.addLegend()
+        layout.addWidget(self.toolbar)
 
-        #self.legend = pg.LegendItem()
-        #self.legend.setParentItem(self.getPlotItem())
+        layout.addWidget(self.plot_widget)
+
+        self.setLayout(layout)
+
+        self.current_color = 0
+        self.settings = {
+            'legend': True,
+            'receivers': []
+        }
 
     def update(self):
-        for receiver_data_lines in self.receiver_data_lines:
-            receiver_data_lines.update()
+        self.plot_widget.update()
 
     def add_datalines(self, receiver_info):
+        self.plot_widget.add_datalines(receiver_info)
+        self.plot_settings_dialog.add_receivers(receiver_info)
         for i in range(len(receiver_info)):
-            description, sensor_descriptions = receiver_info[i]['description'], receiver_info[i]['sensor_descriptions']
-            data_line = ReceiverDataLines(self, description, sensor_descriptions)
-            self.receiver_data_lines.append(data_line)
+            r = {
+                # Tri-state?
+                'active': True,
+                'sensors': []
+            }
+            for j in range(len(receiver_info[i])):
+                s = {
+                    'active': True,
+                    # Get color by int?
+                    'color': self.plot_widget.get_color(self.current_color),
+                    'thickness': 2,
+                    'line': None
+                }
+                self.current_color += 1
+                r['sensors'].append(s)
+            self.settings['receivers'].append(r)
 
     def remove_datalines(self):
-        # TODO: Empty all lists before deleting?
-        self.receiver_data_lines = []
+        self.plot_widget.remove_datalines()
+        # TODO: Settings Menu
+        self.current_color = 0
 
     def update_values(self, vals):
-        for i in range(len(vals)):
-            self.receiver_data_lines[i].update_values(vals[i])
+        self.plot_widget.update_values(vals)
 
+    def show_settings(self):
+        # if self.plot_settings_dialog.isVisible():
+        #     self.plot_settings_dialog.hide()
+        # else:
+        #     self.plot_settings_dialog.show()
 
-class ReceiverDataLines:
-    def __init__(self, plot_widget, description, sensor_descriptions):
-        self.plot_widget = plot_widget
-        self.description = description
-        self.sensor_descriptions = sensor_descriptions
-        self.timestamps = []
-        self.values = []
-        self.data_lines = []
-
-        for i in range(len(sensor_descriptions)):
-            self.values.append([])
-            # pg.intColor evtl. verwenden
-            pen = pg.mkPen(width=2, color=COLORS.pop(0))
-            self.data_lines.append(self.plot_widget.plot([], [], name=self.description + ": " + self.sensor_descriptions[i], pen=pen))
-
-    def update_values(self, vals):
-        for i in range(len(self.timestamps), len(vals)):
-            timestamp, values = vals[i]['timestamp'], vals[i]['values']
-            self.timestamps.append(timestamp.timestamp())
-            for j in range(len(values)):
-                self.values[j].append(values[j])
-
-    def update(self):
-        for i in range(len(self.data_lines)):
-            self.data_lines[i].setData(self.timestamps, self.values[i])
-
-
-class TimeAxisItem(pg.AxisItem):
-    def tickStrings(self, values, scale, spacing):
-        # print(values)
-        x = [datetime.fromtimestamp(value) for value in values]
-        return x
+        self.plot_settings_dialog.show()

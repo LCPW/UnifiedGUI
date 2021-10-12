@@ -24,6 +24,7 @@ class DecoderView(QWidget):
 
         self.button_add_decoder = QToolButton()
         self.button_add_decoder.setText("Add Decoder")
+        self.button_add_decoder.setIcon(QIcon('./Views/Icons/2x/add.png'))
         self.button_add_decoder.clicked.connect(self.add_decoder)
         self.toolbar.addWidget(self.button_add_decoder)
 
@@ -46,10 +47,10 @@ class DecoderView(QWidget):
         self.toolbar.addWidget(self.button_stop_decoder)
 
         label = QLabel("Decoder")
-        self.layout.addWidget(label)
-        self.layout.addStretch(1)
-
         self.layout.addWidget(self.toolbar)
+        self.layout.addStretch(1)
+        self.layout.addWidget(label)
+
         self.setLayout(self.layout)
 
     def add_decoder(self):

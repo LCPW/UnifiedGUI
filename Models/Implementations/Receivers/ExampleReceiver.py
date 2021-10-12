@@ -15,7 +15,7 @@ class ExampleReceiver(ReceiverInterface):
 
     def listen(self):
         while True:
-            time.sleep(0.1)
+            time.sleep(0.001)
             value1 = random.random()
             value2 = random.random()
             values = (value1, value2)

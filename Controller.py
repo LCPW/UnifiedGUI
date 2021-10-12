@@ -27,8 +27,6 @@ class Controller:
         while self.running:
             self.run(sleep_time=1.0/FRAMES_PER_SECOND)
 
-        # TODO: Close all other running threads
-
     def run(self, sleep_time):
         if self.model.is_decoder_available():
             decoded = self.model.get_decoded()

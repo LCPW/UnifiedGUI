@@ -48,6 +48,9 @@ class MainView(QMainWindow):
 
     def update(self):
         self.data_view.update()
+        # TODO: Refactor
+        # Get values
+        # Set them accordingly
 
     def decoder_added(self, receiver_info):
         # TODO: Update decoder view
