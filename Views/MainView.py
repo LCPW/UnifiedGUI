@@ -43,11 +43,13 @@ class MainView(QMainWindow):
         self.timer = QTimer()
         # TODO
         self.timer.setInterval(20)
-        self.timer.timeout.connect(self.update)
+        self.timer.timeout.connect(self.update_values)
         self.timer.start()
 
-    def update(self):
-        self.data_view.update()
+    def update_values(self):
+        received = self.controller.get_received()
+        if received is not None:
+            self.data_view.update_values(received)
         # TODO: Refactor
         # Get values
         # Set them accordingly
@@ -60,10 +62,6 @@ class MainView(QMainWindow):
     def decoder_removed(self):
         # TODO
         pass
-
-    def update_values(self, vals):
-        if vals is not None:
-            self.data_view.update_values(vals)
 
     def closeEvent(self, close_event: QCloseEvent):
         msg = QMessageBox()

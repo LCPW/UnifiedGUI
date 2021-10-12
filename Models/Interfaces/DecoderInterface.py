@@ -1,5 +1,6 @@
 import importlib
 import threading
+import numpy as np
 
 
 class DecoderInterface:
@@ -12,6 +13,9 @@ class DecoderInterface:
         self.receivers = []
         self.receiver_buffer = []
 
+        self.timestamps = []
+        self.received = []
+
         for i in range(self.num_receivers):
             # Dynamically import the module of the implementation
             module = importlib.import_module('.' + self.receiver_types[i], package='Models.Implementations.Receivers')
@@ -19,6 +23,9 @@ class DecoderInterface:
             instance = getattr(module, self.receiver_types[i])(self.receiver_descriptions[i])
             self.receivers.append(instance)
             self.receiver_buffer.append([])
+
+            self.timestamps.append(None)
+            self.received.append(None)
 
         self.decoded = []
 
@@ -46,16 +53,35 @@ class DecoderInterface:
 
     def get_received(self):
         self.empty_receiver_buffers()
-        return self.receiver_buffer
+        return {'timestamps': self.timestamps, 'values': self.received}
+        #return self.receiver_buffer
 
     def get_decoded(self):
         return self.decoded
+
+    def append_timestamp(self, index, timestamp):
+        if self.timestamps[index] is None:
+            # TODO: dtype
+            self.timestamps[index] = np.array([timestamp])
+        else:
+            self.timestamps[index] = np.append(self.timestamps[index], timestamp)
+
+    def append_values(self, index, values):
+        if self.received[index] is None:
+            self.received[index] = np.empty((1, len(values)))
+            self.received[index][0] = np.array(values)
+        else:
+            self.received[index] = np.vstack((self.received[index], np.array(values)))
 
     def empty_receiver_buffers(self):
         for i in range(len(self.receivers)):
             n = self.receivers[i].get_available()
             for j in range(n):
-                self.receiver_buffer[i].append(self.receivers[i].get(0))
+                # self.receiver_buffer[i].append(self.receivers[i].get(0))
+                x = self.receivers[i].get(0)
+                timestamp, values = x['timestamp'], x['values']
+                self.append_timestamp(i, timestamp)
+                self.append_values(i, values)
 
         # self.decoded = []
         # for i in range(0, len(self.receiver_buffer[0])):

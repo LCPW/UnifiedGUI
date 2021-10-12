@@ -32,5 +32,6 @@ class TablesView(QWidget):
         self.tables = []
 
     def update_values(self, vals):
-        for i in range(len(vals)):
-            self.tables[i].update_values(vals[i])
+        timestamps, values = vals['timestamps'], vals['values']
+        for i in range(len(timestamps)):
+            self.tables[i].update_values(timestamps[i], values[i])

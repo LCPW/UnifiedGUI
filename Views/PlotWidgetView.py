@@ -32,8 +32,9 @@ class PlotWidgetView(pg.PlotWidget):
         #self.legend.setParentItem(self.getPlotItem())
 
     def update(self):
-        for receiver_data_lines in self.receiver_data_lines:
-            receiver_data_lines.update()
+        #for receiver_data_lines in self.receiver_data_lines:
+            #receiver_data_lines.update()
+        pass
 
     def add_datalines(self, receiver_info):
         for i in range(len(receiver_info)):
@@ -46,8 +47,24 @@ class PlotWidgetView(pg.PlotWidget):
         self.receiver_data_lines = []
 
     def update_values(self, vals):
-        for i in range(len(vals)):
-            self.receiver_data_lines[i].update_values(vals[i])
+        if vals is None:
+            return
+        #print(vals)
+        timestamps, values = vals['timestamps'], vals['values']
+        for i in range(len(timestamps)):
+            # self.receiver_data_lines[i].timestamps = timestamps[i]
+            #print(values[i])
+            # TODO: ?
+            if values[i] is None:
+                return
+
+            for j in range(values[i].shape[1]):
+                y = values[i][:, j]
+                #print(timestamps[i])
+                #print(y)
+                self.receiver_data_lines[i].data_lines[j].setData(x=timestamps[i], y=y)
+        #for i in range(len(vals)):
+        #   self.receiver_data_lines[i].update_values(vals[i])
 
     def clear(self):
         for i in range(len(self.receiver_data_lines)):
@@ -79,10 +96,6 @@ class ReceiverDataLines:
             for j in range(len(values)):
                 self.values[j].append(values[j])
 
-    def update(self):
-        for i in range(len(self.data_lines)):
-            self.data_lines[i].setData(self.timestamps, self.values[i])
-
     def clear(self):
         for i in range(len(self.data_lines)):
             self.data_lines[i].clear()
@@ -90,6 +103,5 @@ class ReceiverDataLines:
 
 class TimeAxisItem(pg.AxisItem):
     def tickStrings(self, values, scale, spacing):
-        # print(values)
         x = [datetime.fromtimestamp(value) for value in values]
         return x

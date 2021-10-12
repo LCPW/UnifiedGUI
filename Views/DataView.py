@@ -21,9 +21,6 @@ class DataView(QWidget):
 
         self.setLayout(layout)
 
-    def update(self):
-        self.tab_plot.update()
-
     def add_receivers(self, receiver_info):
         self.tab_tables.add_tables(receiver_info)
         self.tab_plot.add_datalines(receiver_info)

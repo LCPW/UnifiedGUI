@@ -24,7 +24,7 @@ class DecoderView(QWidget):
 
         self.button_add_decoder = QToolButton()
         self.button_add_decoder.setText("Add Decoder")
-        self.button_add_decoder.setIcon(QIcon('./Views/Icons/2x/add.png'))
+        self.button_add_decoder.setIcon(QIcon('./Views/Icons/add.png'))
         self.button_add_decoder.clicked.connect(self.add_decoder)
         self.toolbar.addWidget(self.button_add_decoder)
 

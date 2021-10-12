@@ -37,9 +37,6 @@ class PlotView(QWidget):
             'receivers': []
         }
 
-    def update(self):
-        self.plot_widget.update()
-
     def add_datalines(self, receiver_info):
         self.plot_widget.add_datalines(receiver_info)
         self.plot_settings_dialog.add_receivers(receiver_info)
