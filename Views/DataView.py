@@ -14,8 +14,8 @@ class DataView(QWidget):
         self.tab_tables = TablesView.TablesView()
         self.tab_plot = PlotView.PlotView()
 
-        self.tabs.addTab(self.tab_tables, "Tables")
         self.tabs.addTab(self.tab_plot, "Plot")
+        self.tabs.addTab(self.tab_tables, "Tables")
 
         layout.addWidget(self.tabs)
 

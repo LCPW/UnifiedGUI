@@ -34,4 +34,5 @@ class TablesView(QWidget):
     def update_values(self, vals):
         timestamps, values = vals['timestamps'], vals['values']
         for i in range(len(timestamps)):
-            self.tables[i].update_values(timestamps[i], values[i])
+            if timestamps[i] is not None:
+                self.tables[i].update_values(timestamps[i], values[i])
