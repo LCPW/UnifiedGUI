@@ -24,6 +24,8 @@ class PlotView(QWidget):
         self.toolbar = QToolBar()
         self.button_settings = QToolButton()
         self.button_settings.setText("Settings")
+        self.button_settings.setIcon(QIcon('./Views/Icons/settings.png'))
+        self.button_settings.setEnabled(False)
         self.button_settings.clicked.connect(self.show_settings)
         self.toolbar.addWidget(self.button_settings)
 
@@ -41,10 +43,11 @@ class PlotView(QWidget):
 
     def set_color(self, i, j):
         color = QColorDialog.getColor()
-        # print(color)
-        self.settings['pens'][i][j].setColor(color)
-        self.plot_widget.update_pens(i, j)
-        self.plot_settings_dialog.buttons_color[i][j].setStyleSheet("background-color: " + self.settings['pens'][i][j].color().name())
+        # Is False if the user pressed Cancel
+        if color.isValid():
+            self.settings['pens'][i][j].setColor(color)
+            self.plot_widget.update_pens(i, j)
+            self.plot_settings_dialog.buttons_color[i][j].setStyleSheet("background-color: " + self.settings['pens'][i][j].color().name())
 
     def set_width(self, i, j):
         # TODO: Get width
@@ -66,11 +69,15 @@ class PlotView(QWidget):
             self.settings['pens'].append(pens_)
 
         self.plot_widget.add_datalines(receiver_info)
-        self.plot_settings_dialog.add_receivers(receiver_info)
+        self.plot_settings_dialog.add_datalines(receiver_info)
+        self.button_settings.setEnabled(True)
 
     def remove_datalines(self):
         self.plot_widget.remove_datalines()
-        # TODO: Settings Menu
+        self.plot_settings_dialog.remove_datalines()
+        self.button_settings.setEnabled(False)
+        self.settings['active'] = []
+        self.settings['pens'] = []
         self.current_color = 0
 
     def update_values(self, vals):
@@ -79,6 +86,12 @@ class PlotView(QWidget):
     def toggle_checkbox(self, receiver_index, sensor_index):
         current_state = self.settings['active'][receiver_index][sensor_index]
         self.settings['active'][receiver_index][sensor_index] = not current_state
+        # True -> False
+        if current_state:
+            self.plot_widget.deactivate(receiver_index, sensor_index)
+        # False -> True
+        else:
+            self.plot_widget.activate(receiver_index, sensor_index)
 
         all_, any_ = all(self.settings['active'][receiver_index]), any(self.settings['active'][receiver_index])
         state = 2 if all_ else (1 if any_ else 0)
@@ -88,6 +101,10 @@ class PlotView(QWidget):
     def set_all(self, receiver_index, state):
         for sensor_index in range(len(self.settings['active'][receiver_index])):
             self.settings['active'][receiver_index][sensor_index] = state
+            if state:
+                self.plot_widget.activate(receiver_index, sensor_index)
+            else:
+                self.plot_widget.deactivate(receiver_index, sensor_index)
 
     def toggle_receiver_checkbox(self, receiver_index):
         state = self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].checkState()
@@ -101,5 +118,6 @@ class PlotView(QWidget):
             self.set_all(receiver_index, True)
 
     def show_settings(self):
-        # TODO: Fokus auf Dialog, wenn nochmal geklickt
         self.plot_settings_dialog.show()
+        # Set this as the active window
+        self.plot_settings_dialog.activateWindow()
