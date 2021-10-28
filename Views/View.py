@@ -5,9 +5,9 @@ import sys
 from Views import EncoderView, DecoderView, DataView, ToolbarView
 
 
-class MainView(QMainWindow):
+class View(QMainWindow):
     def __init__(self, controller):
-        super(MainView, self).__init__()
+        super(View, self).__init__()
 
         self.controller = controller
 
@@ -50,9 +50,14 @@ class MainView(QMainWindow):
         received = self.controller.get_received()
         if received is not None:
             self.data_view.update_values(received)
-        # TODO: Refactor
-        # Get values
-        # Set them accordingly
+
+        symbol_intervals = self.controller.get_symbol_intervals()
+        if symbol_intervals is not None:
+            self.data_view.update_symbol_intervals(symbol_intervals)
+
+        symbol_values = self.controller.get_symbol_values()
+        if symbol_intervals is not None and symbol_values is not None:
+            self.data_view.update_symbol_values(symbol_intervals, symbol_values)
 
     def decoder_added(self, receiver_info):
         # TODO: Update decoder view

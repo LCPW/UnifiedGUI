@@ -13,7 +13,10 @@ class PlotView(QWidget):
         self.settings = {
             'legend': True,
             'active': [],
-            'pens': []
+            'pens': [],
+            'symbol_intervals': True,
+            'symbol_intervals_pen': pg.mkPen(color='k', width=1),
+            'symbol_values': True,
         }
 
         layout = QVBoxLayout()
@@ -83,6 +86,12 @@ class PlotView(QWidget):
     def update_values(self, vals):
         self.plot_widget.update_values(vals)
 
+    def update_symbol_intervals(self, symbol_intervals):
+        self.plot_widget.update_symbol_intervals(symbol_intervals)
+
+    def update_symbol_values(self, symbol_intervals, symbol_values):
+        self.plot_widget.update_symbol_values(symbol_intervals, symbol_values)
+
     def toggle_checkbox(self, receiver_index, sensor_index):
         current_state = self.settings['active'][receiver_index][sensor_index]
         self.settings['active'][receiver_index][sensor_index] = not current_state
@@ -116,6 +125,22 @@ class PlotView(QWidget):
             self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].setCheckState(Qt.CheckState(state))
             self.plot_settings_dialog.set_receiver_checkboxes(receiver_index, True)
             self.set_all(receiver_index, True)
+
+    def toggle_symbol_intervals(self):
+        state = self.plot_settings_dialog.checkbox_symbol_intervals.checkState()
+        self.settings['symbol_intervals'] = state
+        if state:
+            self.plot_widget.activate_symbol_intervals()
+        else:
+            self.plot_widget.deactivate_symbol_intervals()
+
+    def toggle_symbol_values(self):
+        state = self.plot_settings_dialog.checkbox_symbol_values.checkState()
+        self.settings['symbol_values'] = state
+        if state:
+            self.plot_widget.activate_symbol_values()
+        else:
+            self.plot_widget.deactivate_symbol_values()
 
     def show_settings(self):
         self.plot_settings_dialog.show()

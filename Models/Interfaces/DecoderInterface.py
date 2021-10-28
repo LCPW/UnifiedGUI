@@ -7,7 +7,7 @@ class DecoderInterface:
     def __init__(self, num_receivers, receiver_types, receiver_descriptions=None):
         self.num_receivers = num_receivers
         self.receiver_types = receiver_types
-        self.receiver_descriptions = receiver_types if receiver_descriptions is None else receiver_descriptions
+        self.receiver_descriptions = [str(receiver_types[i]) + str(i) for i in range(len(self.receiver_types))] if receiver_descriptions is None else receiver_descriptions
         self.active = False
 
         self.receivers = []
@@ -27,6 +27,9 @@ class DecoderInterface:
             self.timestamps.append(None)
             self.received.append(None)
 
+        self.symbol_intervals = []
+        self.symbol_values = []
+        # TODO: Deprecated
         self.decoded = []
 
     def start(self):
@@ -43,10 +46,10 @@ class DecoderInterface:
         return self.num_receivers
 
     def get_receiver_info(self):
-        x = []
+        receiver_info = []
         for receiver in self.receivers:
-            x.append({'description': receiver.description, 'sensor_descriptions': receiver.sensor_descriptions})
-        return x
+            receiver_info.append({'description': receiver.description, 'sensor_descriptions': receiver.sensor_descriptions})
+        return receiver_info
 
     def is_active(self):
         return self.active
@@ -54,14 +57,12 @@ class DecoderInterface:
     def get_received(self):
         self.empty_receiver_buffers()
         return {'timestamps': self.timestamps, 'values': self.received}
-        #return self.receiver_buffer
 
     def get_decoded(self):
         return self.decoded
 
     def append_timestamp(self, index, timestamp):
         if self.timestamps[index] is None:
-            # TODO: dtype
             self.timestamps[index] = np.array([timestamp])
         else:
             self.timestamps[index] = np.append(self.timestamps[index], timestamp)
@@ -82,6 +83,22 @@ class DecoderInterface:
                 timestamp, values = x['timestamp'], x['values']
                 self.append_timestamp(i, timestamp)
                 self.append_values(i, values)
+
+    def get_symbol_intervals(self):
+        self.calculate_symbol_intervals()
+        return self.symbol_intervals
+
+    def get_symbol_values(self):
+        self.calculate_symbol_values()
+        return self.symbol_values
+
+    def decode(self):
+        # TODO
+        # Optionally apply filter
+        # Optionally calculate landmarks (edges, peaks, etc.)
+        # Calculate symbol intervals
+        # Assign value to each symbol interval
+        pass
 
         # self.decoded = []
         # for i in range(0, len(self.receiver_buffer[0])):

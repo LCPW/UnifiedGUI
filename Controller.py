@@ -4,7 +4,7 @@ import threading
 import time
 
 from Models import Model
-from Views import MainView
+from Views import View
 
 
 FRAMES_PER_SECOND = 25
@@ -38,13 +38,19 @@ class Controller:
     def run_gui(self):
         app = QtWidgets.QApplication(sys.argv)
         app.setStyle('Fusion')
-        self.view = MainView.MainView(self)
+        self.view = View.View(self)
         self.view.show()
         app.exec_()
         #sys.exit(app.exec_())
 
     def get_received(self):
         return self.model.get_received()
+
+    def get_symbol_intervals(self):
+        return self.model.get_symbol_intervals()
+
+    def get_symbol_values(self):
+        return self.model.get_symbol_values()
 
     def add_encoder(self, encoder_type):
         self.model.add_encoder(encoder_type)

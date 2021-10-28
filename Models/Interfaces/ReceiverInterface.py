@@ -2,10 +2,10 @@ import time
 
 
 class ReceiverInterface:
-    def __init__(self, description, num_sensors, sensor_descriptions):
+    def __init__(self, description, num_sensors, sensor_descriptions=None):
         self.description = description
         self.num_sensors = num_sensors
-        self.sensor_descriptions = sensor_descriptions
+        self.sensor_descriptions = ["Value" + str(i) for i in range(num_sensors)] if sensor_descriptions is None else sensor_descriptions
         self.buffer = []
 
     def get_available(self):

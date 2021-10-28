@@ -33,3 +33,9 @@ class DataView(QWidget):
     def update_values(self, vals):
         self.tab_tables.update_values(vals)
         self.tab_plot.update_values(vals)
+
+    def update_symbol_intervals(self, symbol_intervals):
+        self.tab_plot.update_symbol_intervals(symbol_intervals)
+
+    def update_symbol_values(self, symbol_intervals, symbol_values):
+        self.tab_plot.update_symbol_values(symbol_intervals, symbol_values)

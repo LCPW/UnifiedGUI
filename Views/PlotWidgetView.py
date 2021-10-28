@@ -25,8 +25,12 @@ class PlotWidgetView(pg.PlotWidget):
         self.data_lines = []
 
         self.last_vals = None
+        self.last_symbol_intervals = None
+        self.last_symbol_values = None
+        self.vertical_lines = []
+        self.text_items = []
 
-        # TODO
+        # TODO?
         # self.setDownsampling(ds=10)
 
         self.legend = pg.LegendItem()
@@ -42,9 +46,9 @@ class PlotWidgetView(pg.PlotWidget):
                 self.legend.addItem(data_line, data_line.name())
             self.data_lines.append(data_lines_)
 
-    def update_pens(self, i, j):
-        pen = self.plot_view.settings['pens'][i][j]
-        self.data_lines[i][j].setPen(pen)
+    def update_pens(self, receiver_index, sensor_index):
+        pen = self.plot_view.settings['pens'][receiver_index][sensor_index]
+        self.data_lines[receiver_index][sensor_index].setPen(pen)
 
     def remove_datalines(self):
         for i in range(len(self.data_lines)):
@@ -54,6 +58,10 @@ class PlotWidgetView(pg.PlotWidget):
                 self.update_()
         self.data_lines = []
         self.last_vals = None
+        self.deactivate_symbol_intervals()
+        self.last_symbol_intervals = None
+        self.deactivate_symbol_values()
+        self.last_symbol_values = None
 
     def update_values(self, vals):
         timestamps, values = vals['timestamps'], vals['values']
@@ -64,8 +72,47 @@ class PlotWidgetView(pg.PlotWidget):
                         # TODO: Only plot every x-th value, if it is too laggy
                         # self.data_lines[receiver_index][sensor_index].setData(timestamps[receiver_index][::1], values[receiver_index][:, sensor_index][::1])
                         self.data_lines[receiver_index][sensor_index].setData(timestamps[receiver_index], values[receiver_index][:, sensor_index])
-
         self.last_vals = vals
+
+    def update_symbol_intervals(self, symbol_intervals):
+        # TODO: Only plot the new lines, not all of them
+        if self.plot_view.settings['symbol_intervals']:
+            for timestamp in symbol_intervals[len(self.vertical_lines):]:
+                vertical = pg.InfiniteLine(pos=timestamp, angle=90, movable=False, pen=self.plot_view.settings['symbol_intervals_pen'])
+                self.addItem(vertical)
+                self.vertical_lines.append(vertical)
+
+        self.last_symbol_intervals = symbol_intervals
+
+    def deactivate_symbol_intervals(self):
+        for i in self.vertical_lines:
+            self.removeItem(i)
+        self.vertical_lines = []
+        # self.last_symbol_intervals = None
+
+    def activate_symbol_intervals(self):
+        self.update_symbol_intervals(self.last_symbol_intervals)
+
+    def update_symbol_values(self, symbol_intervals, symbol_values):
+        if self.plot_view.settings['symbol_values']:
+            for i in range(len(self.text_items), len(symbol_values)):
+                # TODO: Special case for last value
+                # x_pos = symbol_intervals[i]
+                x_pos = 0.5 * (symbol_intervals[i] + symbol_intervals[i+1])
+                text = pg.TextItem(symbol_values[i], color='k')
+                # TODO: Place in correct height
+                text.setPos(x_pos, 1)
+                self.addItem(text)
+                self.text_items.append(text)
+        self.last_symbol_values = symbol_values
+
+    def deactivate_symbol_values(self):
+        for text_item in self.text_items:
+            self.removeItem(text_item)
+        self.text_items = []
+
+    def activate_symbol_values(self):
+        self.update_symbol_values(self.last_symbol_intervals, self.last_symbol_values)
 
     def deactivate(self, receiver_index, sensor_index):
         self.data_lines[receiver_index][sensor_index].clear()

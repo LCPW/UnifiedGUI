@@ -23,7 +23,18 @@ class PlotSettingsDialog(QDialog):
         self.checkbox_widget = QWidget()
         self.checkbox_layout = QHBoxLayout()
         self.checkbox_widget.setLayout(self.checkbox_layout)
+
+        self.checkbox_symbol_intervals = QCheckBox("Show symbol intervals")
+        self.checkbox_symbol_intervals.setChecked(True)
+        self.checkbox_symbol_intervals.clicked.connect(self.plot_view.toggle_symbol_intervals)
+
+        self.checkbox_symbol_values = QCheckBox("Show symbol values")
+        self.checkbox_symbol_values.setChecked(True)
+        self.checkbox_symbol_values.clicked.connect(self.plot_view.toggle_symbol_values)
+
         self.layout.addWidget(self.checkbox_widget)
+        self.layout.addWidget(self.checkbox_symbol_intervals)
+        self.layout.addWidget(self.checkbox_symbol_values)
 
         self.setLayout(self.layout)
 
@@ -65,7 +76,7 @@ class PlotSettingsDialog(QDialog):
                 button_color.clicked.connect(generate_lambda_button(receiver_index, sensor_index))
                 _buttons_color.append(button_color)
                 combobox = QComboBox()
-                combobox.addItems(["SolidLine", "DashedLine", "DotLine", "DashDotLine", "DashDotDotLine"])
+                combobox.addItems(["SolidLine", "DashLine", "DotLine", "DashDotLine", "DashDotDotLine"])
                 combobox.activated.connect(generate_lambda_combobox(receiver_index, sensor_index))
                 _comboboxes_style.append(combobox)
                 layout.addWidget(checkbox)
@@ -77,7 +88,6 @@ class PlotSettingsDialog(QDialog):
 
             widget.setLayout(layout)
             self.checkbox_layout.addWidget(widget)
-            # self.layout.addWidget(self.checkbox_widget)
 
     def set_receiver_checkboxes(self, receiver_index, state):
         for sensor_index in range(len(self.checkboxes_active[receiver_index])):
@@ -90,7 +100,6 @@ class PlotSettingsDialog(QDialog):
 
         # https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
         for i in reversed(range(self.checkbox_layout.count())):
-            #self.checkbox_layout.itemAt(i).widget().
             self.checkbox_layout.removeWidget(self.checkbox_layout.itemAt(i).widget())
 
         self.hide()

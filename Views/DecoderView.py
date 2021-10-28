@@ -5,6 +5,11 @@ from PyQt5.QtWidgets import *
 import os
 
 
+# TODO: Refactor
+# Bigger font for titles
+FONT_BIG = QFont('MS Shell Dlg 2', 14, weight=QFont.Bold)
+
+
 class DecoderView(QWidget):
     def __init__(self, main_view):
         super().__init__()
@@ -30,26 +35,31 @@ class DecoderView(QWidget):
 
         self.button_remove_decoder = QToolButton()
         self.button_remove_decoder.setText("Remove Decoder")
+        self.button_remove_decoder.setIcon(QIcon('./Views/Icons/remove.png'))
         self.button_remove_decoder.setEnabled(False)
         self.button_remove_decoder.clicked.connect(self.remove_decoder)
         self.toolbar.addWidget(self.button_remove_decoder)
 
         self.button_start_decoder = QToolButton()
         self.button_start_decoder.setText("Start Decoder")
+        self.button_start_decoder.setIcon(QIcon('./Views/Icons/play.png'))
         self.button_start_decoder.setEnabled(False)
         self.button_start_decoder.clicked.connect(self.start_decoder)
         self.toolbar.addWidget(self.button_start_decoder)
 
         self.button_stop_decoder = QToolButton()
         self.button_stop_decoder.setText("Stop Decoder")
+        self.button_stop_decoder.setIcon(QIcon('./Views/Icons/stop.png'))
         self.button_stop_decoder.setEnabled(False)
         self.button_stop_decoder.clicked.connect(self.stop_decoder)
         self.toolbar.addWidget(self.button_stop_decoder)
 
         label = QLabel("Decoder")
+        label.setFont(FONT_BIG)
+        label.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
         self.layout.addWidget(self.toolbar)
-        self.layout.addStretch(1)
         self.layout.addWidget(label)
+        self.layout.addStretch(1)
 
         self.setLayout(self.layout)
 
@@ -59,7 +69,18 @@ class DecoderView(QWidget):
             self.main_view.controller.add_decoder(decoder_type)
 
     def remove_decoder(self):
-        self.main_view.controller.remove_decoder()
+        msg = QMessageBox()
+        msg.setIcon(QMessageBox.Warning)
+        icon_msg = self.style().standardIcon(getattr(QStyle, 'SP_MessageBoxWarning'))
+        msg.setWindowIcon(icon_msg)
+        msg.setText("Are you sure you want to remove the decoder?")
+        msg.setInformativeText("You can still view and export the current data,"
+                               " but it is not possible to restart the plot without clearing all current data")
+        msg.setWindowTitle("Remove decoder?")
+        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
+        ret = msg.exec()
+        if ret == QMessageBox.Yes:
+            self.main_view.controller.remove_decoder()
 
     def start_decoder(self):
         self.main_view.controller.start_decoder()
