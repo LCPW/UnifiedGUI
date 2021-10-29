@@ -11,6 +11,7 @@ class ExampleDecoder(DecoderInterface):
         super().__init__(self.num_receivers, self.receiver_types, receiver_descriptions=self.receiver_descriptions)
 
     def calculate_symbol_intervals(self):
+        #@overrides(DecoderInterface)
         if self.timestamps[0] is not None:
             self.symbol_intervals = self.timestamps[0][::50]
 

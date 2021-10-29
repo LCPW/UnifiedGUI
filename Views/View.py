@@ -47,20 +47,15 @@ class View(QMainWindow):
         self.timer.start()
 
     def update_values(self):
-        received = self.controller.get_received()
-        if received is not None:
+        decoded = self.controller.get_decoded()
+        if decoded is not None:
+            received, symbol_intervals, symbol_values = decoded['received'], decoded['symbol_intervals'], decoded['symbol_values']
+
             self.data_view.update_values(received)
-
-        symbol_intervals = self.controller.get_symbol_intervals()
-        if symbol_intervals is not None:
             self.data_view.update_symbol_intervals(symbol_intervals)
-
-        symbol_values = self.controller.get_symbol_values()
-        if symbol_intervals is not None and symbol_values is not None:
             self.data_view.update_symbol_values(symbol_intervals, symbol_values)
 
     def decoder_added(self, receiver_info):
-        # TODO: Update decoder view
         # Update data view
         self.data_view.add_receivers(receiver_info)
 

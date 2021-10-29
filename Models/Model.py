@@ -43,26 +43,26 @@ class Model:
     def get_receiver_info(self):
         return self.decoder.get_receiver_info()
 
-    def get_received(self):
-        if not self.is_decoder_available():
-            return None
-        else:
-            return self.decoder.get_received()
-
-    def get_symbol_intervals(self):
-        if not self.is_decoder_available():
-            return None
-        else:
-            return self.decoder.get_symbol_intervals()
-
-    def get_symbol_values(self):
-        if not self.is_decoder_available():
-            return None
-        else:
-            return self.decoder.get_symbol_values()
+    # def get_received(self):
+    #     if not self.is_decoder_available():
+    #         return None
+    #     else:
+    #         return self.decoder.get_received()
+    #
+    # def get_symbol_intervals(self):
+    #     if not self.is_decoder_available():
+    #         return None
+    #     else:
+    #         return self.decoder.get_symbol_intervals()
+    #
+    # def get_symbol_values(self):
+    #     if not self.is_decoder_available():
+    #         return None
+    #     else:
+    #         return self.decoder.get_symbol_values()
 
     def get_decoded(self):
         if not self.is_decoder_available():
-            return []
+            return None
         else:
             return self.decoder.get_decoded()

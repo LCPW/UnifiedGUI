@@ -28,7 +28,6 @@ class DataView(QWidget):
     def remove_receivers(self):
         self.tab_tables.remove_tables()
         self.tab_plot.remove_datalines()
-        # TODO: Plot
 
     def update_values(self, vals):
         self.tab_tables.update_values(vals)

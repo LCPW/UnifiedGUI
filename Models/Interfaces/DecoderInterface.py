@@ -7,7 +7,7 @@ class DecoderInterface:
     def __init__(self, num_receivers, receiver_types, receiver_descriptions=None):
         self.num_receivers = num_receivers
         self.receiver_types = receiver_types
-        self.receiver_descriptions = [str(receiver_types[i]) + str(i) for i in range(len(self.receiver_types))] if receiver_descriptions is None else receiver_descriptions
+        self.receiver_descriptions = [str(receiver_types[i]) + str(i+1) for i in range(len(self.receiver_types))] if receiver_descriptions is None else receiver_descriptions
         self.active = False
 
         self.receivers = []
@@ -30,7 +30,7 @@ class DecoderInterface:
         self.symbol_intervals = []
         self.symbol_values = []
         # TODO: Deprecated
-        self.decoded = []
+        # self.decoded = None
 
     def start(self):
         for i in range(self.num_receivers):
@@ -54,12 +54,10 @@ class DecoderInterface:
     def is_active(self):
         return self.active
 
-    def get_received(self):
-        self.empty_receiver_buffers()
-        return {'timestamps': self.timestamps, 'values': self.received}
-
     def get_decoded(self):
-        return self.decoded
+        self.decode()
+        received = {'timestamps': self.timestamps, 'values': self.received}
+        return {'received': received, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values}
 
     def append_timestamp(self, index, timestamp):
         if self.timestamps[index] is None:
@@ -75,6 +73,7 @@ class DecoderInterface:
             self.received[index] = np.vstack((self.received[index], np.array(values)))
 
     def empty_receiver_buffers(self):
+        # print(threading.current_thread().name)
         for i in range(len(self.receivers)):
             n = self.receivers[i].get_available()
             for j in range(n):
@@ -84,27 +83,20 @@ class DecoderInterface:
                 self.append_timestamp(i, timestamp)
                 self.append_values(i, values)
 
-    def get_symbol_intervals(self):
-        self.calculate_symbol_intervals()
-        return self.symbol_intervals
+    def calculate_symbol_intervals(self):
+        # TODO
+        print("Hint: calculate_symbol_intervals is not implemented in your selected decoder.")
 
-    def get_symbol_values(self):
-        self.calculate_symbol_values()
-        return self.symbol_values
+    def calculate_symbol_values(self):
+        # TODO
+        print("Hint: calculate_symbol_values is not implemented in your selected decoder.")
 
     def decode(self):
         # TODO
+        self.empty_receiver_buffers()
         # Optionally apply filter
         # Optionally calculate landmarks (edges, peaks, etc.)
         # Calculate symbol intervals
+        self.calculate_symbol_intervals()
         # Assign value to each symbol interval
-        pass
-
-        # self.decoded = []
-        # for i in range(0, len(self.receiver_buffer[0])):
-        #     t, x = self.receiver_buffer[0][i]
-        #
-        #     if x < 0.5:
-        #         self.decoded.append((t, "A"))
-        #     else:
-        #         self.decoded.append((t, "B"))
+        self.calculate_symbol_values()

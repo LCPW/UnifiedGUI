@@ -29,9 +29,11 @@ class Controller:
 
     def run(self, sleep_time):
         if self.model.is_decoder_available():
-            decoded = self.model.get_decoded()
+            # TODO: Do we even need to do something here?
+            # decoded = self.model.get_decoded()
             # received = self.model.get_received()
             # self.view.update_values(received)
+            pass
         # This is necessary in order for the GUI not to freeze and crash at some point
         time.sleep(sleep_time)
 
@@ -43,14 +45,8 @@ class Controller:
         app.exec_()
         #sys.exit(app.exec_())
 
-    def get_received(self):
-        return self.model.get_received()
-
-    def get_symbol_intervals(self):
-        return self.model.get_symbol_intervals()
-
-    def get_symbol_values(self):
-        return self.model.get_symbol_values()
+    def get_decoded(self):
+        return self.model.get_decoded()
 
     def add_encoder(self, encoder_type):
         self.model.add_encoder(encoder_type)
