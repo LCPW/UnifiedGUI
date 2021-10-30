@@ -4,10 +4,13 @@ import numpy as np
 
 
 class DecoderInterface:
-    def __init__(self, num_receivers, receiver_types, receiver_descriptions=None):
+    def __init__(self, num_receivers, receiver_types, receiver_descriptions=None, landmark_names=None):
         self.num_receivers = num_receivers
         self.receiver_types = receiver_types
         self.receiver_descriptions = [str(receiver_types[i]) + str(i+1) for i in range(len(self.receiver_types))] if receiver_descriptions is None else receiver_descriptions
+        self.num_landmarks = 0 if landmark_names is None else len(landmark_names)
+        self.landmark_names = landmark_names
+
         self.active = False
 
         self.receivers = []
@@ -27,10 +30,12 @@ class DecoderInterface:
             self.timestamps.append(None)
             self.received.append(None)
 
+        # TODO
+        self.landmarks = []
+        for i in range(self.num_landmarks):
+            self.landmarks.append(None)
         self.symbol_intervals = []
         self.symbol_values = []
-        # TODO: Deprecated
-        # self.decoded = None
 
     def start(self):
         for i in range(self.num_receivers):
@@ -51,13 +56,17 @@ class DecoderInterface:
             receiver_info.append({'description': receiver.description, 'sensor_descriptions': receiver.sensor_descriptions})
         return receiver_info
 
+    def get_landmark_info(self):
+        # TODO: No landmarks
+        return {'names': self.landmark_names}
+
     def is_active(self):
         return self.active
 
     def get_decoded(self):
         self.decode()
         received = {'timestamps': self.timestamps, 'values': self.received}
-        return {'received': received, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values}
+        return {'received': received, 'landmarks': self.landmarks, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values}
 
     def append_timestamp(self, index, timestamp):
         if self.timestamps[index] is None:
@@ -91,11 +100,16 @@ class DecoderInterface:
         # TODO
         print("Hint: calculate_symbol_values is not implemented in your selected decoder.")
 
+    def calculate_landmarks(self):
+        # TODO
+        print("Hint: calculate_landmarks not not implemented in your selected decoder.")
+
     def decode(self):
         # TODO
         self.empty_receiver_buffers()
         # Optionally apply filter
         # Optionally calculate landmarks (edges, peaks, etc.)
+        self.calculate_landmarks()
         # Calculate symbol intervals
         self.calculate_symbol_intervals()
         # Assign value to each symbol interval

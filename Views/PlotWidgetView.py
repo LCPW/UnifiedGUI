@@ -23,6 +23,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.showGrid(x=True, y=True)
 
         self.data_lines = []
+        self.landmarks = []
 
         self.last_vals = None
         self.last_symbol_intervals = None
@@ -33,10 +34,12 @@ class PlotWidgetView(pg.PlotWidget):
         # TODO?
         # self.setDownsampling(ds=10)
 
+        #self.legend = pg.LegendItem(labelTextColor='k')
         self.legend = pg.LegendItem()
         self.legend.setParentItem(self.getPlotItem())
 
     def add_datalines(self, receiver_info):
+        # self.legend.setColumnCount(len(receiver_info))
         for i in range(len(receiver_info)):
             description, sensor_descriptions = receiver_info[i]['description'], receiver_info[i]['sensor_descriptions']
             data_lines_ = []
@@ -73,6 +76,25 @@ class PlotWidgetView(pg.PlotWidget):
                         # self.data_lines[receiver_index][sensor_index].setData(timestamps[receiver_index][::1], values[receiver_index][:, sensor_index][::1])
                         self.data_lines[receiver_index][sensor_index].setData(timestamps[receiver_index], values[receiver_index][:, sensor_index])
         self.last_vals = vals
+
+    def add_landmarks(self, landmark_info):
+        #print(landmark_info)
+        names = landmark_info['names']
+        for i in range(len(names)):
+            #print('123')
+            landmark_ = self.plot([], [], pen=None, symbol=self.plot_view.settings['landmarks_symbols'][i], name=names[i])
+            self.landmarks.append(landmark_)
+            #print(len(self.landmarks))
+
+    def update_landmarks(self, landmarks):
+        #if len(self.landmarks) < 2:
+        #    return
+        for i in range(len(landmarks)):
+            if landmarks[i] is not None:
+                x, y = landmarks[i]['x'], landmarks[i]['y']
+                #print(i)
+                #print(len(self.landmarks))
+                self.landmarks[i].setData(x, y)
 
     def update_symbol_intervals(self, symbol_intervals):
         # TODO: Only plot the new lines, not all of them

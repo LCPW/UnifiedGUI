@@ -21,9 +21,10 @@ class DataView(QWidget):
 
         self.setLayout(layout)
 
-    def add_receivers(self, receiver_info):
+    def add_decoder(self, receiver_info, landmark_info):
+        # TODO: Rename in decoder added etc.
         self.tab_tables.add_tables(receiver_info)
-        self.tab_plot.add_datalines(receiver_info)
+        self.tab_plot.add_decoder(receiver_info, landmark_info)
 
     def remove_receivers(self):
         self.tab_tables.remove_tables()
@@ -32,6 +33,9 @@ class DataView(QWidget):
     def update_values(self, vals):
         self.tab_tables.update_values(vals)
         self.tab_plot.update_values(vals)
+
+    def update_landmarks(self, landmarks):
+        self.tab_plot.update_landmarks(landmarks)
 
     def update_symbol_intervals(self, symbol_intervals):
         self.tab_plot.update_symbol_intervals(symbol_intervals)

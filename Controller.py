@@ -27,6 +27,10 @@ class Controller:
         while self.running:
             self.run(sleep_time=1.0/FRAMES_PER_SECOND)
 
+        # TODO: Clean exit
+        #self.view.timer.stop()
+        #sys.exit(0)
+
     def run(self, sleep_time):
         if self.model.is_decoder_available():
             # TODO: Do we even need to do something here?
@@ -57,8 +61,8 @@ class Controller:
     def add_decoder(self, decoder_type):
         self.model.add_decoder(decoder_type)
         receiver_info = self.model.get_receiver_info()
-        self.view.decoder_added(receiver_info)
-        self.view.decoder_view.decoder_added()
+        landmark_info = self.model.get_landmark_info()
+        self.view.decoder_added(decoder_type, receiver_info, landmark_info)
 
     def remove_decoder(self):
         self.model.remove_decoder()

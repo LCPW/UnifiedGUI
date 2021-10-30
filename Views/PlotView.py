@@ -14,6 +14,8 @@ class PlotView(QWidget):
             'legend': True,
             'active': [],
             'pens': [],
+            'landmarks_active': [],
+            'landmarks_symbols': [],
             'symbol_intervals': True,
             'symbol_intervals_pen': pg.mkPen(color='k', width=1),
             'symbol_values': True,
@@ -37,6 +39,10 @@ class PlotView(QWidget):
         self.setLayout(layout)
 
         self.current_color = 0
+
+    def add_decoder(self, receiver_info, landmark_info):
+        self.add_datalines(receiver_info)
+        self.add_landmarks(landmark_info)
 
     def set_style(self, i, j):
         # Qt.SolidLine, etc.
@@ -82,6 +88,19 @@ class PlotView(QWidget):
         self.settings['active'] = []
         self.settings['pens'] = []
         self.current_color = 0
+
+    def add_landmarks(self, landmark_info):
+        names = landmark_info['names']
+        for i in range(len(names)):
+            print('abc')
+            symbol = 'o'
+            # Settings
+            self.settings['landmarks_active'].append(True)
+            self.settings['landmarks_symbols'].append(symbol)
+        self.plot_widget.add_landmarks(landmark_info)
+
+    def update_landmarks(self, landmarks):
+        self.plot_widget.update_landmarks(landmarks)
 
     def update_values(self, vals):
         self.plot_widget.update_values(vals)

@@ -57,8 +57,9 @@ class DecoderView(QWidget):
         label = QLabel("Decoder")
         label.setFont(FONT_BIG)
         label.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
-        self.layout.addWidget(self.toolbar)
+
         self.layout.addWidget(label)
+        self.layout.addWidget(self.toolbar)
         self.layout.addStretch(1)
 
         self.setLayout(self.layout)
@@ -89,9 +90,9 @@ class DecoderView(QWidget):
         # TODO: Confirmation window
         self.main_view.controller.stop_decoder()
 
-    def decoder_added(self):
+    def decoder_added(self, decoder_name):
         # TODO: Add information about decoder and receivers in the GUI
-        self.label = QLabel("Blabla")
+        self.label = QLabel(decoder_name)
         self.layout.addWidget(self.label)
 
         self.button_add_decoder.setEnabled(False)
@@ -100,6 +101,8 @@ class DecoderView(QWidget):
         self.button_stop_decoder.setEnabled(False)
 
     def decoder_removed(self):
+        self.label.deleteLater()
+
         self.button_add_decoder.setEnabled(True)
         self.button_remove_decoder.setEnabled(False)
         self.button_start_decoder.setEnabled(False)

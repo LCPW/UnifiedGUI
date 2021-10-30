@@ -43,6 +43,9 @@ class Model:
     def get_receiver_info(self):
         return self.decoder.get_receiver_info()
 
+    def get_landmark_info(self):
+        return self.decoder.get_landmark_info()
+
     # def get_received(self):
     #     if not self.is_decoder_available():
     #         return None

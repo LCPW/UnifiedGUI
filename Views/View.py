@@ -41,7 +41,7 @@ class View(QMainWindow):
         self.setCentralWidget(central_widget)
 
         self.timer = QTimer()
-        # TODO
+        # TODO: As fast as possible?
         self.timer.setInterval(20)
         self.timer.timeout.connect(self.update_values)
         self.timer.start()
@@ -49,15 +49,19 @@ class View(QMainWindow):
     def update_values(self):
         decoded = self.controller.get_decoded()
         if decoded is not None:
-            received, symbol_intervals, symbol_values = decoded['received'], decoded['symbol_intervals'], decoded['symbol_values']
+            received, landmarks, symbol_intervals, symbol_values = decoded['received'], decoded['landmarks'], decoded['symbol_intervals'], decoded['symbol_values']
 
             self.data_view.update_values(received)
+            self.data_view.update_landmarks(landmarks)
             self.data_view.update_symbol_intervals(symbol_intervals)
             self.data_view.update_symbol_values(symbol_intervals, symbol_values)
 
-    def decoder_added(self, receiver_info):
+    def decoder_added(self, decoder_type, receiver_info, landmark_info):
+        # Update decoder view
+        self.decoder_view.decoder_added(decoder_type)
+
         # Update data view
-        self.data_view.add_receivers(receiver_info)
+        self.data_view.add_decoder(receiver_info, landmark_info)
 
     def decoder_removed(self):
         # TODO
