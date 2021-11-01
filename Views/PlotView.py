@@ -21,6 +21,26 @@ class PlotView(QWidget):
             'symbol_values': True,
         }
 
+        # TODO: Refactor
+        self.symbols = {
+            'Circle': 'o',
+            'Square': 's',
+            'Diamond': 'd',
+            'Plus': '+',
+            'Triangle pointing downwards': 't',
+            'Triangle pointing upwards': 't1',
+            'Triangle pointing right side': 't2',
+            'Triangle pointing left side': 't3',
+            'Pentagon': 'p',
+            'Hexagon': 'h',
+            'Star': 'star',
+            'Cross': 'x',
+            #'Arrow up': 'arrow_up',
+            #'Arrow down': 'arrow_down',
+            #'Arrow left': 'arrow_left',
+            #'Crosshair': 'crosshair'
+        }
+
         layout = QVBoxLayout()
 
         self.plot_settings_dialog = PlotSettingsDialog.PlotSettingsDialog(self)
@@ -92,15 +112,29 @@ class PlotView(QWidget):
     def add_landmarks(self, landmark_info):
         names = landmark_info['names']
         for i in range(len(names)):
-            print('abc')
+            # print('abc')
             symbol = 'o'
             # Settings
             self.settings['landmarks_active'].append(True)
             self.settings['landmarks_symbols'].append(symbol)
         self.plot_widget.add_landmarks(landmark_info)
+        self.plot_settings_dialog.add_landmarks(landmark_info)
 
     def update_landmarks(self, landmarks):
         self.plot_widget.update_landmarks(landmarks)
+
+    def toggle_landmark(self, landmark_index):
+        state = self.plot_settings_dialog.checkboxes_landmarks[landmark_index].checkState()
+        self.settings['landmarks_active'][landmark_index] = state
+        if state:
+            self.plot_widget.activate_landmarks(landmark_index)
+        else:
+            self.plot_widget.deactivate_landmarks(landmark_index)
+
+    def set_landmark_symbol(self, landmark_index):
+        symbol = self.symbols[self.plot_settings_dialog.comboboxes_landmarks_symbol[landmark_index].currentText()]
+        self.settings['landmarks_symbols'][landmark_index] = symbol
+        self.plot_widget.update_landmarks_symbols(landmark_index)
 
     def update_values(self, vals):
         self.plot_widget.update_values(vals)

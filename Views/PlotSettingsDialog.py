@@ -3,6 +3,8 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 
+
+
 class PlotSettingsDialog(QDialog):
     def __init__(self, plot_view):
         super().__init__()
@@ -19,10 +21,16 @@ class PlotSettingsDialog(QDialog):
         self.checkboxes_active = []
         self.buttons_color = []
         self.comboboxes_style = []
+        self.checkboxes_landmarks = []
+        self.comboboxes_landmarks_symbol = []
 
         self.checkbox_widget = QWidget()
         self.checkbox_layout = QHBoxLayout()
         self.checkbox_widget.setLayout(self.checkbox_layout)
+
+        self.checkboxes_landmarks_widget = QWidget()
+        self.checkboxes_landmarks_layout = QHBoxLayout()
+        self.checkboxes_landmarks_widget.setLayout(self.checkboxes_landmarks_layout)
 
         self.checkbox_symbol_intervals = QCheckBox("Show symbol intervals")
         self.checkbox_symbol_intervals.setChecked(True)
@@ -33,6 +41,7 @@ class PlotSettingsDialog(QDialog):
         self.checkbox_symbol_values.clicked.connect(self.plot_view.toggle_symbol_values)
 
         self.layout.addWidget(self.checkbox_widget)
+        self.layout.addWidget(self.checkboxes_landmarks_widget)
         self.layout.addWidget(self.checkbox_symbol_intervals)
         self.layout.addWidget(self.checkbox_symbol_values)
 
@@ -88,6 +97,34 @@ class PlotSettingsDialog(QDialog):
 
             widget.setLayout(layout)
             self.checkbox_layout.addWidget(widget)
+
+    def add_landmarks(self, landmark_info):
+        def generate_lambda_landmark_toggle(i):
+            return lambda: self.plot_view.toggle_landmark(i)
+
+        def generate_lambda_landmark_symbol(i):
+            return lambda: self.plot_view.set_landmark_symbol(i)
+
+        names = landmark_info['names']
+        for landmark_index in range(len(names)):
+            widget = QWidget()
+            layout = QVBoxLayout()
+
+            checkbox = QCheckBox(names[landmark_index])
+            checkbox.setChecked(True)
+            checkbox.clicked.connect(generate_lambda_landmark_toggle(landmark_index))
+            self.checkboxes_landmarks.append(checkbox)
+            combobox = QComboBox()
+            combobox.addItems(self.plot_view.symbols.keys())
+            combobox.activated.connect(generate_lambda_landmark_symbol(landmark_index))
+            self.comboboxes_landmarks_symbol.append(combobox)
+
+            layout.addWidget(checkbox)
+            layout.addWidget(combobox)
+
+            widget.setLayout(layout)
+            self.checkboxes_landmarks_layout.addWidget(widget)
+        self.checkboxes_landmarks_layout.addStretch(1)
 
     def set_receiver_checkboxes(self, receiver_index, state):
         for sensor_index in range(len(self.checkboxes_active[receiver_index])):

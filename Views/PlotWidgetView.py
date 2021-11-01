@@ -28,6 +28,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.last_vals = None
         self.last_symbol_intervals = None
         self.last_symbol_values = None
+        self.last_landmarks = None
         self.vertical_lines = []
         self.text_items = []
 
@@ -65,6 +66,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.last_symbol_intervals = None
         self.deactivate_symbol_values()
         self.last_symbol_values = None
+        # TODO: Landmarks
 
     def update_values(self, vals):
         timestamps, values = vals['timestamps'], vals['values']
@@ -78,23 +80,35 @@ class PlotWidgetView(pg.PlotWidget):
         self.last_vals = vals
 
     def add_landmarks(self, landmark_info):
-        #print(landmark_info)
         names = landmark_info['names']
         for i in range(len(names)):
-            #print('123')
             landmark_ = self.plot([], [], pen=None, symbol=self.plot_view.settings['landmarks_symbols'][i], name=names[i])
             self.landmarks.append(landmark_)
-            #print(len(self.landmarks))
 
     def update_landmarks(self, landmarks):
-        #if len(self.landmarks) < 2:
-        #    return
         for i in range(len(landmarks)):
-            if landmarks[i] is not None:
+            if landmarks[i] is not None and self.plot_view.settings['landmarks_active'][i]:
                 x, y = landmarks[i]['x'], landmarks[i]['y']
-                #print(i)
-                #print(len(self.landmarks))
                 self.landmarks[i].setData(x, y)
+        self.last_landmarks = landmarks
+
+    def activate_landmarks(self, landmark_index):
+        if self.last_landmarks is not None:
+            # TODO: landmarks[i] is None??
+            x, y = self.last_landmarks[landmark_index]['x'], self.last_landmarks[landmark_index]['y']
+            self.landmarks[landmark_index].setData(x, y)
+            # TODO: Legend
+            #self.legend.addItem(self.data_lines[receiver_index][sensor_index], self.data_lines[receiver_index][sensor_index].name())
+
+    def deactivate_landmarks(self, landmark_index):
+        self.landmarks[landmark_index].clear()
+        # TODO: Legend
+        # self.legend.removeItem(self.data_lines[receiver_index][sensor_index])
+        self.update_()
+
+    def update_landmarks_symbols(self, landmark_index):
+        symbol = self.plot_view.settings['landmarks_symbols'][landmark_index]
+        self.landmarks[landmark_index].setSymbol(symbol)
 
     def update_symbol_intervals(self, symbol_intervals):
         # TODO: Only plot the new lines, not all of them
