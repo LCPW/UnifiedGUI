@@ -32,18 +32,17 @@ class Controller:
         #sys.exit(0)
 
     def run(self, sleep_time):
+        # TODO: Do we even need to do something here?
         if self.model.is_decoder_available():
-            # TODO: Do we even need to do something here?
-            # decoded = self.model.get_decoded()
-            # received = self.model.get_received()
-            # self.view.update_values(received)
-            pass
+            self.model.decoder.decode()
         # This is necessary in order for the GUI not to freeze and crash at some point
         time.sleep(sleep_time)
 
     def run_gui(self):
         app = QtWidgets.QApplication(sys.argv)
         app.setStyle('Fusion')
+        # Disables the question mark in dialog windows
+        app.setAttribute(QtCore.Qt.AA_DisableWindowContextHelpButton)
         self.view = View.View(self)
         self.view.show()
         app.exec_()
@@ -66,8 +65,7 @@ class Controller:
 
     def remove_decoder(self):
         self.model.remove_decoder()
-        self.view.data_view.remove_receivers()
-        self.view.decoder_view.decoder_removed()
+        self.view.decoder_removed()
 
     def start_decoder(self):
         self.model.start_decoder()

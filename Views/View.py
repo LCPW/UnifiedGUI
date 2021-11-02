@@ -41,8 +41,8 @@ class View(QMainWindow):
         self.setCentralWidget(central_widget)
 
         self.timer = QTimer()
-        # TODO: As fast as possible?
-        self.timer.setInterval(20)
+        # A QTimer with a timeout of 0 will time out as soon as possible.
+        self.timer.setInterval(0)
         self.timer.timeout.connect(self.update_values)
         self.timer.start()
 
@@ -61,11 +61,11 @@ class View(QMainWindow):
         self.decoder_view.decoder_added(decoder_type)
 
         # Update data view
-        self.data_view.add_decoder(receiver_info, landmark_info)
+        self.data_view.decoder_added(receiver_info, landmark_info)
 
     def decoder_removed(self):
-        # TODO
-        pass
+        self.data_view.decoder_removed()
+        self.decoder_view.decoder_removed()
 
     def closeEvent(self, close_event: QCloseEvent):
         msg = QMessageBox()

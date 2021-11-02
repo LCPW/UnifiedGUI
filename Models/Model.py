@@ -13,14 +13,14 @@ class Model:
         # TODO
         pass
 
-    def encode_message(self, msg):
-        self.encoder.encode_message(msg)
+    def encode_message(self, message):
+        self.encoder.encode_message(message)
 
     def remove_encoder(self):
         self.encoder = None
 
     def is_decoder_available(self):
-        return self.decoder is not None and self.decoder.is_active()
+        return self.decoder is not None and self.decoder.active
 
     def add_decoder(self, decoder_type):
         # Dynamically import the module of the implementation
@@ -37,32 +37,11 @@ class Model:
     def remove_decoder(self):
         self.decoder = None
 
-    def get_num_receivers(self):
-        return self.decoder.get_num_receivers()
-
     def get_receiver_info(self):
         return self.decoder.get_receiver_info()
 
     def get_landmark_info(self):
         return self.decoder.get_landmark_info()
-
-    # def get_received(self):
-    #     if not self.is_decoder_available():
-    #         return None
-    #     else:
-    #         return self.decoder.get_received()
-    #
-    # def get_symbol_intervals(self):
-    #     if not self.is_decoder_available():
-    #         return None
-    #     else:
-    #         return self.decoder.get_symbol_intervals()
-    #
-    # def get_symbol_values(self):
-    #     if not self.is_decoder_available():
-    #         return None
-    #     else:
-    #         return self.decoder.get_symbol_values()
 
     def get_decoded(self):
         if not self.is_decoder_available():

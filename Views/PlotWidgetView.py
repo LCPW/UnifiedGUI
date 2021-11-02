@@ -8,7 +8,8 @@ import numpy as np
 
 class PlotWidgetView(pg.PlotWidget):
     def __init__(self, plot_view):
-        super().__init__(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+        #super().__init__(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
+        super().__init__(axisItems={'bottom': pg.DateAxisItem(orientation='bottom')})
 
         self.plot_view = plot_view
 
@@ -35,6 +36,10 @@ class PlotWidgetView(pg.PlotWidget):
         # TODO?
         # self.setDownsampling(ds=10)
 
+        # TODO: Gut, aber noch besser waere es wenn es der User auswaehlen koennte
+        # self.enableAutoRange(axis='y')
+        self.setMouseEnabled(x=True, y=False)
+
         #self.legend = pg.LegendItem(labelTextColor='k')
         self.legend = pg.LegendItem()
         self.legend.setParentItem(self.getPlotItem())
@@ -59,31 +64,40 @@ class PlotWidgetView(pg.PlotWidget):
             for j in range(len(self.data_lines[i])):
                 self.legend.removeItem(self.data_lines[i][j])
                 self.data_lines[i][j].clear()
-                self.update_()
         self.data_lines = []
         self.last_vals = None
+        for i in range(len(self.landmarks)):
+            self.legend.removeItem(self.landmarks[i])
+            self.landmarks[i].clear()
+        self.landmarks = []
+        self.last_landmarks = None
         self.deactivate_symbol_intervals()
         self.last_symbol_intervals = None
         self.deactivate_symbol_values()
         self.last_symbol_values = None
-        # TODO: Landmarks
+        self.update_()
 
     def update_values(self, vals):
         timestamps, values = vals['timestamps'], vals['values']
-        for receiver_index in range(len(timestamps)):
+        for receiver_index in range(len(values)):
             if timestamps[receiver_index] is not None:
                 for sensor_index in range(values[receiver_index].shape[1]):
                     if self.plot_view.settings['active'][receiver_index][sensor_index]:
                         # TODO: Only plot every x-th value, if it is too laggy
                         # self.data_lines[receiver_index][sensor_index].setData(timestamps[receiver_index][::1], values[receiver_index][:, sensor_index][::1])
-                        self.data_lines[receiver_index][sensor_index].setData(timestamps[receiver_index], values[receiver_index][:, sensor_index])
+                        x = timestamps[receiver_index]
+                        y = values[receiver_index][:, sensor_index]
+                        x = x[:len(y)]
+                        y = y[:len(x)]
+                        self.data_lines[receiver_index][sensor_index].setData(x, y)
         self.last_vals = vals
 
     def add_landmarks(self, landmark_info):
-        names = landmark_info['names']
-        for i in range(len(names)):
-            landmark_ = self.plot([], [], pen=None, symbol=self.plot_view.settings['landmarks_symbols'][i], name=names[i])
+        num_landmarks = landmark_info['num']
+        for i in range(num_landmarks):
+            landmark_ = self.plot([], [], pen=None, symbol=self.plot_view.settings['landmarks_symbols'][i], name=landmark_info['names'][i])
             self.landmarks.append(landmark_)
+            self.legend.addItem(landmark_, landmark_.name())
 
     def update_landmarks(self, landmarks):
         for i in range(len(landmarks)):
@@ -97,13 +111,11 @@ class PlotWidgetView(pg.PlotWidget):
             # TODO: landmarks[i] is None??
             x, y = self.last_landmarks[landmark_index]['x'], self.last_landmarks[landmark_index]['y']
             self.landmarks[landmark_index].setData(x, y)
-            # TODO: Legend
-            #self.legend.addItem(self.data_lines[receiver_index][sensor_index], self.data_lines[receiver_index][sensor_index].name())
+            self.legend.addItem(self.landmarks[landmark_index], self.landmarks[landmark_index].name())
 
     def deactivate_landmarks(self, landmark_index):
         self.landmarks[landmark_index].clear()
-        # TODO: Legend
-        # self.legend.removeItem(self.data_lines[receiver_index][sensor_index])
+        self.legend.removeItem(self.landmarks[landmark_index])
         self.update_()
 
     def update_landmarks_symbols(self, landmark_index):
@@ -111,7 +123,6 @@ class PlotWidgetView(pg.PlotWidget):
         self.landmarks[landmark_index].setSymbol(symbol)
 
     def update_symbol_intervals(self, symbol_intervals):
-        # TODO: Only plot the new lines, not all of them
         if self.plot_view.settings['symbol_intervals']:
             for timestamp in symbol_intervals[len(self.vertical_lines):]:
                 vertical = pg.InfiniteLine(pos=timestamp, angle=90, movable=False, pen=self.plot_view.settings['symbol_intervals_pen'])
@@ -150,7 +161,7 @@ class PlotWidgetView(pg.PlotWidget):
     def activate_symbol_values(self):
         self.update_symbol_values(self.last_symbol_intervals, self.last_symbol_values)
 
-    def deactivate(self, receiver_index, sensor_index):
+    def deactivate_dataline(self, receiver_index, sensor_index):
         self.data_lines[receiver_index][sensor_index].clear()
         self.legend.removeItem(self.data_lines[receiver_index][sensor_index])
         self.update_()
@@ -160,7 +171,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.hide()
         self.show()
 
-    def activate(self, receiver_index, sensor_index):
+    def activate_dataline(self, receiver_index, sensor_index):
         if self.last_vals is not None:
             timestamps, values = self.last_vals['timestamps'], self.last_vals['values']
             self.data_lines[receiver_index][sensor_index].setData(timestamps[receiver_index], values[receiver_index][:, sensor_index])
@@ -172,6 +183,10 @@ class TimeAxisItem(pg.AxisItem):
     Converts the timestamps from a float to a human-readable format for the x-axis ticks.
     """
     def tickStrings(self, values, scale, spacing):
-        x = [datetime.fromtimestamp(value) for value in values]
-        # x = [datetime.time(value) for value in values]
+        try:
+            x = [datetime.fromtimestamp(value) for value in values]
+            # x = [datetime.time(value) for value in values]
+        # This catches the case that negative values can not be converted into timestamps
+        except OSError:
+            x = ['undefined'] * len(values)
         return x

@@ -19,14 +19,14 @@ class TablesView(QWidget):
 
         self.setLayout(layout)
 
-    def add_tables(self, receiver_info):
+    def decoder_added(self, receiver_info):
         for i in range(len(receiver_info)):
             description, sensor_descriptions = receiver_info[i]['description'], receiver_info[i]['sensor_descriptions']
             table = TableView.TableView(sensor_descriptions)
             self.tables.append(table)
             self.tabs.addTab(self.tables[i], str(description))
 
-    def remove_tables(self):
+    def decoder_removed(self):
         for table in self.tables:
             self.tabs.removeTab(self.tabs.indexOf(table))
         self.tables = []

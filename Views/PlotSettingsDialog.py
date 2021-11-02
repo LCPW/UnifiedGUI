@@ -3,8 +3,6 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 
-
-
 class PlotSettingsDialog(QDialog):
     def __init__(self, plot_view):
         super().__init__()
@@ -40,9 +38,18 @@ class PlotSettingsDialog(QDialog):
         self.checkbox_symbol_values.setChecked(True)
         self.checkbox_symbol_values.clicked.connect(self.plot_view.toggle_symbol_values)
 
+        line_count = 3
+        lines = []
+        for i in range(line_count):
+            lines.append(QFrame())
+            lines[i].setFrameShape(QFrame.HLine)
+            lines[i].setFrameShadow(QFrame.Sunken)
         self.layout.addWidget(self.checkbox_widget)
+        self.layout.addWidget(lines[0])
         self.layout.addWidget(self.checkboxes_landmarks_widget)
+        self.layout.addWidget(lines[1])
         self.layout.addWidget(self.checkbox_symbol_intervals)
+        self.layout.addWidget(lines[2])
         self.layout.addWidget(self.checkbox_symbol_values)
 
         self.setLayout(self.layout)

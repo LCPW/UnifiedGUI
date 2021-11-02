@@ -60,7 +60,7 @@ class PlotView(QWidget):
 
         self.current_color = 0
 
-    def add_decoder(self, receiver_info, landmark_info):
+    def decoder_added(self, receiver_info, landmark_info):
         self.add_datalines(receiver_info)
         self.add_landmarks(landmark_info)
 
@@ -91,7 +91,7 @@ class PlotView(QWidget):
             pens_ = []
             for j in range(len(sensor_descriptions)):
                 active_.append(True)
-                #pens_.append(pg.mkPen(color=pg.intColor(self.current_color), width=2, style=Qt.SolidLine))
+                # pens_.append(pg.mkPen(color=pg.intColor(self.current_color), width=2, style=Qt.SolidLine))
                 pens_.append(pg.mkPen(color=pg.intColor(self.current_color), style=Qt.SolidLine))
                 self.current_color += 1
             self.settings['active'].append(active_)
@@ -101,7 +101,7 @@ class PlotView(QWidget):
         self.plot_settings_dialog.add_datalines(receiver_info)
         self.button_settings.setEnabled(True)
 
-    def remove_datalines(self):
+    def decoder_removed(self):
         self.plot_widget.remove_datalines()
         self.plot_settings_dialog.remove_datalines()
         self.button_settings.setEnabled(False)
@@ -110,10 +110,11 @@ class PlotView(QWidget):
         self.current_color = 0
 
     def add_landmarks(self, landmark_info):
-        names = landmark_info['names']
-        for i in range(len(names)):
+        num_landmarks = landmark_info['num']
+        for i in range(num_landmarks):
             # print('abc')
-            symbol = 'o'
+            # symbol = 'o'
+            symbol = 'o'if landmark_info['symbols'] is None else landmark_info['symbols'][i]
             # Settings
             self.settings['landmarks_active'].append(True)
             self.settings['landmarks_symbols'].append(symbol)
@@ -150,10 +151,10 @@ class PlotView(QWidget):
         self.settings['active'][receiver_index][sensor_index] = not current_state
         # True -> False
         if current_state:
-            self.plot_widget.deactivate(receiver_index, sensor_index)
+            self.plot_widget.deactivate_dataline(receiver_index, sensor_index)
         # False -> True
         else:
-            self.plot_widget.activate(receiver_index, sensor_index)
+            self.plot_widget.activate_dataline(receiver_index, sensor_index)
 
         all_, any_ = all(self.settings['active'][receiver_index]), any(self.settings['active'][receiver_index])
         state = 2 if all_ else (1 if any_ else 0)
@@ -164,9 +165,9 @@ class PlotView(QWidget):
         for sensor_index in range(len(self.settings['active'][receiver_index])):
             self.settings['active'][receiver_index][sensor_index] = state
             if state:
-                self.plot_widget.activate(receiver_index, sensor_index)
+                self.plot_widget.activate_dataline(receiver_index, sensor_index)
             else:
-                self.plot_widget.deactivate(receiver_index, sensor_index)
+                self.plot_widget.deactivate_dataline(receiver_index, sensor_index)
 
     def toggle_receiver_checkbox(self, receiver_index):
         state = self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].checkState()

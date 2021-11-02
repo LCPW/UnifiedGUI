@@ -24,7 +24,7 @@ class TableView(QTableWidget):
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def update_values(self, timestamps, values):
-        length = len(timestamps)
+        length = len(values)
         self.setRowCount(length)
         for i in range(self.old_length, length):
             self.setItem(i, 0, QTableWidgetItem(str(datetime.fromtimestamp(timestamps[i]))))
