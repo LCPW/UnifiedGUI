@@ -141,14 +141,17 @@ class PlotWidgetView(pg.PlotWidget):
         self.update_symbol_intervals(self.last_symbol_intervals)
 
     def update_symbol_values(self, symbol_intervals, symbol_values):
+        # TODO:
+        symbol_values = symbol_values[:len(symbol_intervals) - 1]
+
         if self.plot_view.settings['symbol_values']:
             for i in range(len(self.text_items), len(symbol_values)):
-                # TODO: Special case for last value
+                # TODO: Special case for last value?
                 # x_pos = symbol_intervals[i]
                 x_pos = 0.5 * (symbol_intervals[i] + symbol_intervals[i+1])
-                text = pg.TextItem(symbol_values[i], color='k')
+                text = pg.TextItem(str(symbol_values[i]), color='k')
                 # TODO: Place in correct height
-                text.setPos(x_pos, 1)
+                text.setPos(x_pos, 1.2)
                 self.addItem(text)
                 self.text_items.append(text)
         self.last_symbol_values = symbol_values

@@ -2,7 +2,9 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import sys
-from Views import EncoderView, DecoderView, DataView, ToolbarView
+import numpy as np
+import time
+from Views import EncoderView, DecoderView, DataView, ToolbarView, StatusBarView
 
 
 class View(QMainWindow):
@@ -21,6 +23,9 @@ class View(QMainWindow):
 
         self.toolbar = ToolbarView.ToolbarView()
         self.addToolBar(self.toolbar)
+
+        self.status_bar = StatusBarView.StatusBarView()
+        self.setStatusBar(self.status_bar)
 
         central_widget = QWidget(self)
 
@@ -46,15 +51,32 @@ class View(QMainWindow):
         self.timer.timeout.connect(self.update_values)
         self.timer.start()
 
+        self.last_time = time.time()
+        self.last_fps = []
+
     def update_values(self):
         decoded = self.controller.get_decoded()
         if decoded is not None:
-            received, landmarks, symbol_intervals, symbol_values = decoded['received'], decoded['landmarks'], decoded['symbol_intervals'], decoded['symbol_values']
+            received, landmarks, symbol_intervals, symbol_values, sequence = decoded['received'], decoded['landmarks'], decoded['symbol_intervals'], decoded['symbol_values'], decoded['sequence']
 
             self.data_view.update_values(received)
             self.data_view.update_landmarks(landmarks)
             self.data_view.update_symbol_intervals(symbol_intervals)
             self.data_view.update_symbol_values(symbol_intervals, symbol_values)
+
+            self.decoder_view.update_symbol_values(symbol_values)
+            self.decoder_view.update_sequence(sequence)
+
+        # TODO: FPS calculation
+        time_ = time.time()
+        time_difference = time_ - self.last_time + 0.0000001
+        fps = 1 / time_difference
+        self.last_fps.append(fps)
+        if len(self.last_fps) == 10:
+            fps_avg = int(np.round(sum(self.last_fps) / len(self.last_fps)))
+            self.status_bar.set_fps(fps_avg)
+            self.last_fps = []
+        self.last_time = time_
 
     def decoder_added(self, decoder_type, receiver_info, landmark_info):
         # Update decoder view

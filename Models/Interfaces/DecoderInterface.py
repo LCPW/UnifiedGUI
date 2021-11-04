@@ -42,6 +42,7 @@ class DecoderInterface:
             self.landmarks.append(None)
         self.symbol_intervals = []
         self.symbol_values = []
+        self.sequence = ""
 
     def start(self):
         """
@@ -68,7 +69,7 @@ class DecoderInterface:
     def get_decoded(self):
         #self.decode()
         received = {'timestamps': self.timestamps, 'values': self.received}
-        return {'received': received, 'landmarks': self.landmarks, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values}
+        return {'received': received, 'landmarks': self.landmarks, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values, 'sequence': self.sequence}
 
     def append_timestamp(self, index, timestamp):
         if self.timestamps[index] is None:
@@ -106,7 +107,7 @@ class DecoderInterface:
         """
         Calculates symbol values for the symbol intervals.
         Note that symbol_values should be 1 smaller than symbol_intervals.
-        Must be a list or array of strings.
+        Must be a list or array.
         """
         # TODO: Logging
         print("Hint: calculate_symbol_values is not implemented in your selected decoder.")
@@ -114,6 +115,10 @@ class DecoderInterface:
     def calculate_landmarks(self):
         # TODO: Logging
         print("Hint: calculate_landmarks not not implemented in your selected decoder.")
+
+    def calculate_sequence(self):
+        # TODO: Logging
+        pass
 
     def decode(self):
         """
@@ -138,3 +143,6 @@ class DecoderInterface:
         # If list is non-empty and ...
         if __debug__ and self.symbol_values and not len(self.symbol_values) == len(self.symbol_intervals) - 1:
             Logging.log("Length of symbol_values is not 1 smaller than length of symbol_intervals", 'WARNING')
+
+        # Calculate the sequence from the symbol values
+        self.calculate_sequence()
