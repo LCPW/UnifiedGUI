@@ -7,6 +7,8 @@ class ExampleDecoder(DecoderInterface):
         self.num_receivers = 3
         self.receiver_types = ["ExampleReceiver"] * self.num_receivers
         self.receiver_descriptions = None
+        # TODO: How should this be done? Redundant?
+        # self.num_landmarks = 2
         self.landmark_names = ['Test1', 'Test2']
         #self.landmark_names = None
         self.landmark_symbols = ['x', 'd']
@@ -45,5 +47,5 @@ class ExampleDecoder(DecoderInterface):
         for i in range(length)[::4]:
             v1, v2, v3, v4 = self.symbol_values[i], self.symbol_values[i+1], self.symbol_values[i+2], self.symbol_values[i+3]
             c = v1 + v2 + v3 + v4 + 64
-            print(c)
+            #print(c)
             self.sequence += chr(c)

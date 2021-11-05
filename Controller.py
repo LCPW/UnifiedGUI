@@ -7,7 +7,7 @@ from Models import Model
 from Views import View
 
 
-FRAMES_PER_SECOND = 25
+FRAMES_PER_SECOND = 100
 
 
 class Controller:

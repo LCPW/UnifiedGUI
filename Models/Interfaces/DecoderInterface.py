@@ -8,7 +8,7 @@ import Logging
 class DecoderInterface:
     def __init__(self, num_receivers, receiver_types, receiver_descriptions=None, landmark_names=None, landmark_symbols=None):
         self.num_receivers = len(receiver_types)
-        #self.receiver_types = receiver_types
+        self.receiver_types = receiver_types
         #assert self.num_receivers == len(self.receiver_types), "num_receivers not equal to length of receiver_types."
         self.receiver_descriptions = [str(receiver_types[i]) + str(i+1) for i in range(len(self.receiver_types))] if receiver_descriptions is None else receiver_descriptions
         self.num_landmarks = 0 if landmark_names is None else len(landmark_names)
@@ -100,8 +100,7 @@ class DecoderInterface:
         Calculates symbol intervals and stores them in symbol_intervals.
         Must be a list of timestamps (float).
         """
-        # TODO: Logging
-        print("Hint: calculate_symbol_intervals is not implemented in your selected decoder.")
+        Logging.info("calculate_symbol_intervals is not implemented in your selected decoder.", repeat=False)
 
     def calculate_symbol_values(self):
         """
@@ -109,16 +108,13 @@ class DecoderInterface:
         Note that symbol_values should be 1 smaller than symbol_intervals.
         Must be a list or array.
         """
-        # TODO: Logging
-        print("Hint: calculate_symbol_values is not implemented in your selected decoder.")
+        Logging.info("calculate_symbol_values is not implemented in your selected decoder.", repeat=False)
 
     def calculate_landmarks(self):
-        # TODO: Logging
-        print("Hint: calculate_landmarks not not implemented in your selected decoder.")
+        Logging.info("calculate_landmarks is not implemented in your selected decoder.", repeat=False)
 
     def calculate_sequence(self):
-        # TODO: Logging
-        pass
+        Logging.info("calculate_sequence is not implemented in your selected decoder.", repeat=False)
 
     def decode(self):
         """

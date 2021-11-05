@@ -9,5 +9,5 @@ class ToolbarView(QToolBar):
         self.setMovable(False)
 
         self.button_start = QToolButton()
-        self.button_start.setText("Start")
+        self.button_start.setText("ExampleButton1")
         self.addWidget(self.button_start)

@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 import sys
 import numpy as np
 import time
-from Views import EncoderView, DecoderView, DataView, ToolbarView, StatusBarView
+from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView
 
 
 class View(QMainWindow):
@@ -20,6 +20,10 @@ class View(QMainWindow):
 
         # Set window size to maximum
         self.setWindowState(Qt.WindowMaximized)
+
+        # Menu bar
+        self.menu_bar = MenuBarView.MenuBarView(self)
+        self.setMenuBar(self.menu_bar)
 
         self.toolbar = ToolbarView.ToolbarView()
         self.addToolBar(self.toolbar)
@@ -90,6 +94,7 @@ class View(QMainWindow):
         self.decoder_view.decoder_removed()
 
     def closeEvent(self, close_event: QCloseEvent):
+        # TODO: Refactor
         msg = QMessageBox()
         msg.setIcon(QMessageBox.Question)
         icon_msg = self.style().standardIcon(getattr(QStyle, 'SP_MessageBoxQuestion'))
