@@ -1,5 +1,9 @@
 import importlib
 
+# TODO: Move this to view
+from Views import ParameterDialog
+import Logging
+
 
 class Model:
     def __init__(self):
@@ -22,11 +26,21 @@ class Model:
     def is_decoder_available(self):
         return self.decoder is not None and self.decoder.active
 
-    def add_decoder(self, decoder_type):
+    def add_decoder(self, decoder_type, parameter_values):
         # Dynamically import the module of the implementation
         module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
         # Create an instance of the class in the said module (e.g. ExampleDecoder.ExampleDecoder())
-        self.decoder = getattr(module, decoder_type)()
+        self.decoder = getattr(module, decoder_type)(parameter_values)
+
+    def get_decoder_parameters(self, decoder_type):
+        # Dynamically import the module of the implementation
+        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        try:
+            parameters = module.PARAMETERS
+        except AttributeError:
+            Logging.warning("No parameters defined. Set PARAMETERS=None in your decoder implementation to avoid this warning.")
+            parameters = None
+        return parameters
 
     def start_decoder(self):
         self.decoder.start()

@@ -123,7 +123,7 @@ class PlotSettingsDialog(QDialog):
             self.checkboxes_landmarks.append(checkbox)
             combobox = QComboBox()
             combobox.addItems(self.plot_view.symbols.keys())
-            combobox.setCurrentText(landmark_info['symbols'][landmark_index])
+            #combobox.setCurrentText(landmark_info['symbols'][landmark_index])
             combobox.setCurrentIndex(list(self.plot_view.symbols.values()).index(landmark_info['symbols'][landmark_index]))
             combobox.activated.connect(generate_lambda_landmark_symbol(landmark_index))
             self.comboboxes_landmarks_symbol.append(combobox)

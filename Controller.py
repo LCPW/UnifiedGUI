@@ -58,7 +58,21 @@ class Controller:
         self.model.remove_encoder()
 
     def add_decoder(self, decoder_type):
-        self.model.add_decoder(decoder_type)
+        # TODO: Test
+        parameters = self.model.get_decoder_parameters(decoder_type)
+        # No parameters defined -> No parameter values obviously
+        if parameters is None:
+            parameter_values = None
+        # Parameters defined -> Execute ParameterDialog
+        else:
+            # User clicked Ok Button -> Everything is fine, get the values and continue
+            if self.view.get_parameter_values(parameters):
+                parameter_values = self.view.parameter_dialog.values
+            # User clicked Cancel -> Do not add decoder
+            else:
+                return
+
+        self.model.add_decoder(decoder_type, parameter_values)
         receiver_info = self.model.get_receiver_info()
         landmark_info = self.model.get_landmark_info()
         self.view.decoder_added(decoder_type, receiver_info, landmark_info)

@@ -1,9 +1,46 @@
 from Models.Interfaces.DecoderInterface import DecoderInterface
 import random
 
+# TODO: Check unique descriptions
+PARAMETERS = [
+    {
+        'description': "Parameter1",
+        'decimals': 4,
+        'type': 'float',
+        'min': 0,
+        'max': 100,
+        'default': 50,
+    },
+    {
+        'description': "Parameter2",
+        'type': 'bool',
+        'default': True
+    },
+    {
+        'description': "P3",
+        'type': 'item',
+        'items': ['A', 'B', 'C'],
+        'default': 'B'
+    },
+    {
+        'description': "Parameter4",
+        'type': 'int',
+        'min': 0,
+        'max': 100,
+        'default': 25,
+    },
+    {
+        'description': "Parameter5",
+        'type': 'string',
+        'default': "Baum",
+        'max_length': 20
+    }
+]
+
 
 class ExampleDecoder(DecoderInterface):
-    def __init__(self):
+    def __init__(self, parameter_values):
+        print(parameter_values)
         self.num_receivers = 3
         self.receiver_types = ["ExampleReceiver"] * self.num_receivers
         self.receiver_descriptions = None

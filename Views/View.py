@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 import sys
 import numpy as np
 import time
-from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView
+from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, ParameterDialog
 
 
 class View(QMainWindow):
@@ -12,6 +12,7 @@ class View(QMainWindow):
         super(View, self).__init__()
 
         self.controller = controller
+        self.parameter_dialog = None
 
         # Window Title and icon
         self.setWindowTitle("UnifiedGUI")
@@ -92,6 +93,10 @@ class View(QMainWindow):
     def decoder_removed(self):
         self.data_view.decoder_removed()
         self.decoder_view.decoder_removed()
+
+    def get_parameter_values(self, parameters):
+        self.parameter_dialog = ParameterDialog.ParameterDialog(parameters)
+        return self.parameter_dialog.exec()
 
     def closeEvent(self, close_event: QCloseEvent):
         # TODO: Refactor

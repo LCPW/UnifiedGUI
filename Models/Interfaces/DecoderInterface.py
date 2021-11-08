@@ -15,7 +15,7 @@ class DecoderInterface:
         self.landmark_names = [] if landmark_names is None else landmark_names
         self.landmark_symbols = landmark_symbols
         if __debug__ and not len(self.landmark_symbols) == self.num_landmarks:
-            Logging.log("Length of landmark symbols does not match number of landmarks", 'WARNING')
+            Logging.warning("Length of landmark symbols does not match number of landmarks")
             self.landmark_symbols = None
 
         self.active = False
