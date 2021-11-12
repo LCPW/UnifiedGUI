@@ -112,17 +112,24 @@ class PlotView(QWidget):
     def add_landmarks(self, landmark_info):
         num_landmarks = landmark_info['num']
         for i in range(num_landmarks):
-            # print('abc')
-            # symbol = 'o'
-            symbol = 'o'if landmark_info['symbols'] is None else landmark_info['symbols'][i]
-            # Settings
             self.settings['landmarks_active'].append(True)
-            self.settings['landmarks_symbols'].append(symbol)
+            self.settings['landmarks_symbols'].append(landmark_info['symbols'][i])
         self.plot_widget.add_landmarks(landmark_info)
         self.plot_settings_dialog.add_landmarks(landmark_info)
 
     def update_landmarks(self, landmarks):
         self.plot_widget.update_landmarks(landmarks)
+
+    def toggle_all_landmarks(self):
+        state = self.plot_settings_dialog.checkbox_all_landmarks.checkState()
+        if state == 0:
+            self.plot_settings_dialog.set_landmark_checkboxes(False)
+            self.set_all_landmarks(False)
+        else:
+            state = 2
+            self.plot_settings_dialog.checkbox_all_landmarks.setCheckState(Qt.CheckState(state))
+            self.plot_settings_dialog.set_landmark_checkboxes(True)
+            self.set_all_landmarks(True)
 
     def toggle_landmark(self, landmark_index):
         state = self.plot_settings_dialog.checkboxes_landmarks[landmark_index].checkState()
@@ -131,6 +138,19 @@ class PlotView(QWidget):
             self.plot_widget.activate_landmarks(landmark_index)
         else:
             self.plot_widget.deactivate_landmarks(landmark_index)
+
+        all_, any_ = all(self.settings['landmarks_active']), any(self.settings['landmarks_active'])
+        state = 2 if all_ else (1 if any_ else 0)
+
+        self.plot_settings_dialog.checkbox_all_landmarks.setCheckState(Qt.CheckState(state))
+
+    def set_all_landmarks(self, state):
+        for landmark_index in range(len(self.settings['landmarks_active'])):
+            self.settings['landmarks_active'][landmark_index] = state
+            if state:
+                self.plot_widget.activate_landmarks(landmark_index)
+            else:
+                self.plot_widget.deactivate_landmarks(landmark_index)
 
     def set_landmark_symbol(self, landmark_index):
         symbol = self.symbols[self.plot_settings_dialog.comboboxes_landmarks_symbol[landmark_index].currentText()]
@@ -161,7 +181,12 @@ class PlotView(QWidget):
 
         self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].setCheckState(Qt.CheckState(state))
 
-    def set_all(self, receiver_index, state):
+    def set_all_datalines(self, receiver_index, state):
+        """
+        Sets all datalines of a given receiver to a given state.
+        @param receiver_index: Index of the receiver.
+        @param state: New state of the datalines.
+        """
         for sensor_index in range(len(self.settings['active'][receiver_index])):
             self.settings['active'][receiver_index][sensor_index] = state
             if state:
@@ -173,12 +198,12 @@ class PlotView(QWidget):
         state = self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].checkState()
         if state == 0:
             self.plot_settings_dialog.set_receiver_checkboxes(receiver_index, False)
-            self.set_all(receiver_index, False)
+            self.set_all_datalines(receiver_index, False)
         else:
             state = 2
             self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].setCheckState(Qt.CheckState(state))
             self.plot_settings_dialog.set_receiver_checkboxes(receiver_index, True)
-            self.set_all(receiver_index, True)
+            self.set_all_datalines(receiver_index, True)
 
     def toggle_symbol_intervals(self):
         state = self.plot_settings_dialog.checkbox_symbol_intervals.checkState()

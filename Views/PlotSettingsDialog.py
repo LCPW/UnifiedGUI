@@ -26,6 +26,13 @@ class PlotSettingsDialog(QDialog):
         self.checkbox_layout = QHBoxLayout()
         self.checkbox_widget.setLayout(self.checkbox_layout)
 
+        self.checkbox_all_landmarks = QCheckBox("Show landmarks")
+        self.checkbox_all_landmarks.setTristate(True)
+        self.checkbox_all_landmarks.setChecked(True)
+        self.checkbox_all_landmarks.clicked.connect(self.plot_view.toggle_all_landmarks)
+        # TODO: Correct position
+        #self.layout.addWidget(self.checkbox_all_landmarks)
+
         self.checkboxes_landmarks_widget = QWidget()
         self.checkboxes_landmarks_layout = QHBoxLayout()
         self.checkboxes_landmarks_widget.setLayout(self.checkboxes_landmarks_layout)
@@ -38,18 +45,19 @@ class PlotSettingsDialog(QDialog):
         self.checkbox_symbol_values.setChecked(True)
         self.checkbox_symbol_values.clicked.connect(self.plot_view.toggle_symbol_values)
 
-        line_count = 3
-        lines = []
-        for i in range(line_count):
-            lines.append(QFrame())
-            lines[i].setFrameShape(QFrame.HLine)
-            lines[i].setFrameShadow(QFrame.Sunken)
+        def line():
+            line_ = QFrame()
+            line_.setFrameShape(QFrame.HLine)
+            line_.setFrameShadow(QFrame.Sunken)
+            return line_
+
         self.layout.addWidget(self.checkbox_widget)
-        self.layout.addWidget(lines[0])
+        self.layout.addWidget(line())
+        self.layout.addWidget(self.checkbox_all_landmarks)
         self.layout.addWidget(self.checkboxes_landmarks_widget)
-        self.layout.addWidget(lines[1])
+        self.layout.addWidget(line())
         self.layout.addWidget(self.checkbox_symbol_intervals)
-        self.layout.addWidget(lines[2])
+        self.layout.addWidget(line())
         self.layout.addWidget(self.checkbox_symbol_values)
 
         self.setLayout(self.layout)
@@ -123,7 +131,6 @@ class PlotSettingsDialog(QDialog):
             self.checkboxes_landmarks.append(checkbox)
             combobox = QComboBox()
             combobox.addItems(self.plot_view.symbols.keys())
-            #combobox.setCurrentText(landmark_info['symbols'][landmark_index])
             combobox.setCurrentIndex(list(self.plot_view.symbols.values()).index(landmark_info['symbols'][landmark_index]))
             combobox.activated.connect(generate_lambda_landmark_symbol(landmark_index))
             self.comboboxes_landmarks_symbol.append(combobox)
@@ -136,8 +143,21 @@ class PlotSettingsDialog(QDialog):
         self.checkboxes_landmarks_layout.addStretch(1)
 
     def set_receiver_checkboxes(self, receiver_index, state):
+        """
+        Sets all dataline checkboxes for a given receiver to the given state.
+        @param receiver_index: Index of the receiver.
+        @param state: New state of the checkboxes.
+        """
         for sensor_index in range(len(self.checkboxes_active[receiver_index])):
             self.checkboxes_active[receiver_index][sensor_index].setChecked(state)
+
+    def set_landmark_checkboxes(self, state):
+        """
+        Sets all landmark checkboxes to the given state.
+        @param state: New state of the landmark checkboxes.
+        """
+        for landmark_index in range(len(self.checkboxes_landmarks)):
+            self.checkboxes_landmarks[landmark_index].setChecked(state)
 
     def remove_datalines(self):
         self.checkboxes_active = []
