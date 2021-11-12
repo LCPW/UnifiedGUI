@@ -10,20 +10,15 @@ class ParameterDialog(QDialog):
         self.setWindowTitle("Parameters")
         self.setWindowIcon(QIcon('./Views/Icons/tune.png'))
 
-        length = len(parameters)
-        self.values = []
-        #self.values = [None] * length
+        self.values = {}
         self.widgets = []
 
-        # def generate_lambda(i_, value_):
-        #     return lambda: self.set(i_, value_)
-
         layout = QFormLayout()
-        for i in range(length):
+        for i in range(len(parameters)):
             param = parameters[i]
             description = param['description']
             label = QLabel(description)
-            type_ = param['type']
+            type_ = param['dtype']
             w = None
             # self.values[i] = param['default']
             if type_ == 'bool':
@@ -55,7 +50,7 @@ class ParameterDialog(QDialog):
                 w.setMaxLength(param['max_length'])
                 w.setText(param['default'])
                 #w.textEdited.connect(generate_lambda(i, w.text()))
-            self.widgets.append((w, type_))
+            self.widgets.append((w, type_, description))
             layout.addRow(label, w)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -66,7 +61,7 @@ class ParameterDialog(QDialog):
         self.setLayout(layout)
 
     def accept_(self):
-        for w, t in self.widgets:
+        for w, t, description in self.widgets:
             value = None
             if t == 'bool':
                 value = w.isChecked()
@@ -76,6 +71,6 @@ class ParameterDialog(QDialog):
                 value = w.currentText()
             elif t == 'string':
                 value = w.text()
-            self.values.append(value)
-        print(self.values)
+            self.values[description] = value
+        #print(self.values)
         self.accept()

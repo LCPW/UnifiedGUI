@@ -83,9 +83,10 @@ class View(QMainWindow):
             self.last_fps = []
         self.last_time = time_
 
-    def decoder_added(self, decoder_type, receiver_info, landmark_info):
+    def decoder_added(self, decoder_type, receiver_info, landmark_info, parameter_values):
         # Update decoder view
-        self.decoder_view.decoder_added(decoder_type)
+        # TODO: decoder name/type?
+        self.decoder_view.decoder_added(decoder_type, parameter_values)
 
         # Update data view
         self.data_view.decoder_added(receiver_info, landmark_info)

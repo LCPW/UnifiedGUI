@@ -75,7 +75,7 @@ class Controller:
         self.model.add_decoder(decoder_type, parameter_values)
         receiver_info = self.model.get_receiver_info()
         landmark_info = self.model.get_landmark_info()
-        self.view.decoder_added(decoder_type, receiver_info, landmark_info)
+        self.view.decoder_added(decoder_type, receiver_info, landmark_info, parameter_values)
 
     def remove_decoder(self):
         self.model.remove_decoder()

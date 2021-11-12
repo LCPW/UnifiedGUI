@@ -2,6 +2,7 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import os
+import copy
 
 from Views import Warnings
 
@@ -61,14 +62,17 @@ class DecoderView(QWidget):
 
         self.label_subtitle = QLabel("No decoder selected")
 
-        line = QFrame()
-        line.setFrameShape(QFrame.HLine)
-        line.setFrameShadow(QFrame.Sunken)
+        def line():
+            line = QFrame()
+            line.setFrameShape(QFrame.HLine)
+            line.setFrameShadow(QFrame.Sunken)
+            return line
 
         self.layout.addWidget(label)
         self.layout.addWidget(self.label_subtitle)
-        self.layout.addWidget(line)
+        self.layout.addWidget(line())
         self.layout.addWidget(self.toolbar)
+        self.layout.addWidget(line())
         self.layout.addStretch(1)
 
         self.setLayout(self.layout)
@@ -90,9 +94,30 @@ class DecoderView(QWidget):
         if Warnings.warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
             self.main_view.controller.stop_decoder()
 
-    def decoder_added(self, decoder_name):
+    def decoder_added(self, decoder_name, parameter_values):
         # TODO: Add information about decoder and receivers in the GUI
+        # Including parameter_values
         self.label_subtitle.setText(decoder_name)
+
+        # TODO: Parameters is None
+        if parameter_values:
+            self.label_parameters = QLabel("Parameter values")
+            self.table_parameters = QTableWidget()
+            self.table_parameters.setRowCount(len(parameter_values))
+            self.table_parameters.setColumnCount(2)
+            self.table_parameters.setHorizontalHeaderLabels(["Description", "Value"])
+            # Table will fit the screen horizontally
+            self.table_parameters.horizontalHeader().setStretchLastSection(True)
+            self.table_parameters.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            # TODO: Nochmal anschauen: https://doc.qt.io/qt-5/qtableview.html
+            #self.table_parameters.verticalHeader().setStretchLastSection(True)
+            self.table_parameters.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            #self.table_parameters.resizeRowsToContents()
+            for i in range(len(parameter_values)):
+                description = list(parameter_values.keys())[i]
+                value = parameter_values[description]
+                self.table_parameters.setItem(i, 0, QTableWidgetItem(str(description)))
+                self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
 
         self.label_symbol_values = QLabel("Symbol values")
         self.text_edit_symbol_values = QPlainTextEdit()
@@ -101,6 +126,10 @@ class DecoderView(QWidget):
         self.label_sequence = QLabel("Decoded sequence")
         self.text_edit_sequence = QPlainTextEdit()
         self.text_edit_sequence.setReadOnly(True)
+
+        if parameter_values:
+            self.layout.addWidget(self.label_parameters)
+            self.layout.addWidget(self.table_parameters)
 
         self.layout.addWidget(self.label_symbol_values)
         self.layout.addWidget(self.text_edit_symbol_values)
@@ -115,6 +144,8 @@ class DecoderView(QWidget):
 
     def decoder_removed(self):
         self.label_subtitle.setText("")
+
+        # TODO: Remove parameter values
 
         self.label_symbol_values.deleteLater()
         self.label_sequence.deleteLater()

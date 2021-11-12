@@ -39,6 +39,8 @@ class PlotWidgetView(pg.PlotWidget):
         # TODO: Gut, aber noch besser waere es wenn es der User auswaehlen koennte
         # self.enableAutoRange(axis='y')
         self.setMouseEnabled(x=True, y=False)
+        # TODO: Let user choose this
+        # self.plotItem.setLimits(maxXRange=10)
 
         #self.legend = pg.LegendItem(labelTextColor='k')
         self.legend = pg.LegendItem()
