@@ -6,17 +6,38 @@ import Logging
 
 
 class DecoderInterface:
-    def __init__(self, num_receivers, receiver_types, receiver_descriptions=None, landmark_names=None, landmark_symbols=None):
-        self.num_receivers = len(receiver_types)
-        self.receiver_types = receiver_types
-        #assert self.num_receivers == len(self.receiver_types), "num_receivers not equal to length of receiver_types."
-        self.receiver_descriptions = [str(receiver_types[i]) + str(i+1) for i in range(len(self.receiver_types))] if receiver_descriptions is None else receiver_descriptions
-        self.num_landmarks = 0 if landmark_names is None else len(landmark_names)
-        self.landmark_names = [] if landmark_names is None else landmark_names
-        self.landmark_symbols = landmark_symbols
-        if __debug__ and not len(self.landmark_symbols) == self.num_landmarks:
-            Logging.warning("Length of landmark symbols does not match number of landmarks")
-            self.landmark_symbols = None
+    def __init__(self, parameter_values):
+        self.parameter_values = parameter_values
+        # This will get overwritten in every case in the implementation
+        self.receiver_types = None
+        self.receiver_descriptions = None
+        self.landmark_names = None
+        self.landmark_symbols = None
+
+    def setup(self):
+        # TODO
+        #if self.receiver_types is None:
+        #    Logging.warning("No receivers provided for decoder.")
+        self.num_receivers = len(self.receiver_types)
+        #self.num_landmarks = 0 if self.landmark_names is None else len(self.landmark_names)
+        #self.landmark_names = [] if self.landmark_names is None else self.landmark_names
+        #self.landmark_symbols = self.landmark_symbols
+
+        if self.receiver_descriptions is None:
+            Logging.info("No receiver descriptions provided, automatically generating them.")
+            self.receiver_descriptions = [str(self.receiver_types[i]) + str(i+1) for i in range(self.num_receivers)]
+
+        if self.landmark_names is None:
+            self.landmark_names = []
+            self.num_landmarks = 0
+        else:
+            self.num_landmarks = len(self.landmark_names)
+            if self.landmark_symbols is None:
+                Logging.info("No landmark symbols provided, using circle as default symbol.")
+                self.landmark_symbols = ['o'] * self.num_landmarks
+            elif not len(self.landmark_symbols) == self.num_landmarks:
+                Logging.warning("Length of landmark symbols does not match number of landmarks!")
+                self.landmark_symbols = ['o'] * self.num_landmarks
 
         self.active = False
 
@@ -28,7 +49,8 @@ class DecoderInterface:
 
         for receiver_index in range(self.num_receivers):
             # Dynamically import the module of the implementation
-            module = importlib.import_module('.' + self.receiver_types[receiver_index], package='Models.Implementations.Receivers')
+            module = importlib.import_module('.' + self.receiver_types[receiver_index],
+                                             package='Models.Implementations.Receivers')
             # Create an instance of the class in the said module (e.g. ExampleReceiver.ExampleReceiver())
             instance = getattr(module, self.receiver_types[receiver_index])(self.receiver_descriptions[receiver_index])
             self.receivers.append(instance)

@@ -1,15 +1,22 @@
 import time
+import Logging
 
 
 class ReceiverInterface:
-    def __init__(self, description, num_sensors, sensor_descriptions=None):
+    def __init__(self, description):
         self.description = description
-        self.num_sensors = num_sensors
-        if sensor_descriptions is None or len(sensor_descriptions) != self.num_sensors:
-            self.sensor_descriptions = ["Value" + str(i + 1) for i in range(num_sensors)]
-        else:
-            self.sensor_descriptions = sensor_descriptions
+        self.num_sensors = None
+        self.sensor_descriptions = None
+
         self.buffer = []
+
+    def setup(self):
+        if self.sensor_descriptions is None:
+            Logging.info("No sensor descriptions provided, automatically generating them.")
+            self.sensor_descriptions = ["Sensor" + str(i + 1) for i in range(self.num_sensors)]
+        if len(self.sensor_descriptions) != self.num_sensors:
+            Logging.warning("Sensor descriptions do not match number of sensors!")
+            self.sensor_descriptions = ["Sensor" + str(i + 1) for i in range(self.num_sensors)]
 
     def get_available(self):
         """

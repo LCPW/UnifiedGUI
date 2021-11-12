@@ -1,38 +1,37 @@
 from Models.Interfaces.DecoderInterface import DecoderInterface
 import random
 
-# TODO: Check unique descriptions
 PARAMETERS = [
     {
         'description': "Parameter1",
         'decimals': 4,
-        'type': 'float',
+        'dtype': 'float',
         'min': 0,
         'max': 100,
         'default': 50,
     },
     {
         'description': "Parameter2",
-        'type': 'bool',
+        'dtype': 'bool',
         'default': True
     },
     {
-        'description': "P3",
-        'type': 'item',
+        'description': "Parameter3",
+        'dtype': 'item',
         'items': ['A', 'B', 'C'],
         'default': 'B'
     },
     {
         'description': "Parameter4",
-        'type': 'int',
+        'dtype': 'int',
         'min': 0,
         'max': 100,
         'default': 25,
     },
     {
         'description': "Parameter5",
-        'type': 'string',
-        'default': "Baum",
+        'dtype': 'string',
+        'default': "Hello World",
         'max_length': 20
     }
 ]
@@ -40,20 +39,16 @@ PARAMETERS = [
 
 class ExampleDecoder(DecoderInterface):
     def __init__(self, parameter_values):
-        print(parameter_values)
-        self.num_receivers = 3
-        self.receiver_types = ["ExampleReceiver"] * self.num_receivers
-        self.receiver_descriptions = None
-        # TODO: How should this be done? Redundant?
-        # self.num_landmarks = 2
+        super().__init__(parameter_values)
+        # Mandatory
+        self.receiver_types = ["ExampleReceiver"] * 3
+
+        # Optional
         self.landmark_names = ['Test1', 'Test2']
-        #self.landmark_names = None
-        self.landmark_symbols = ['x', 'd']
-        # self.receiver_descriptions = ["ExampleReceiver1", "ExampleReceiver2", "ExampleReceiver3"]
-        # The receiver descriptions are optional
-        # Landmarks are also optional
-        super().__init__(self.num_receivers, self.receiver_types, receiver_descriptions=self.receiver_descriptions,
-                         landmark_names=self.landmark_names, landmark_symbols=self.landmark_symbols)
+        # self.landmark_symbols = ['x', 'd']
+
+    def setup(self):
+        super().setup()
 
     def calculate_symbol_intervals(self):
         if self.timestamps[0] is not None:
@@ -69,6 +64,7 @@ class ExampleDecoder(DecoderInterface):
         #print(len(self.symbol_intervals))
 
     def calculate_landmarks(self):
+        # TODO: set_landmarks(i, values) ? -> direkt mit check ob i auch passt
         #x = [self.symbol_intervals[a] + 0.5 * (self.symbol_intervals[a+1] - self.symbol_values[a]) for a in range(len(self.symbol_intervals))]
         x = self.symbol_intervals
         #y = [self.received[0][0, i] for i in x]

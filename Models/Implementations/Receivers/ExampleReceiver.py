@@ -5,10 +5,12 @@ import random
 
 class ExampleReceiver(ReceiverInterface):
     def __init__(self, description):
+        super().__init__(description)
+
         self.num_sensors = 2
-        #self.sensor_descriptions = ["Value1", "Value2"]
-        self.sensor_descriptions = None
-        super().__init__(description, self.num_sensors, sensor_descriptions=self.sensor_descriptions)
+        self.sensor_descriptions = ["Sensor A", "Sensor B"]
+
+        super().setup()
 
         self.value1 = random.random()
         self.value2 = random.random()
