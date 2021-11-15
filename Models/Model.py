@@ -24,11 +24,11 @@ class Model:
     def is_decoder_available(self):
         return self.decoder is not None and self.decoder.active
 
-    def add_decoder(self, decoder_type, parameter_values):
+    def add_decoder(self, decoder_type, parameters, parameter_values):
         # Dynamically import the module of the implementation
         module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
         # Create an instance of the class in the said module (e.g. ExampleDecoder.ExampleDecoder())
-        self.decoder = getattr(module, decoder_type)(parameter_values)
+        self.decoder = getattr(module, decoder_type)(parameters, parameter_values)
         self.decoder.setup()
 
     def get_decoder_parameters(self, decoder_type):

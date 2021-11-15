@@ -42,7 +42,6 @@ class PlotWidgetView(pg.PlotWidget):
         # TODO: Let user choose this
         # self.plotItem.setLimits(maxXRange=10)
 
-        #self.legend = pg.LegendItem(labelTextColor='k')
         self.legend = pg.LegendItem()
         self.legend.setParentItem(self.getPlotItem())
 

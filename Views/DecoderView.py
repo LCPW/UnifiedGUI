@@ -26,6 +26,9 @@ class DecoderView(QWidget):
                 self.available_decoders.append(name)
 
         self.layout = QVBoxLayout()
+        # TODO: Lines
+        # Position for potential grid layout
+        # self.positions = ['header', 'subheader', 'toolbar', 'parameters_label, parameters, symbol_values_label, symbol_values, sequence_label, sequence']
 
         self.toolbar = QToolBar()
 
@@ -56,6 +59,13 @@ class DecoderView(QWidget):
         self.button_stop_decoder.clicked.connect(self.stop_decoder)
         self.toolbar.addWidget(self.button_stop_decoder)
 
+        self.button_parameters = QToolButton()
+        self.button_parameters.setToolTip("Edit Parameters")
+        self.button_parameters.setIcon(QIcon('./Views/Icons/tune.png'))
+        self.button_parameters.setEnabled(False)
+        self.button_parameters.clicked.connect(self.main_view.controller.edit_parameters)
+        self.toolbar.addWidget(self.button_parameters)
+
         label = QLabel("Decoder")
         label.setFont(FONT_BIG)
         #label.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
@@ -76,6 +86,11 @@ class DecoderView(QWidget):
         self.layout.addStretch(1)
 
         self.setLayout(self.layout)
+
+    def parameters_edited(self, parameter_values):
+        for i in range(len(parameter_values)):
+            value = list(parameter_values.values())[i]
+            self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
 
     def add_decoder(self):
         decoder_type, ok = QInputDialog.getItem(self, "Add Decoder", "Decoder type", self.available_decoders, 0, False)
@@ -118,6 +133,7 @@ class DecoderView(QWidget):
                 value = parameter_values[description]
                 self.table_parameters.setItem(i, 0, QTableWidgetItem(str(description)))
                 self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
+            self.button_parameters.setEnabled(True)
 
         self.label_symbol_values = QLabel("Symbol values")
         self.text_edit_symbol_values = QPlainTextEdit()
@@ -156,6 +172,7 @@ class DecoderView(QWidget):
         self.button_remove_decoder.setEnabled(False)
         self.button_start_decoder.setEnabled(False)
         self.button_stop_decoder.setEnabled(False)
+        self.button_parameters.setEnabled(False)
 
     def decoder_started(self):
         self.button_add_decoder.setEnabled(False)

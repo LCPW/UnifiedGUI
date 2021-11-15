@@ -38,8 +38,8 @@ PARAMETERS = [
 
 
 class ExampleDecoder(DecoderInterface):
-    def __init__(self, parameter_values):
-        super().__init__(parameter_values)
+    def __init__(self, parameters, parameter_values):
+        super().__init__(parameters, parameter_values)
         # Mandatory
         self.receiver_types = ["ExampleReceiver"] * 3
 
