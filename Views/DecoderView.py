@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 import os
 import copy
 
-from Views import Warnings
+from Views import MessageBoxes
 
 
 # TODO: Refactor
@@ -67,16 +67,17 @@ class DecoderView(QWidget):
         self.toolbar.addWidget(self.button_parameters)
 
         label = QLabel("Decoder")
-        label.setFont(FONT_BIG)
+        label.setObjectName("header")
+
         #label.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
 
         self.label_subtitle = QLabel("No decoder selected")
 
         def line():
-            line = QFrame()
-            line.setFrameShape(QFrame.HLine)
-            line.setFrameShadow(QFrame.Sunken)
-            return line
+            line_ = QFrame()
+            line_.setFrameShape(QFrame.HLine)
+            line_.setFrameShadow(QFrame.Sunken)
+            return line_
 
         self.layout.addWidget(label)
         self.layout.addWidget(self.label_subtitle)
@@ -86,6 +87,13 @@ class DecoderView(QWidget):
         self.layout.addStretch(1)
 
         self.setLayout(self.layout)
+
+        self.label_symbol_values = None
+        self.text_edit_symbol_values = None
+        self.label_sequence = None
+        self.text_edit_sequence = None
+        self.label_parameters = None
+        self.table_parameters = None
 
     def parameters_edited(self, parameter_values):
         for i in range(len(parameter_values)):
@@ -98,7 +106,7 @@ class DecoderView(QWidget):
             self.main_view.controller.add_decoder(decoder_type)
 
     def remove_decoder(self):
-        if Warnings.warning(self.style(), "Remove decoder?", "Are you sure you want to remove the decoder?", "All data that has not been exported yet, cannot be recovered."):
+        if MessageBoxes.warning(self.style(), "Remove decoder?", "Are you sure you want to remove the decoder?", "All data that has not been exported yet, cannot be recovered."):
             self.main_view.controller.remove_decoder()
 
     def start_decoder(self):
@@ -106,15 +114,12 @@ class DecoderView(QWidget):
         self.main_view.controller.start_decoder()
 
     def stop_decoder(self):
-        if Warnings.warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
+        if MessageBoxes.warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
             self.main_view.controller.stop_decoder()
 
-    def decoder_added(self, decoder_name, parameter_values):
-        # TODO: Add information about decoder and receivers in the GUI
-        # Including parameter_values
-        self.label_subtitle.setText(decoder_name)
+    def decoder_added(self, decoder_type, parameter_values):
+        self.label_subtitle.setText(decoder_type)
 
-        # TODO: Parameters is None
         if parameter_values:
             self.label_parameters = QLabel("Parameter values")
             self.table_parameters = QTableWidget()
@@ -161,12 +166,15 @@ class DecoderView(QWidget):
     def decoder_removed(self):
         self.label_subtitle.setText("")
 
-        # TODO: Remove parameter values
-
         self.label_symbol_values.deleteLater()
         self.label_sequence.deleteLater()
         self.text_edit_symbol_values.deleteLater()
         self.text_edit_sequence.deleteLater()
+        if self.label_parameters:
+            self.label_parameters.deleteLater()
+            self.label_parameters = None
+            self.table_parameters.deleteLater()
+            self.table_parameters = None
 
         self.button_add_decoder.setEnabled(True)
         self.button_remove_decoder.setEnabled(False)
