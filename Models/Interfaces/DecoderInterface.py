@@ -6,7 +6,8 @@ import Logging
 
 
 class DecoderInterface:
-    def __init__(self, parameter_values):
+    def __init__(self, parameters, parameter_values):
+        self.parameters = parameters
         self.parameter_values = parameter_values
         # This will get overwritten in every case in the implementation
         self.receiver_types = None
@@ -15,13 +16,7 @@ class DecoderInterface:
         self.landmark_symbols = None
 
     def setup(self):
-        # TODO
-        #if self.receiver_types is None:
-        #    Logging.warning("No receivers provided for decoder.")
         self.num_receivers = len(self.receiver_types)
-        #self.num_landmarks = 0 if self.landmark_names is None else len(self.landmark_names)
-        #self.landmark_names = [] if self.landmark_names is None else self.landmark_names
-        #self.landmark_symbols = self.landmark_symbols
 
         if self.receiver_descriptions is None:
             Logging.info("No receiver descriptions provided, automatically generating them.")
@@ -49,11 +44,11 @@ class DecoderInterface:
 
         for receiver_index in range(self.num_receivers):
             # Dynamically import the module of the implementation
-            module = importlib.import_module('.' + self.receiver_types[receiver_index],
-                                             package='Models.Implementations.Receivers')
+            module = importlib.import_module('.' + self.receiver_types[receiver_index], package='Models.Implementations.Receivers')
             # Create an instance of the class in the said module (e.g. ExampleReceiver.ExampleReceiver())
-            instance = getattr(module, self.receiver_types[receiver_index])(self.receiver_descriptions[receiver_index])
-            self.receivers.append(instance)
+            receiver = getattr(module, self.receiver_types[receiver_index])(self.receiver_descriptions[receiver_index])
+            receiver.setup()
+            self.receivers.append(receiver)
             self.receiver_buffer.append([])
 
             self.timestamps.append(None)
@@ -76,7 +71,6 @@ class DecoderInterface:
         self.active = True
 
     def stop(self):
-        # TODO: Stop threads?
         self.active = False
 
     def get_receiver_info(self):
@@ -89,7 +83,6 @@ class DecoderInterface:
         return {'num': self.num_landmarks, 'names': self.landmark_names, 'symbols': self.landmark_symbols}
 
     def get_decoded(self):
-        #self.decode()
         received = {'timestamps': self.timestamps, 'values': self.received}
         return {'received': received, 'landmarks': self.landmarks, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values, 'sequence': self.sequence}
 
@@ -142,25 +135,24 @@ class DecoderInterface:
         """
         Main functionality of the decoder that is executed in every step of the main program loop.
         """
-
         self.empty_receiver_buffers()
         # Optionally apply filter
 
         # Optionally calculate landmarks (edges, peaks, etc.)
         self.calculate_landmarks()
         if __debug__ and not isinstance(self.landmarks, list):
-            Logging.log("Landmarks is not a list.", 'WARNING')
+            Logging.warning("Landmarks is not a list.", repeat=False)
 
         # Calculate symbol intervals
         self.calculate_symbol_intervals()
         if __debug__ and not (isinstance(self.symbol_intervals, list) or isinstance(self.symbol_intervals, np.ndarray)):
-            Logging.log("Symbol intervals is not a list or array", 'WARNING')
+            Logging.warning("Symbol intervals is not a list or array", repeat=False)
 
         # Assign value to each symbol interval
         self.calculate_symbol_values()
         # If list is non-empty and ...
         if __debug__ and self.symbol_values and not len(self.symbol_values) == len(self.symbol_intervals) - 1:
-            Logging.log("Length of symbol_values is not 1 smaller than length of symbol_intervals", 'WARNING')
+            Logging.warning("Length of symbol_values is not 1 smaller than length of symbol_intervals", repeat=False)
 
         # Calculate the sequence from the symbol values
         self.calculate_sequence()

@@ -8,6 +8,7 @@ class ExampleReceiver(ReceiverInterface):
         # Implement: Define number of sensors
         self.num_sensors = None
 
+    def setup(self):
         super().setup()
 
     def listen(self):

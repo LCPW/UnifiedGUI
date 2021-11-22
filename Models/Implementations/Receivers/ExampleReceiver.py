@@ -10,14 +10,15 @@ class ExampleReceiver(ReceiverInterface):
         self.num_sensors = 2
         self.sensor_descriptions = ["Sensor A", "Sensor B"]
 
-        super().setup()
-
         self.value1 = random.random()
         self.value2 = random.random()
 
+    def setup(self):
+        super().setup()
+
     def listen(self):
         while True:
-            time.sleep(0.0001)
+            time.sleep(0.001)
             value1 = self.value1 + 0.1 * random.random()
             value2 = self.value2 + 0.1 * random.random()
             values = (value1, value2)
