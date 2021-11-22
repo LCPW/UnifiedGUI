@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 
 
 class ParameterDialog(QDialog):
-    def __init__(self, parameters):
+    def __init__(self, parameters, current_values=None):
         super(ParameterDialog, self).__init__()
 
         self.setWindowTitle("Parameters")
@@ -23,19 +23,19 @@ class ParameterDialog(QDialog):
             # self.values[i] = param['default']
             if type_ == 'bool':
                 w = QCheckBox()
-                w.setChecked(param['default'])
+                w.setChecked(current_values[i] if current_values else param['default'])
                 #w.clicked.connect(generate_lambda(i, w.isChecked()))
             elif type_ == 'int':
                 w = QSpinBox()
                 w.setRange(param['min'], param['max'])
-                w.setValue(param['default'])
+                w.setValue(current_values[i] if current_values else param['default'])
                 #w.valueChanged.connect(generate_lambda(i, w.value()))
                 # Evtl. noch singleStep
                 # w.Value()
             elif type_ == 'float':
                 w = QDoubleSpinBox()
                 w.setRange(param['min'], param['max'])
-                w.setValue(param['default'])
+                w.setValue(current_values[i] if current_values else param['default'])
                 w.setDecimals(param['decimals'])
                 #w.valueChanged.connect(generate_lambda(i, w.value()))
                 # Evtl. noch singleStep
@@ -43,12 +43,12 @@ class ParameterDialog(QDialog):
                 w = QComboBox()
                 w.addItems(param['items'])
                 # TODO: Check if default is actually in items
-                w.setCurrentIndex(param['items'].index(param['default']))
+                w.setCurrentIndex(param['items'].index(current_values[i] if current_values else param['default']))
                 #w.activated.connect(generate_lambda(i, w.currentText()))
             elif type_ == 'string':
                 w = QLineEdit()
                 w.setMaxLength(param['max_length'])
-                w.setText(param['default'])
+                w.setText(current_values[i] if current_values else param['default'])
                 #w.textEdited.connect(generate_lambda(i, w.text()))
             self.widgets.append((w, type_, description))
             layout.addRow(label, w)

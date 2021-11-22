@@ -27,12 +27,9 @@ class Controller:
         while self.running:
             self.run(sleep_time=1.0/FRAMES_PER_SECOND)
 
-        # TODO: Clean exit
-        #self.view.timer.stop()
-        #sys.exit(0)
+        thread_gui.join()
 
     def run(self, sleep_time):
-        # TODO: Do we even need to do something here?
         if self.model.is_decoder_available():
             self.model.decoder.decode()
         # This is necessary in order for the GUI not to freeze and crash at some point
@@ -41,12 +38,14 @@ class Controller:
     def run_gui(self):
         app = QtWidgets.QApplication(sys.argv)
         app.setStyle('Fusion')
+        # Use stylesheet
+        with open('./Views/Style.qss', 'r') as f:
+            app.setStyleSheet(f.read())
         # Disables the question mark in dialog windows
         app.setAttribute(QtCore.Qt.AA_DisableWindowContextHelpButton)
         self.view = View.View(self)
         self.view.show()
         app.exec_()
-        #sys.exit(app.exec_())
 
     def get_decoded(self):
         return self.model.get_decoded()
@@ -79,8 +78,9 @@ class Controller:
 
     def edit_parameters(self):
         parameters = self.model.decoder.parameters
+        current_values = list(self.model.decoder.parameter_values.values())
         # User clicked Ok Button -> Everything is fine, get the values and continue
-        if self.view.get_parameter_values(parameters):
+        if self.view.get_parameter_values(parameters, current_values):
             parameter_values = self.view.parameter_dialog.values
             self.model.decoder.parameter_values = parameter_values
             self.view.decoder_view.parameters_edited(parameter_values)
