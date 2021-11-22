@@ -10,5 +10,6 @@ class EncoderView(QWidget):
 
         layout = QVBoxLayout()
         label = QLabel("Encoder")
+        label.setObjectName("header")
         layout.addWidget(label)
         self.setLayout(layout)
