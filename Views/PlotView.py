@@ -5,6 +5,13 @@ import pyqtgraph as pg
 
 from Views import PlotWidgetView, PlotSettingsDialog
 
+# TODO: Refactor?
+X_RANGE = {
+    'min': 1,
+    'max': 100,
+    'initial': 5
+}
+
 
 class PlotView(QWidget):
     def __init__(self):
@@ -47,8 +54,36 @@ class PlotView(QWidget):
         self.plot_widget = PlotWidgetView.PlotWidgetView(self)
 
         self.toolbar = QToolBar()
+
+        self.label_range = QLabel("X-Axis Range[s]")
+        self.button_range = QToolButton()
+        self.button_range.setToolTip("Auto (no limit)")
+        self.button_range.setIcon(QIcon('./Views/Icons/all_inclusive.png'))
+        self.button_range.setEnabled(True)
+        self.button_range.clicked.connect(lambda: self.set_x_range('button'))
+        self.slider_range = QSlider(Qt.Horizontal)
+        self.slider_range.setRange(X_RANGE['min'], X_RANGE['max'])
+        self.slider_range.setValue(X_RANGE['initial'])
+        self.slider_range.sliderMoved.connect(lambda: self.set_x_range('slider'))
+        self.spinbox_range = QSpinBox()
+        self.spinbox_range.setRange(X_RANGE['min'], X_RANGE['max'])
+        self.spinbox_range.setValue(X_RANGE['initial'])
+        self.spinbox_range.valueChanged.connect(lambda: self.set_x_range('spinbox'))
+        # Actually set the x range
+        self.plot_widget.plotItem.setLimits(maxXRange=X_RANGE['initial'])
+        self.spinbox_range.valueChanged.connect(self.test)
+
+        self.toolbar.addWidget(self.label_range)
+        self.toolbar.addWidget(self.button_range)
+        self.toolbar.addWidget(self.slider_range)
+        self.toolbar.addWidget(self.spinbox_range)
+
+        empty = QWidget()
+        empty.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
+        self.toolbar.addWidget(empty)
+
         self.button_settings = QToolButton()
-        self.button_settings.setText("Settings")
+        self.button_settings.setToolTip("Settings")
         self.button_settings.setIcon(QIcon('./Views/Icons/settings.png'))
         self.button_settings.setEnabled(False)
         self.button_settings.clicked.connect(self.show_settings)
@@ -59,6 +94,24 @@ class PlotView(QWidget):
         self.setLayout(layout)
 
         self.current_color = 0
+
+    def test(self, ix):
+        print(ix)
+
+    def set_x_range(self, widget):
+        if widget == 'button':
+            self.plot_widget.plotItem.setLimits(maxXRange=None)
+            self.button_range.setEnabled(False)
+        elif widget == 'slider':
+            x_range = self.slider_range.value()
+            self.plot_widget.plotItem.setLimits(maxXRange=x_range)
+            self.spinbox_range.setValue(x_range)
+            self.button_range.setEnabled(True)
+        elif widget == 'spinbox':
+            x_range = self.spinbox_range.value()
+            self.plot_widget.plotItem.setLimits(maxXRange=x_range)
+            self.slider_range.setValue(x_range)
+            self.button_range.setEnabled(True)
 
     def decoder_added(self, receiver_info, landmark_info):
         self.add_datalines(receiver_info)

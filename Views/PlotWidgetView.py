@@ -40,7 +40,10 @@ class PlotWidgetView(pg.PlotWidget):
         # self.enableAutoRange(axis='y')
         self.setMouseEnabled(x=True, y=False)
         # TODO: Let user choose this
-        # self.plotItem.setLimits(maxXRange=10)
+        #self.plotItem.setLimits(maxXRange=5)
+        #self.plotItem.setLimits(maxXRange=None)
+        #self.autoRange()
+        #self.enableAutoRange(axis= x')
 
         self.legend = pg.LegendItem()
         self.legend.setParentItem(self.getPlotItem())
