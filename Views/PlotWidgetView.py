@@ -33,6 +33,8 @@ class PlotWidgetView(pg.PlotWidget):
         self.vertical_lines = []
         self.text_items = []
 
+        self.max_value = 0
+
         # TODO?
         # self.setDownsampling(ds=10)
 
@@ -79,6 +81,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.last_symbol_intervals = None
         self.deactivate_symbol_values()
         self.last_symbol_values = None
+        self.max_value = 0
         self.update_()
 
     def update_values(self, vals):
@@ -94,6 +97,8 @@ class PlotWidgetView(pg.PlotWidget):
                         x = x[:len(y)]
                         y = y[:len(x)]
                         self.data_lines[receiver_index][sensor_index].setData(x, y)
+
+        self.max_value = max([np.max(a) for a in values])
         self.last_vals = vals
 
     def add_landmarks(self, landmark_info):
@@ -144,6 +149,9 @@ class PlotWidgetView(pg.PlotWidget):
             self.update_symbol_intervals(self.last_symbol_intervals)
 
     def update_symbol_values(self, symbol_intervals, symbol_values):
+        # TODO: Why is this needed still?
+        symbol_values = symbol_values[:len(symbol_intervals) - 1]
+
         if self.plot_view.settings['symbol_values']:
             for i in range(len(self.text_items), len(symbol_values)):
                 # TODO: Special case for last value?
@@ -151,7 +159,7 @@ class PlotWidgetView(pg.PlotWidget):
                 x_pos = 0.5 * (symbol_intervals[i] + symbol_intervals[i+1])
                 text = pg.TextItem(str(symbol_values[i]), color='k')
                 # TODO: Place in correct height
-                text.setPos(x_pos, 1.2)
+                text.setPos(x_pos, 1.1 * self.max_value)
                 self.addItem(text)
                 self.text_items.append(text)
         self.last_symbol_values = symbol_values
