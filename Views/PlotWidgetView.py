@@ -105,14 +105,13 @@ class PlotWidgetView(pg.PlotWidget):
 
     def update_landmarks(self, landmarks):
         for i in range(len(landmarks)):
-            if landmarks[i] is not None and self.plot_view.settings['landmarks_active'][i]:
+            if landmarks[i] is not None and self.plot_view.settings['landmarks_active'][i] is not None:
                 x, y = landmarks[i]['x'], landmarks[i]['y']
                 self.landmarks[i].setData(x, y)
         self.last_landmarks = landmarks
 
     def activate_landmarks(self, landmark_index):
-        if self.last_landmarks is not None:
-            # TODO: landmarks[i] is None??
+        if self.last_landmarks is not None and self.last_landmarks[landmark_index] is not None:
             x, y = self.last_landmarks[landmark_index]['x'], self.last_landmarks[landmark_index]['y']
             self.landmarks[landmark_index].setData(x, y)
             self.legend.addItem(self.landmarks[landmark_index], self.landmarks[landmark_index].name())
@@ -139,15 +138,12 @@ class PlotWidgetView(pg.PlotWidget):
         for i in self.vertical_lines:
             self.removeItem(i)
         self.vertical_lines = []
-        # self.last_symbol_intervals = None
 
     def activate_symbol_intervals(self):
-        self.update_symbol_intervals(self.last_symbol_intervals)
+        if self.last_symbol_intervals is not None:
+            self.update_symbol_intervals(self.last_symbol_intervals)
 
     def update_symbol_values(self, symbol_intervals, symbol_values):
-        # TODO:
-        symbol_values = symbol_values[:len(symbol_intervals) - 1]
-
         if self.plot_view.settings['symbol_values']:
             for i in range(len(self.text_items), len(symbol_values)):
                 # TODO: Special case for last value?
@@ -166,7 +162,8 @@ class PlotWidgetView(pg.PlotWidget):
         self.text_items = []
 
     def activate_symbol_values(self):
-        self.update_symbol_values(self.last_symbol_intervals, self.last_symbol_values)
+        if self.last_symbol_values:
+            self.update_symbol_values(self.last_symbol_intervals, self.last_symbol_values)
 
     def deactivate_dataline(self, receiver_index, sensor_index):
         self.data_lines[receiver_index][sensor_index].clear()
@@ -174,7 +171,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.update_()
 
     def update_(self):
-        # TODO: Other way possible? update, repaint, resize, QApplication.processEvents do not work
+        # Other way possible? update, repaint, resize, QApplication.processEvents do not work...
         self.hide()
         self.show()
 
