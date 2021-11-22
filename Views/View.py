@@ -4,7 +4,8 @@ from PyQt5.QtWidgets import *
 import sys
 import numpy as np
 import time
-from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, ParameterDialog
+
+from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, ParameterDialog, MessageBoxes
 
 
 class View(QMainWindow):
@@ -95,21 +96,12 @@ class View(QMainWindow):
         self.data_view.decoder_removed()
         self.decoder_view.decoder_removed()
 
-    def get_parameter_values(self, parameters):
-        self.parameter_dialog = ParameterDialog.ParameterDialog(parameters)
+    def get_parameter_values(self, parameters, current_values=None):
+        self.parameter_dialog = ParameterDialog.ParameterDialog(parameters, current_values=current_values)
         return self.parameter_dialog.exec()
 
     def closeEvent(self, close_event: QCloseEvent):
-        # TODO: Refactor
-        msg = QMessageBox()
-        msg.setIcon(QMessageBox.Question)
-        icon_msg = self.style().standardIcon(getattr(QStyle, 'SP_MessageBoxQuestion'))
-        msg.setWindowIcon(icon_msg)
-        msg.setText("Are you sure you want to exit?")
-        msg.setWindowTitle("Exit?")
-        msg.setStandardButtons(QMessageBox.Yes | QMessageBox.Cancel)
-        ret = msg.exec()
-        if ret == QMessageBox.Yes:
+        if MessageBoxes.question(self.style(), "Exit?", "Are you sure you want to exit?"):
             self.controller.close()
             close_event.accept()
         else:
