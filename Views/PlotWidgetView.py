@@ -26,6 +26,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.data_lines = []
         self.landmarks = []
 
+        # TODO: Refactor this to avoid data duplication
         self.last_vals = None
         self.last_symbol_intervals = None
         self.last_symbol_values = None
@@ -41,11 +42,6 @@ class PlotWidgetView(pg.PlotWidget):
         # TODO: Gut, aber noch besser waere es wenn es der User auswaehlen koennte
         # self.enableAutoRange(axis='y')
         self.setMouseEnabled(x=True, y=False)
-        # TODO: Let user choose this
-        #self.plotItem.setLimits(maxXRange=5)
-        #self.plotItem.setLimits(maxXRange=None)
-        #self.autoRange()
-        #self.enableAutoRange(axis= x')
 
         self.legend = pg.LegendItem()
         self.legend.setParentItem(self.getPlotItem())
@@ -98,7 +94,11 @@ class PlotWidgetView(pg.PlotWidget):
                         y = y[:len(x)]
                         self.data_lines[receiver_index][sensor_index].setData(x, y)
 
-        self.max_value = max([np.max(a) for a in values])
+        # TODO: ?
+        try:
+            self.max_value = max([np.max(a) for a in values])
+        except:
+            pass
         self.last_vals = vals
 
     def add_landmarks(self, landmark_info):
@@ -110,7 +110,7 @@ class PlotWidgetView(pg.PlotWidget):
 
     def update_landmarks(self, landmarks):
         for i in range(len(landmarks)):
-            if landmarks[i] is not None and self.plot_view.settings['landmarks_active'][i] is not None:
+            if landmarks[i] is not None and self.plot_view.settings['landmarks_active'][i]:
                 x, y = landmarks[i]['x'], landmarks[i]['y']
                 self.landmarks[i].setData(x, y)
         self.last_landmarks = landmarks
