@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import *
 import os
 import copy
 
-from Views import MessageBoxes
+from Views import MessageBoxes, Utils
 
 
 # TODO: Refactor
@@ -34,34 +34,34 @@ class DecoderView(QWidget):
 
         self.button_add_decoder = QToolButton()
         self.button_add_decoder.setToolTip("Add Decoder")
-        self.button_add_decoder.setIcon(QIcon('./Views/Icons/add.png'))
+        self.button_add_decoder.setIcon(Utils.get_icon('add'))
         self.button_add_decoder.clicked.connect(self.add_decoder)
         self.toolbar.addWidget(self.button_add_decoder)
 
         self.button_remove_decoder = QToolButton()
         self.button_remove_decoder.setToolTip("Remove Decoder")
-        self.button_remove_decoder.setIcon(QIcon('./Views/Icons/remove.png'))
+        self.button_remove_decoder.setIcon(Utils.get_icon('remove'))
         self.button_remove_decoder.setEnabled(False)
         self.button_remove_decoder.clicked.connect(self.remove_decoder)
         self.toolbar.addWidget(self.button_remove_decoder)
 
         self.button_start_decoder = QToolButton()
         self.button_start_decoder.setToolTip("Start Decoder")
-        self.button_start_decoder.setIcon(QIcon('./Views/Icons/play.png'))
+        self.button_start_decoder.setIcon(Utils.get_icon('play'))
         self.button_start_decoder.setEnabled(False)
         self.button_start_decoder.clicked.connect(self.start_decoder)
         self.toolbar.addWidget(self.button_start_decoder)
 
         self.button_stop_decoder = QToolButton()
         self.button_stop_decoder.setToolTip("Stop Decoder")
-        self.button_stop_decoder.setIcon(QIcon('./Views/Icons/stop.png'))
+        self.button_stop_decoder.setIcon(Utils.get_icon('stop'))
         self.button_stop_decoder.setEnabled(False)
         self.button_stop_decoder.clicked.connect(self.stop_decoder)
         self.toolbar.addWidget(self.button_stop_decoder)
 
         self.button_parameters = QToolButton()
         self.button_parameters.setToolTip("Edit Parameters")
-        self.button_parameters.setIcon(QIcon('./Views/Icons/tune.png'))
+        self.button_parameters.setIcon(Utils.get_icon('tune'))
         self.button_parameters.setEnabled(False)
         self.button_parameters.clicked.connect(self.main_view.controller.edit_parameters)
         self.toolbar.addWidget(self.button_parameters)
@@ -73,17 +73,11 @@ class DecoderView(QWidget):
 
         self.label_subtitle = QLabel("No decoder selected")
 
-        def line():
-            line_ = QFrame()
-            line_.setFrameShape(QFrame.HLine)
-            line_.setFrameShadow(QFrame.Sunken)
-            return line_
-
         self.layout.addWidget(label)
         self.layout.addWidget(self.label_subtitle)
-        self.layout.addWidget(line())
+        self.layout.addWidget(Utils.hline())
         self.layout.addWidget(self.toolbar)
-        self.layout.addWidget(line())
+        self.layout.addWidget(Utils.hline())
         self.layout.addStretch(1)
 
         self.setLayout(self.layout)

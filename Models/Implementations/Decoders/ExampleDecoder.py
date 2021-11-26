@@ -45,7 +45,7 @@ class ExampleDecoder(DecoderInterface):
 
         # Optional
         self.landmark_names = ['Test1', 'Test2']
-        # self.landmark_symbols = ['x', 'd']
+        self.landmark_symbols = ['x', 'd']
 
     def setup(self):
         super().setup()
@@ -60,25 +60,20 @@ class ExampleDecoder(DecoderInterface):
         for i in range(len(self.symbol_values), x):
             y = 0 if r < 0.5 else 1
             self.symbol_values.append(y)
-        #print(len(self.symbol_values))
-        #print(len(self.symbol_intervals))
 
     def calculate_landmarks(self):
-        # TODO: set_landmarks(i, values) ? -> direkt mit check ob i auch passt
-        #x = [self.symbol_intervals[a] + 0.5 * (self.symbol_intervals[a+1] - self.symbol_values[a]) for a in range(len(self.symbol_intervals))]
-        x = self.symbol_intervals
-        #y = [self.received[0][0, i] for i in x]
-        y = [0.5] * len(self.symbol_intervals)
+        # TODO: set_landmarks(i, values) ? -> direkt mit check ob i auch passt -> property
+        x = [0.5 * (self.symbol_intervals[a] + self.symbol_intervals[a+1]) for a in range(max(0, len(self.symbol_intervals) - 1))]
+        y = [self.received[0][i, 0] for i in range(len(x))]
         for i in range(self.num_landmarks):
-            self.landmarks[i] = {'x': x, 'y': [a + i for a in y]}
+            self.landmarks[i] = {'x': x, 'y': [a/(2**i) for a in y]}
 
     def calculate_sequence(self):
-        # TODO: Cringe
-        self.sequence = ""
-        l = len(self.symbol_values) - 4
-        length = l if l > 0 else 0
-        for i in range(length)[::4]:
-            v1, v2, v3, v4 = self.symbol_values[i], self.symbol_values[i+1], self.symbol_values[i+2], self.symbol_values[i+3]
-            c = v1 + v2 + v3 + v4 + 64
-            #print(c)
+        length = max(0, len(self.symbol_values) - 4)
+        for i in range(len(self.sequence) * 4, length, 4):
+            vs = self.symbol_values[i:i+4]
+            c = 0
+            for bit in vs:
+                c = c * 2 + bit
+            c += 64
             self.sequence += chr(c)

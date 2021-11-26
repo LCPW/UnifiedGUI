@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui, Qt
 import sys
 import threading
 import time
+import logging
 
 from Models import Model
 from Views import View
@@ -28,6 +29,10 @@ class Controller:
             self.run(sleep_time=1.0/FRAMES_PER_SECOND)
 
         thread_gui.join()
+
+        # Do not show any exception when something fails while shutting down
+        logging.raiseExceptions = False
+        logging.shutdown()
 
     def run(self, sleep_time):
         if self.model.is_decoder_available():
@@ -57,8 +62,7 @@ class Controller:
         self.model.remove_encoder()
 
     def add_decoder(self, decoder_type):
-        # TODO: Refactor in model?
-        parameters = self.model.get_decoder_parameters(decoder_type)
+        parameters = Model.get_decoder_parameters(decoder_type)
         # No parameters defined -> No parameter values obviously
         if parameters is None:
             parameter_values = None
@@ -71,9 +75,7 @@ class Controller:
             else:
                 return
 
-        self.model.add_decoder(decoder_type, parameters, parameter_values)
-        receiver_info = self.model.get_receiver_info()
-        landmark_info = self.model.get_landmark_info()
+        receiver_info, landmark_info = self.model.add_decoder(decoder_type, parameters, parameter_values)
         self.view.decoder_added(decoder_type, receiver_info, landmark_info, parameter_values)
 
     def edit_parameters(self):

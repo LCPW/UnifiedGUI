@@ -9,8 +9,11 @@ class DecoderInterface:
     def __init__(self, parameters, parameter_values):
         self.parameters = parameters
         self.parameter_values = parameter_values
-        # This will get overwritten in every case in the implementation
+
+        # Mandatory
         self.receiver_types = None
+
+        # Optional
         self.receiver_descriptions = None
         self.landmark_names = None
         self.landmark_symbols = None
@@ -61,6 +64,8 @@ class DecoderInterface:
         self.symbol_values = []
         self.sequence = ""
 
+        self.decoded = None
+
     def start(self):
         """
         Runs the listen function of the receiver in a new (daemon) thread.
@@ -84,7 +89,8 @@ class DecoderInterface:
 
     def get_decoded(self):
         received = {'timestamps': self.timestamps, 'values': self.received}
-        return {'received': received, 'landmarks': self.landmarks, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values, 'sequence': self.sequence}
+        self.decoded = {'received': received, 'landmarks': self.landmarks, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values, 'sequence': self.sequence}
+        return self.decoded
 
     def append_timestamp(self, index, timestamp):
         if self.timestamps[index] is None:
@@ -100,7 +106,6 @@ class DecoderInterface:
             self.received[index] = np.vstack((self.received[index], np.array(values)))
 
     def empty_receiver_buffers(self):
-        #print(threading.current_thread().name)
         for i in range(len(self.receivers)):
             n = self.receivers[i].get_available()
             for j in range(n):
@@ -133,26 +138,42 @@ class DecoderInterface:
 
     def decode(self):
         """
-        Main functionality of the decoder that is executed in every step of the main program loop.
+        Main functionality of the decoder that is executed in every step of the main program loop as long as the decode is active.
         """
+        # 1. Empty receive buffers
         self.empty_receiver_buffers()
-        # Optionally apply filter
 
-        # Optionally calculate landmarks (edges, peaks, etc.)
+        # 2. Optionally apply filter
+
+        # 3. Optionally calculate landmarks (edges, peaks, etc.)
         self.calculate_landmarks()
-        if __debug__ and not isinstance(self.landmarks, list):
-            Logging.warning("Landmarks is not a list.", repeat=False)
 
-        # Calculate symbol intervals
+        # 4. Calculate symbol intervals
         self.calculate_symbol_intervals()
-        if __debug__ and not (isinstance(self.symbol_intervals, list) or isinstance(self.symbol_intervals, np.ndarray)):
-            Logging.warning("Symbol intervals is not a list or array", repeat=False)
 
-        # Assign value to each symbol interval
+        # 5. Assign value to each symbol interval
         self.calculate_symbol_values()
-        # If list is non-empty and ...
-        if __debug__ and self.symbol_values and not len(self.symbol_values) == len(self.symbol_intervals) - 1:
-            Logging.warning("Length of symbol_values is not 1 smaller than length of symbol_intervals", repeat=False)
 
-        # Calculate the sequence from the symbol values
+        # 6. Calculate the sequence from the symbol values
         self.calculate_sequence()
+
+        if __debug__:
+            self.check()
+
+    def check(self):
+        # 3. Check landmarks
+        if not isinstance(self.landmarks, list):
+            Logging.warning("Landmarks is not a list!", repeat=False)
+        for landmark in self.landmarks:
+            if not len(landmark['x']) == len(landmark['y']):
+                Logging.warning("Length of x and y of a landmark do not match!", repeat=False)
+                landmark['x'] = landmark['x'][:min(len(landmark['x']), len(landmark['y']))]
+                landmark['y'] = landmark['y'][:min(len(landmark['x']), len(landmark['y']))]
+
+        # 4. Check symbol intervals
+        if not (isinstance(self.symbol_intervals, list) or isinstance(self.symbol_intervals, np.ndarray)):
+            Logging.warning("Symbol intervals is not a list or array!", repeat=False)
+
+        # 5. Check symbol values
+        if __debug__ and self.symbol_values and not len(self.symbol_values) == len(self.symbol_intervals) - 1:
+            Logging.warning("Length of symbol_values is not 1 smaller than length of symbol_intervals!", repeat=False)

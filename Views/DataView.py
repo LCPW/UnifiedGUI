@@ -6,13 +6,15 @@ from Views import PlotView, TablesView
 
 
 class DataView(QWidget):
-    def __init__(self):
+    def __init__(self, main_view):
         super().__init__()
         layout = QVBoxLayout()
 
+        self.main_view = main_view
+
         self.tabs = QTabWidget()
         self.tab_tables = TablesView.TablesView()
-        self.tab_plot = PlotView.PlotView()
+        self.tab_plot = PlotView.PlotView(self)
 
         self.tabs.addTab(self.tab_plot, "Plot")
         self.tabs.addTab(self.tab_tables, "Tables")
@@ -30,14 +32,14 @@ class DataView(QWidget):
         self.tab_plot.decoder_removed()
 
     def update_values(self, vals):
-        self.tab_tables.update_values(vals)
-        self.tab_plot.update_values(vals)
+        self.tab_tables.update_tables(vals)
+        self.tab_plot.plot_widget.update_datalines(vals)
 
     def update_landmarks(self, landmarks):
-        self.tab_plot.update_landmarks(landmarks)
+        self.tab_plot.plot_widget.update_landmarks(landmarks)
 
     def update_symbol_intervals(self, symbol_intervals):
-        self.tab_plot.update_symbol_intervals(symbol_intervals)
+        self.tab_plot.plot_widget.update_symbol_intervals(symbol_intervals)
 
     def update_symbol_values(self, symbol_intervals, symbol_values):
-        self.tab_plot.update_symbol_values(symbol_intervals, symbol_values)
+        self.tab_plot.plot_widget.update_symbol_values(symbol_intervals, symbol_values)

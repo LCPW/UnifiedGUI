@@ -25,5 +25,5 @@ class MenuBarView(QMenuBar):
     def show_help(self):
         path = os.path.join('.', 'Docs', 'UnifiedGUI.pdf')
         p = subprocess.Popen([path], shell=True)
-        if p.returncode != 0:
-            Logging.error("Failed to load documentation pdf. Manually open the document (./Docs/UnifiedGUI.pdf)")
+        #if p.returncode != 0:
+            #Logging.error("Failed to load documentation pdf. Manually open the document (./Docs/UnifiedGUI.pdf)")

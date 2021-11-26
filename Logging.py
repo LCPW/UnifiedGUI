@@ -1,4 +1,4 @@
-# https://docs.python.org/3/library/logging.html
+import logging
 
 
 # TODO: Log in GUI
@@ -26,6 +26,7 @@ def debug(message, repeat=True):
         return
     else:
         print('[DEBUG] ' + message)
+        logging.debug(message)
 
 
 def info(message, repeat=True):
@@ -33,6 +34,7 @@ def info(message, repeat=True):
         return
     else:
         print('[INFO] ' + message)
+        logging.info(message)
 
 
 def warning(message, repeat=True):
@@ -40,6 +42,7 @@ def warning(message, repeat=True):
         return
     else:
         print('[WARNING] ' + message)
+        logging.warning(message)
 
 
 def error(message, repeat=True):
@@ -47,6 +50,7 @@ def error(message, repeat=True):
         return
     else:
         print('[ERROR] ' + message)
+        logging.error(message)
 
 
 def critical(message, repeat=True):
@@ -54,3 +58,4 @@ def critical(message, repeat=True):
         return
     else:
         print('[CRITICAL] ' + message)
+        logging.critical(message)

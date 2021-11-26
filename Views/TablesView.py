@@ -31,8 +31,8 @@ class TablesView(QWidget):
             self.tabs.removeTab(self.tabs.indexOf(table))
         self.tables = []
 
-    def update_values(self, vals):
+    def update_tables(self, vals):
         timestamps, values = vals['timestamps'], vals['values']
         for i in range(len(timestamps)):
             if timestamps[i] is not None:
-                self.tables[i].update_values(timestamps[i], values[i])
+                self.tables[i].update_table(timestamps[i], values[i])

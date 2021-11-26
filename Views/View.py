@@ -5,7 +5,7 @@ import sys
 import numpy as np
 import time
 
-from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, ParameterDialog, MessageBoxes
+from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, ParameterDialog, MessageBoxes, LogView
 
 
 class View(QMainWindow):
@@ -39,28 +39,35 @@ class View(QMainWindow):
         splitter = QSplitter(Qt.Horizontal)
 
         self.encoder_view = EncoderView.EncoderView()
-        self.data_view = DataView.DataView()
+        self.data_view = DataView.DataView(self)
         self.decoder_view = DecoderView.DecoderView(self)
 
         splitter.addWidget(self.encoder_view)
         splitter.addWidget(self.data_view)
         splitter.addWidget(self.decoder_view)
+        splitter.setStretchFactor(0, 25)
+        splitter.setStretchFactor(1, 50)
+        splitter.setStretchFactor(2, 25)
 
         layout.addWidget(splitter)
         central_widget.setLayout(layout)
 
         self.setCentralWidget(central_widget)
 
+        dock = LogView.LogView()
+
+        self.addDockWidget(Qt.BottomDockWidgetArea, dock)
+
         self.timer = QTimer()
         # A QTimer with a timeout of 0 will time out as soon as possible.
         self.timer.setInterval(0)
-        self.timer.timeout.connect(self.update_values)
+        self.timer.timeout.connect(self.update_)
         self.timer.start()
 
         self.last_time = time.time()
         self.last_fps = []
 
-    def update_values(self):
+    def update_(self):
         decoded = self.controller.get_decoded()
         if decoded is not None:
             received, landmarks, symbol_intervals, symbol_values, sequence = decoded['received'], decoded['landmarks'], decoded['symbol_intervals'], decoded['symbol_values'], decoded['sequence']
@@ -86,7 +93,6 @@ class View(QMainWindow):
 
     def decoder_added(self, decoder_type, receiver_info, landmark_info, parameter_values):
         # Update decoder view
-        # TODO: decoder name/type?
         self.decoder_view.decoder_added(decoder_type, parameter_values)
 
         # Update data view

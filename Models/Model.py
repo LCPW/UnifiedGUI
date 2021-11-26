@@ -28,18 +28,12 @@ class Model:
         # Dynamically import the module of the implementation
         module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
         # Create an instance of the class in the said module (e.g. ExampleDecoder.ExampleDecoder())
-        self.decoder = getattr(module, decoder_type)(parameters, parameter_values)
-        self.decoder.setup()
+        decoder = getattr(module, decoder_type)(parameters, parameter_values)
+        decoder.setup()
+        # Only set the member after setup has been done
+        self.decoder = decoder
 
-    def get_decoder_parameters(self, decoder_type):
-        # Dynamically import the module of the implementation
-        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
-        try:
-            parameters = module.PARAMETERS
-        except AttributeError:
-            Logging.info("No parameters defined.")
-            parameters = None
-        return parameters
+        return self.decoder.get_receiver_info(), self.decoder.get_landmark_info()
 
     def start_decoder(self):
         self.decoder.start()
@@ -50,14 +44,17 @@ class Model:
     def remove_decoder(self):
         self.decoder = None
 
-    def get_receiver_info(self):
-        return self.decoder.get_receiver_info()
-
-    def get_landmark_info(self):
-        return self.decoder.get_landmark_info()
-
     def get_decoded(self):
-        if not self.is_decoder_available():
-            return None
-        else:
+        if self.decoder is not None:
             return self.decoder.get_decoded()
+
+
+def get_decoder_parameters(decoder_type):
+    # Dynamically import the module of the implementation
+    module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+    try:
+        parameters = module.PARAMETERS
+    except AttributeError:
+        Logging.info("No parameters defined.")
+        parameters = None
+    return parameters

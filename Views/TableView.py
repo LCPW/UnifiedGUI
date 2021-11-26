@@ -23,7 +23,7 @@ class TableView(QTableWidget):
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-    def update_values(self, timestamps, values):
+    def update_table(self, timestamps, values):
         length = len(values)
         self.setRowCount(length)
         for i in range(self.old_length, length):
