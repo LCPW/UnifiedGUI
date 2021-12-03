@@ -6,7 +6,7 @@ import logging
 
 from Models import Model
 from Views import View
-
+from Utils import Settings
 
 FRAMES_PER_SECOND = 100
 
@@ -15,11 +15,12 @@ class Controller:
     def __init__(self):
         self.model = Model.Model()
         self.view = None
+        self.settings = Settings.Settings()
 
         self.running = True
 
-        thread_gui = threading.Thread(target=self.run_gui, daemon=True)
-        thread_gui.start()
+        self.thread_gui = threading.Thread(target=self.run_gui, daemon=True)
+        self.thread_gui.start()
 
         while self.view is None:
             time.sleep(0.1)
@@ -28,8 +29,10 @@ class Controller:
         while self.running:
             self.run(sleep_time=1.0/FRAMES_PER_SECOND)
 
-        thread_gui.join()
+        self.close_()
 
+    def close_(self):
+        self.thread_gui.join()
         # Do not show any exception when something fails while shutting down
         logging.raiseExceptions = False
         logging.shutdown()

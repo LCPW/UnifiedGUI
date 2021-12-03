@@ -44,13 +44,13 @@ class PlotWidgetView(pg.PlotWidget):
     def add_datalines(self, receiver_info):
         """
         Adds new datalines to the plot.
-        :param receiver_info: Info about receivers (receiver description + sensor desciptions).
+        :param receiver_info: Info about receivers (receiver name + sensor desciptions).
         """
         for i in range(len(receiver_info)):
-            description, sensor_descriptions = receiver_info[i]['description'], receiver_info[i]['sensor_descriptions']
+            name, sensor_names = receiver_info[i]['name'], receiver_info[i]['sensor_names']
             data_lines_ = []
-            for j in range(len(sensor_descriptions)):
-                data_line = self.plot([], [], name=description + ": " + sensor_descriptions[j], pen=self.plot_view.settings['pens'][i][j])
+            for j in range(len(sensor_names)):
+                data_line = self.plot([], [], name=name + ": " + sensor_names[j], pen=self.plot_view.settings['datalines_pens'][i][j])
                 data_lines_.append(data_line)
                 self.legend.addItem(data_line, data_line.name())
             self.data_lines.append(data_lines_)
@@ -148,7 +148,7 @@ class PlotWidgetView(pg.PlotWidget):
         :param receiver_index: Receiver index of the dataline.
         :param sensor_index: Sensor index of the dataline.
         """
-        pen = self.plot_view.settings['pens'][receiver_index][sensor_index]
+        pen = self.plot_view.settings['datalines_pens'][receiver_index][sensor_index]
         self.data_lines[receiver_index][sensor_index].setPen(pen)
 
     def update_datalines(self, vals):
@@ -160,7 +160,7 @@ class PlotWidgetView(pg.PlotWidget):
         for receiver_index in range(len(values)):
             if timestamps[receiver_index] is not None:
                 for sensor_index in range(values[receiver_index].shape[1]):
-                    if self.plot_view.settings['active'][receiver_index][sensor_index]:
+                    if self.plot_view.settings['datalines_active'][receiver_index][sensor_index]:
                         x = timestamps[receiver_index]
                         y = values[receiver_index][:, sensor_index]
                         length_ = min(len(x), len(y))
@@ -193,7 +193,7 @@ class PlotWidgetView(pg.PlotWidget):
         self.legend.clear()
         for receiver_index in range(len(self.data_lines)):
             for sensor_index in range(len(self.data_lines[receiver_index])):
-                if self.plot_view.settings['active'][receiver_index][sensor_index]:
+                if self.plot_view.settings['datalines_active'][receiver_index][sensor_index]:
                     self.legend.addItem(self.data_lines[receiver_index][sensor_index], self.data_lines[receiver_index][sensor_index].name())
         for landmark_index in range(len(self.landmarks)):
             if self.plot_view.settings['landmarks_active'][landmark_index]:

@@ -21,10 +21,10 @@ class TablesView(QWidget):
 
     def decoder_added(self, receiver_info):
         for i in range(len(receiver_info)):
-            description, sensor_descriptions = receiver_info[i]['description'], receiver_info[i]['sensor_descriptions']
-            table = TableView.TableView(sensor_descriptions)
+            name, sensor_names = receiver_info[i]['name'], receiver_info[i]['sensor_names']
+            table = TableView.TableView(sensor_names)
             self.tables.append(table)
-            self.tabs.addTab(self.tables[i], str(description))
+            self.tabs.addTab(self.tables[i], str(name))
 
     def decoder_removed(self):
         for table in self.tables:

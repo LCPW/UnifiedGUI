@@ -12,7 +12,7 @@ class TestDecoders(unittest.TestCase):
         self.modules = []
         self.classes = []
 
-        for file in os.listdir('./Models/Implementations/Decoders'):
+        for file in os.listdir('../Models/Implementations/Decoders'):
             name, extension = os.path.splitext(file)
             if extension == '.py':
                 m = importlib.import_module('.' + name, package='Models.Implementations.Decoders')

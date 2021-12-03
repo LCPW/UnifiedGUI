@@ -2,8 +2,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import pyqtgraph as pg
+import shelve
 
 from Views import PlotWidgetView, PlotSettingsDialog, Utils
+from Utils import Settings
 
 # TODO: Refactor?
 X_RANGE = {
@@ -38,18 +40,27 @@ class PlotView(QWidget):
         super().__init__()
 
         # Important: datalines_width > 1 often causes lag!
-        self.settings = {
+        # TODO: Split pen
+        self._settings = {
             'legend': True,
-            'active': [],
+            'datalines_active': [],
             'datalines_width': 1,
-            'pens': [],
+            'datalines_color': [],
+            'datalines_style': [],
+            'datalines_pens': [],
             'landmarks_active': [],
             'landmarks_symbols': [],
             'symbol_intervals': True,
+            'symbol_intervals_color': 'k',
+            'symbol_intervals_width': 1,
             'symbol_intervals_pen': pg.mkPen(color='k', width=1),
             'symbol_values': True,
             'symbol_values_height_factor': 1.1
         }
+
+        #self.s = Settings.PlotSettings()
+        #for x in self._settings:
+        #    self.s.set(x, self._settings[x])
 
         layout = QVBoxLayout()
 
@@ -59,6 +70,7 @@ class PlotView(QWidget):
 
         self.toolbar = QToolBar()
 
+        # X range settings
         self.label_range = QLabel("X-Axis Range[s]")
         self.button_range = QToolButton()
         self.button_range.setToolTip("Auto (no limit)")
@@ -83,26 +95,31 @@ class PlotView(QWidget):
         self.toolbar.addWidget(self.slider_range)
         self.toolbar.addWidget(self.spinbox_range)
 
-        #self.toolbar.addWidget(Utils.vline())
-
+        # Spacer widget
         empty = QWidget()
         empty.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
         self.toolbar.addWidget(empty)
 
+        # Plot settings button
         self.button_settings = QToolButton()
         self.button_settings.setToolTip("Settings")
-        self.button_settings.setIcon(QIcon('./Views/Icons/settings.png'))
+        self.button_settings.setIcon(Utils.get_icon('settings'))
         self.button_settings.setEnabled(False)
         self.button_settings.clicked.connect(self.show_settings)
         self.toolbar.addWidget(self.button_settings)
-
-        # TODO: Stretch?
 
         layout.addWidget(self.toolbar)
         layout.addWidget(self.plot_widget)
         self.setLayout(layout)
 
         self.current_color = 0
+
+        # self._settings = shelve.open('plot_settings')
+
+    @property
+    def settings(self):
+        # TODO: shelve
+        return self._settings
 
     def add_datalines(self, receiver_info):
         """
@@ -111,15 +128,15 @@ class PlotView(QWidget):
         :param receiver_info: Information about the receivers.
         """
         for i in range(len(receiver_info)):
-            sensor_descriptions = receiver_info[i]['sensor_descriptions']
+            sensor_names = receiver_info[i]['sensor_names']
             active_ = []
             pens_ = []
-            for j in range(len(sensor_descriptions)):
+            for j in range(len(sensor_names)):
                 active_.append(True)
                 pens_.append(pg.mkPen(color=pg.intColor(self.current_color), width=self.settings['datalines_width'], style=Qt.SolidLine))
                 self.current_color += 1
-            self.settings['active'].append(active_)
-            self.settings['pens'].append(pens_)
+            self.settings['datalines_active'].append(active_)
+            self.settings['datalines_pens'].append(pens_)
 
         self.plot_widget.add_datalines(receiver_info)
         self.plot_settings_dialog.add_datalines(receiver_info)
@@ -167,8 +184,8 @@ class PlotView(QWidget):
         self.plot_widget.reset_plot()
         self.plot_settings_dialog.decoder_removed()
         self.button_settings.setEnabled(False)
-        self.settings['active'] = []
-        self.settings['pens'] = []
+        self.settings['datalines_active'] = []
+        self.settings['datalines_pens'] = []
         self.current_color = 0
 
     def set_style(self, receiver_index, sensor_index, combobox):
@@ -180,7 +197,7 @@ class PlotView(QWidget):
         """
         # Qt.SolidLine, etc.
         qstyle = getattr(Qt, combobox.currentText())
-        self.settings['pens'][receiver_index][sensor_index].setStyle(qstyle)
+        self.settings['datalines_pens'][receiver_index][sensor_index].setStyle(qstyle)
         self.plot_widget.set_pen(receiver_index, sensor_index)
 
     def set_color(self, receiver_index, sensor_index):
@@ -191,13 +208,13 @@ class PlotView(QWidget):
         :param sensor_index: Sensor_index of the dataline
         :return:
         """
-        initial = self.settings['pens'][receiver_index][sensor_index].color()
+        initial = self.settings['datalines_pens'][receiver_index][sensor_index].color()
         color = QColorDialog.getColor(initial)
         # Is False if the user pressed Cancel
         if color.isValid():
-            self.settings['pens'][receiver_index][sensor_index].setColor(color)
+            self.settings['datalines_pens'][receiver_index][sensor_index].setColor(color)
             self.plot_widget.set_pen(receiver_index, sensor_index)
-            self.plot_settings_dialog.buttons_color[receiver_index][sensor_index].setStyleSheet("background-color: " + self.settings['pens'][receiver_index][sensor_index].color().name())
+            self.plot_settings_dialog.buttons_color[receiver_index][sensor_index].setStyleSheet("background-color: " + self.settings['datalines_pens'][receiver_index][sensor_index].color().name())
 
     def set_landmark_symbol(self, landmark_index, combobox):
         """
@@ -223,12 +240,12 @@ class PlotView(QWidget):
         :param state: 0 -> Hide all; 2 -> Show all
         """
         if state == 0:
-            self.plot_settings_dialog.set_landmark_checkboxes(False)
+            self.plot_settings_dialog.set_all_landmark_checkboxes(False)
             new_state = False
         else:
             state = 2
             self.plot_settings_dialog.checkbox_all_landmarks.setCheckState(Qt.CheckState(state))
-            self.plot_settings_dialog.set_landmark_checkboxes(True)
+            self.plot_settings_dialog.set_all_landmark_checkboxes(True)
             new_state = True
 
         for landmark_index in range(len(self.settings['landmarks_active'])):
@@ -246,27 +263,27 @@ class PlotView(QWidget):
         """
         state = checkbox.checkState()
         if state == 0:
-            self.plot_settings_dialog.set_receiver_checkboxes(receiver_index, False)
+            self.plot_settings_dialog.set_all_sensor_checkboxes(receiver_index, False)
             new_state = False
         else:
             state = 2
             checkbox.setCheckState(Qt.CheckState(state))
-            self.plot_settings_dialog.set_receiver_checkboxes(receiver_index, True)
+            self.plot_settings_dialog.set_all_sensor_checkboxes(receiver_index, True)
             new_state = True
 
-        for sensor_index in range(len(self.settings['active'][receiver_index])):
-            self.settings['active'][receiver_index][sensor_index] = new_state
+        for sensor_index in range(len(self.settings['datalines_active'][receiver_index])):
+            self.settings['datalines_active'][receiver_index][sensor_index] = new_state
             # True -> False
             if not new_state:
                 self.plot_widget.clear_dataline(receiver_index, sensor_index)
         self.plot_widget.update_legend()
 
-    def toggle_landmark(self, landmark_index):
+    def toggle_landmark(self, landmark_index, checkbox):
         """
         Shows/hide a single set of landmarks.
         :param landmark_index: Landmark index of the landmark set.
         """
-        state = self.plot_settings_dialog.checkboxes_landmarks[landmark_index].checkState()
+        state = checkbox.checkState()
         self.settings['landmarks_active'][landmark_index] = state
         # Deactivated
         if not state:
@@ -288,13 +305,13 @@ class PlotView(QWidget):
         :param checkbox: Checkbox object.
         """
         state = checkbox.checkState()
-        self.settings['active'][receiver_index][sensor_index] = state
+        self.settings['datalines_active'][receiver_index][sensor_index] = state
         # Deactivated
         if not state:
             self.plot_widget.clear_dataline(receiver_index, sensor_index)
 
         # If necessary, update the receiver checkbox
-        all_, any_ = all(self.settings['active'][receiver_index]), any(self.settings['active'][receiver_index])
+        all_, any_ = all(self.settings['datalines_active'][receiver_index]), any(self.settings['datalines_active'][receiver_index])
         state = 2 if all_ else (1 if any_ else 0)
         self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].setCheckState(Qt.CheckState(state))
 

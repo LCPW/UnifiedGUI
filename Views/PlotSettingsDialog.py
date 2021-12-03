@@ -3,6 +3,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 from Views import PlotView
+from Views import Utils
 
 
 class PlotSettingsDialog(QDialog):
@@ -12,7 +13,7 @@ class PlotSettingsDialog(QDialog):
         self.plot_view = plot_view
 
         self.setWindowTitle("Plot Settings")
-        self.setWindowIcon(QIcon('./Views/Icons/settings.png'))
+        self.setWindowIcon(Utils.get_icon('settings'))
         self.setModal(False)
 
         self.layout = QVBoxLayout()
@@ -77,10 +78,10 @@ class PlotSettingsDialog(QDialog):
             return lambda: self.plot_view.set_style(i, j, o)
 
         for receiver_index in range(len(receiver_info)):
-            description, sensor_descriptions = receiver_info[receiver_index]['description'], receiver_info[receiver_index]['sensor_descriptions']
+            name, sensor_names = receiver_info[receiver_index]['name'], receiver_info[receiver_index]['sensor_names']
             widget = QWidget()
             layout = QVBoxLayout()
-            checkbox = QCheckBox(description)
+            checkbox = QCheckBox(name)
             checkbox.setTristate(True)
             checkbox.setChecked(True)
             checkbox.clicked.connect(generate_lambda_receiver_checkbox(receiver_index, checkbox))
@@ -90,13 +91,13 @@ class PlotSettingsDialog(QDialog):
             _checkboxes_active = []
             _buttons_color = []
             _comboboxes_style = []
-            for sensor_index in range(len(sensor_descriptions)):
-                checkbox = QCheckBox(sensor_descriptions[sensor_index])
+            for sensor_index in range(len(sensor_names)):
+                checkbox = QCheckBox(sensor_names[sensor_index])
                 checkbox.setChecked(True)
                 checkbox.clicked.connect(generate_lambda_checkbox(receiver_index, sensor_index, checkbox))
                 _checkboxes_active.append(checkbox)
                 button_color = QPushButton()
-                button_color.setStyleSheet("background-color: " + self.plot_view.settings['pens'][receiver_index][sensor_index].color().name())
+                button_color.setStyleSheet("background-color: " + self.plot_view.settings['datalines_pens'][receiver_index][sensor_index].color().name())
                 button_color.clicked.connect(generate_lambda_button(receiver_index, sensor_index))
                 _buttons_color.append(button_color)
                 combobox = QComboBox()
@@ -120,15 +121,18 @@ class PlotSettingsDialog(QDialog):
         def generate_lambda_landmark_symbol(i, o):
             return lambda: self.plot_view.set_landmark_symbol(i, o)
 
-        names = landmark_info['names']
-        for landmark_index in range(len(names)):
+        num_landmarks = landmark_info['num']
+        for landmark_index in range(num_landmarks):
             widget = QWidget()
             layout = QVBoxLayout()
 
-            checkbox = QCheckBox(names[landmark_index])
+            # Checkbox to toggle dataline
+            checkbox = QCheckBox(landmark_info['names'][landmark_index])
             checkbox.setChecked(True)
             checkbox.clicked.connect(generate_lambda_landmark_toggle(landmark_index, checkbox))
             self.checkboxes_landmarks.append(checkbox)
+
+            # Combobox to select symbol
             combobox = QComboBox()
             combobox.addItems(PlotView.SYMBOLS.keys())
             combobox.setCurrentIndex(list(PlotView.SYMBOLS.values()).index(landmark_info['symbols'][landmark_index]))
@@ -143,6 +147,9 @@ class PlotSettingsDialog(QDialog):
         self.checkboxes_landmarks_layout.addStretch(1)
 
     def decoder_removed(self):
+        """
+        Reset everything after decoder has been removed.
+        """
         self.checkboxes_receivers_active = []
         self.checkboxes_active = []
         self.buttons_color = []
@@ -160,19 +167,19 @@ class PlotSettingsDialog(QDialog):
 
         self.hide()
 
-    def set_receiver_checkboxes(self, receiver_index, state):
-        """
-        Sets all dataline checkboxes for a given receiver to the given state.
-        :param receiver_index: Index of the receiver.
-        :param state: New state of the checkboxes.
-        """
-        for sensor_index in range(len(self.checkboxes_active[receiver_index])):
-            self.checkboxes_active[receiver_index][sensor_index].setChecked(state)
-
-    def set_landmark_checkboxes(self, state):
+    def set_all_landmark_checkboxes(self, state):
         """
         Sets all landmark checkboxes to the given state.
         :param state: New state of the landmark checkboxes.
         """
         for landmark_index in range(len(self.checkboxes_landmarks)):
             self.checkboxes_landmarks[landmark_index].setChecked(state)
+
+    def set_all_sensor_checkboxes(self, receiver_index, state):
+        """
+        Sets all sensor datalines checkboxes for a given receiver to the given state.
+        :param receiver_index: Index of the receiver.
+        :param state: New state of the checkboxes.
+        """
+        for sensor_index in range(len(self.checkboxes_active[receiver_index])):
+            self.checkboxes_active[receiver_index][sensor_index].setChecked(state)

@@ -2,7 +2,7 @@ import importlib
 import threading
 import numpy as np
 
-import Logging
+from Utils import Logging
 
 
 class DecoderInterface:
@@ -14,16 +14,16 @@ class DecoderInterface:
         self.receiver_types = None
 
         # Optional
-        self.receiver_descriptions = None
         self.landmark_names = None
         self.landmark_symbols = None
+        self.receiver_names = None
 
     def setup(self):
         self.num_receivers = len(self.receiver_types)
 
-        if self.receiver_descriptions is None:
-            Logging.info("No receiver descriptions provided, automatically generating them.")
-            self.receiver_descriptions = [str(self.receiver_types[i]) + str(i+1) for i in range(self.num_receivers)]
+        if self.receiver_names is None:
+            Logging.info("No receiver names provided, automatically generating them.")
+            self.receiver_names = [str(self.receiver_types[i]) + str(i + 1) for i in range(self.num_receivers)]
 
         if self.landmark_names is None:
             self.landmark_names = []
@@ -38,53 +38,58 @@ class DecoderInterface:
                 self.landmark_symbols = ['o'] * self.num_landmarks
 
         self.active = False
-
-        self.receivers = []
-        self.receiver_buffer = []
-
-        self.timestamps = []
+        self.decoded = None
+        self.landmarks = []
         self.received = []
+        self.receivers = []
+        self.sequence = ""
+        self.symbol_intervals = []
+        self.symbol_values = []
+        self.timestamps = []
 
         for receiver_index in range(self.num_receivers):
             # Dynamically import the module of the implementation
             module = importlib.import_module('.' + self.receiver_types[receiver_index], package='Models.Implementations.Receivers')
             # Create an instance of the class in the said module (e.g. ExampleReceiver.ExampleReceiver())
-            receiver = getattr(module, self.receiver_types[receiver_index])(self.receiver_descriptions[receiver_index])
+            receiver = getattr(module, self.receiver_types[receiver_index])(self.receiver_names[receiver_index])
             receiver.setup()
             self.receivers.append(receiver)
-            self.receiver_buffer.append([])
-
             self.timestamps.append(None)
             self.received.append(None)
 
-        self.landmarks = []
         for landmark_index in range(self.num_landmarks):
             self.landmarks.append(None)
-        self.symbol_intervals = []
-        self.symbol_values = []
-        self.sequence = ""
 
-        self.decoded = None
+        #self.threads = []
 
     def start(self):
         """
+        Starts the decoder.
         Runs the listen function of the receiver in a new (daemon) thread.
         """
         for receiver_index in range(self.num_receivers):
             thread = threading.Thread(target=self.receivers[receiver_index].listen, daemon=True)
             thread.start()
+            #self.threads.append(thread)
         self.active = True
 
     def stop(self):
+        """
+        Stops the decoder.
+        """
         self.active = False
+        #for thread in self.threads:
+            #thread.join()
 
     def get_receiver_info(self):
+        # TODO: Refactor into dict of lists instead of list of dicts?
         receiver_info = []
         for receiver in self.receivers:
-            receiver_info.append({'description': receiver.description, 'sensor_descriptions': receiver.sensor_descriptions})
+            receiver_info.append({'name': receiver.name, 'sensor_names': receiver.sensor_names})
         return receiver_info
 
     def get_landmark_info(self):
+        # TODO: Since this is static, it can be computed in init and stored in a variable
         return {'num': self.num_landmarks, 'names': self.landmark_names, 'symbols': self.landmark_symbols}
 
     def get_decoded(self):
@@ -92,18 +97,18 @@ class DecoderInterface:
         self.decoded = {'received': received, 'landmarks': self.landmarks, 'symbol_intervals': self.symbol_intervals, 'symbol_values': self.symbol_values, 'sequence': self.sequence}
         return self.decoded
 
-    def append_timestamp(self, index, timestamp):
-        if self.timestamps[index] is None:
-            self.timestamps[index] = np.array([timestamp])
+    def append_timestamp(self, receiver_index, timestamp):
+        if self.timestamps[receiver_index] is None:
+            self.timestamps[receiver_index] = np.array([timestamp])
         else:
-            self.timestamps[index] = np.append(self.timestamps[index], timestamp)
+            self.timestamps[receiver_index] = np.append(self.timestamps[receiver_index], timestamp)
 
-    def append_values(self, index, values):
-        if self.received[index] is None:
-            self.received[index] = np.empty((1, len(values)))
-            self.received[index][0] = np.array(values)
+    def append_values(self, receiver_index, values):
+        if self.received[receiver_index] is None:
+            self.received[receiver_index] = np.empty((1, len(values)))
+            self.received[receiver_index][0] = np.array(values)
         else:
-            self.received[index] = np.vstack((self.received[index], np.array(values)))
+            self.received[receiver_index] = np.vstack((self.received[receiver_index], np.array(values)))
 
     def empty_receiver_buffers(self):
         for i in range(len(self.receivers)):
@@ -114,6 +119,13 @@ class DecoderInterface:
                 # TODO: This can be problematic since for a short amount of time, timestamps and values does not have the same length
                 self.append_timestamp(i, timestamp)
                 self.append_values(i, values)
+
+    def calculate_landmarks(self):
+        """
+        Calculates landmark positions and stores them in landmarks.
+        Must be a list of dictionaries, where each dictionary must contain two lists x and y for the coordinates.
+        """
+        Logging.info("calculate_landmarks is not implemented in your selected decoder.", repeat=False)
 
     def calculate_symbol_intervals(self):
         """
@@ -130,10 +142,11 @@ class DecoderInterface:
         """
         Logging.info("calculate_symbol_values is not implemented in your selected decoder.", repeat=False)
 
-    def calculate_landmarks(self):
-        Logging.info("calculate_landmarks is not implemented in your selected decoder.", repeat=False)
-
     def calculate_sequence(self):
+        """
+        Calculates a sequence based on the decoded values and stores it in sequence.
+        Must be a list or array.
+        """
         Logging.info("calculate_sequence is not implemented in your selected decoder.", repeat=False)
 
     def decode(self):
@@ -161,6 +174,10 @@ class DecoderInterface:
             self.check()
 
     def check(self):
+        """
+        Check some potential causes of errors which are checked in every step.
+        Might be useful for debugging, but may be ignored during actual usage for better performance.
+        """
         # 3. Check landmarks
         if not isinstance(self.landmarks, list):
             Logging.warning("Landmarks is not a list!", repeat=False)

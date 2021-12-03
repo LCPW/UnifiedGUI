@@ -8,7 +8,7 @@ class ExampleReceiver(ReceiverInterface):
         super().__init__(description)
 
         self.num_sensors = 2
-        self.sensor_descriptions = ["Sensor A", "Sensor B"]
+        self.sensor_names = ["Sensor A", "Sensor B"]
 
         self.value1 = random.random()
         self.value2 = random.random()

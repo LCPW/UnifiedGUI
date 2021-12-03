@@ -1,6 +1,6 @@
 import importlib
 
-import Logging
+from Utils import Logging
 
 
 class Model:
