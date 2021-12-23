@@ -9,5 +9,4 @@ class ExampleDecoder(DecoderInterface):
         # Implement: Define receivers (list)
         self.receiver_types = None
 
-    def setup(self):
         super().setup()

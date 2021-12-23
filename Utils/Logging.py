@@ -1,9 +1,6 @@
 import logging
 
-
-# TODO: Log in GUI
-# TODO: Let user define a log level threshold?
-# TODO: use warning instead of print
+# TODO: Docu
 
 buffer = {
     'debug': [],
@@ -12,6 +9,30 @@ buffer = {
     'error': [],
     'critical': []
 }
+
+pre_start_buffer = {
+    'debug': [],
+    'info': [],
+    'warning': [],
+    'error': [],
+    'critical': []
+}
+
+
+def init(log_text_edit):
+    log_text_edit.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+    logging.getLogger().addHandler(log_text_edit)
+    logging.getLogger().setLevel(logging.DEBUG)
+    for message in pre_start_buffer['debug']:
+        logging.debug(message)
+    for message in pre_start_buffer['info']:
+        logging.info(message)
+    for message in pre_start_buffer['warning']:
+        logging.warning(message)
+    for message in pre_start_buffer['error']:
+        logging.error(message)
+    for message in pre_start_buffer['critical']:
+        logging.critical(message)
 
 
 def check_already_sent(message, level):
@@ -26,7 +47,10 @@ def debug(message, repeat=True):
         return
     else:
         print('[DEBUG] ' + message)
-        logging.debug(message)
+        if len(logging.getLogger().handlers) > 0:
+            logging.debug(message)
+        else:
+            pre_start_buffer['debug'].append(message)
 
 
 def info(message, repeat=True):
@@ -34,7 +58,10 @@ def info(message, repeat=True):
         return
     else:
         print('[INFO] ' + message)
-        logging.info(message)
+        if len(logging.getLogger().handlers) > 0:
+            logging.info(message)
+        else:
+            pre_start_buffer['info'].append(message)
 
 
 def warning(message, repeat=True):
@@ -42,7 +69,10 @@ def warning(message, repeat=True):
         return
     else:
         print('[WARNING] ' + message)
-        logging.warning(message)
+        if len(logging.getLogger().handlers) > 0:
+            logging.warning(message)
+        else:
+            pre_start_buffer['warning'].append(message)
 
 
 def error(message, repeat=True):
@@ -50,7 +80,10 @@ def error(message, repeat=True):
         return
     else:
         print('[ERROR] ' + message)
-        logging.error(message)
+        if len(logging.getLogger().handlers) > 0:
+            logging.error(message)
+        else:
+            pre_start_buffer['error'].append(message)
 
 
 def critical(message, repeat=True):
@@ -58,4 +91,7 @@ def critical(message, repeat=True):
         return
     else:
         print('[CRITICAL] ' + message)
-        logging.critical(message)
+        if len(logging.getLogger().handlers) > 0:
+            logging.critical(message)
+        else:
+            pre_start_buffer['critical'].append(message)

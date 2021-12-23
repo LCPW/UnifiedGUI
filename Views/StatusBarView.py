@@ -11,5 +11,5 @@ class StatusBarView(QStatusBar):
         self.addWidget(self.label_fps)
 
     def set_fps(self, fps):
-        fps_string = str(fps) if fps <= 60 else ">60"
-        self.label_fps.setText("FPS: " + fps_string)
+        fps_string = str(fps) if fps <= 120 else ">120"
+        self.label_fps.setText("FPS: " + str(fps_string))

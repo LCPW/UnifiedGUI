@@ -3,13 +3,26 @@ from Utils import Logging
 
 
 class ReceiverInterface:
-    def __init__(self, name):
-        self.name = name
-        self.num_sensors = None
-        self.sensor_names = None
+    """
+    A receiver is used to generate sensor data from a communication channel.
+    Each receiver can have multiple sensors where each sensor stores the
+    measured values as a  foating point value. For example, a receiver can be a
+    color sensor, where the multiple sensors are the measured colors.
+    """
+    def __init__(self):
+        """
+        Initializes the receiver.
+        """
         self.buffer = []
+        self.num_sensors = None
+        self.running = False
+        self.sensor_names = None
 
     def setup(self):
+        """
+        Initial setup that is used to perform some error checking.
+        This is called in the __init__ at the end of every decoder implementation.
+        """
         if self.sensor_names is None:
             Logging.info("No sensor names provided, automatically generating them.")
             self.sensor_names = ["Sensor" + str(i + 1) for i in range(self.num_sensors)]
@@ -43,6 +56,5 @@ class ReceiverInterface:
             values = [values]
 
         if timestamp is None:
-            # Get current timestamp
             timestamp = time.time()
         self.buffer.append({'timestamp': timestamp, 'values': values})

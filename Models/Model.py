@@ -4,53 +4,117 @@ from Utils import Logging
 
 
 class Model:
+    """
+    The model is responsible for storing and processing the data.
+    A model contains up to one encoder and up to one decoder.
+    """
     def __init__(self):
+        """
+        Initializes the model.
+        """
         self.encoder = None
         self.decoder = None
 
-    def is_encoder_available(self):
-        return self.encoder is not None
+    def add_decoder(self, decoder_type, parameters, parameter_values):
+        """
+        Adds a new decoder.
+        Dynamically imports the module of the implementation and creates an instance of the class in the said
+        module (e.g. ExampleDecoder.ExampleDecoder()).
+        :param decoder_type: Decoder type.
+        :param parameters: Information about parameters.
+        :param parameter_values: User-defined parameter values.
+        :return: Information about decoder.
+        """
+        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        self.decoder = getattr(module, decoder_type)(parameters, parameter_values)
+        # return self.decoder.receiver_info, self.decoder.landmark_info
+        return self.decoder.info
 
     def add_encoder(self, encoder_type):
-        # TODO
+        """
+        Adds a new encoder.
+        Not yet implemented.
+        :param encoder_type: Encoder type.
+        """
         pass
 
-    def encode_message(self, message):
-        self.encoder.encode_message(message)
+    def get_decoded(self):
+        """
+        Gets value updates from the decoder.
+        Note: Do not use is_decoder_available, since get_decoded also gets executed when the plot is not active (stopped).
+        :return: Decoder value updates if it is available, else None.
+        """
+        if self.decoder is not None:
+            return self.decoder.get_decoded()
+        else:
+            return None
 
-    def remove_encoder(self):
-        self.encoder = None
+    def get_decoder_info(self):
+        """
+        Gets information about decoder.
+        Decoder type, receiver information, landmark information.
+        :return: Decoder information dictionary if decoder exists, else None.
+        """
+        if self.decoder is not None:
+            return self.decoder.info
+        else:
+            return None
 
-    def is_decoder_available(self):
+    def get_encoder_info(self):
+        """
+        Gets information about encoder.
+        :return: Encoder information dictionary if decoder exists, else None.
+        """
+        if self.encoder is not None:
+            return self.encoder.info
+        else:
+            return None
+
+    def is_decoder_active(self):
+        """
+        Checks whether a decoder is available.
+        :return: Whether a decoder is defined and is active.
+        """
         return self.decoder is not None and self.decoder.active
 
-    def add_decoder(self, decoder_type, parameters, parameter_values):
-        # Dynamically import the module of the implementation
-        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
-        # Create an instance of the class in the said module (e.g. ExampleDecoder.ExampleDecoder())
-        decoder = getattr(module, decoder_type)(parameters, parameter_values)
-        decoder.setup()
-        # Only set the member after setup has been done
-        self.decoder = decoder
+    def is_encoder_active(self):
+        """
+        Checks whether an encoder is available.
+        :return: Whether an encoder is defined.
+        """
+        return self.encoder is not None and self.encoder.active
 
-        return self.decoder.get_receiver_info(), self.decoder.get_landmark_info()
+    def remove_encoder(self):
+        """
+        Removes the encoder.
+        """
+        self.encoder = None
+
+    def remove_decoder(self):
+        """
+        Removes the decoder.
+        """
+        self.decoder = None
 
     def start_decoder(self):
+        """
+        Starts the decoder.
+        """
         self.decoder.start()
 
     def stop_decoder(self):
+        """
+        Stops the decoder.
+        """
         self.decoder.stop()
-
-    def remove_decoder(self):
-        self.decoder = None
-
-    def get_decoded(self):
-        if self.decoder is not None:
-            return self.decoder.get_decoded()
 
 
 def get_decoder_parameters(decoder_type):
-    # Dynamically import the module of the implementation
+    """
+    Gets information about parameters of a given decoder type.
+    :param decoder_type: Decoder type.
+    :return: Parameter information.
+    """
     module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
     try:
         parameters = module.PARAMETERS

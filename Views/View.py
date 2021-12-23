@@ -5,15 +5,19 @@ import sys
 import numpy as np
 import time
 
-from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, ParameterDialog, MessageBoxes, LogView
+import Utils.ViewUtils
+from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, LogView
 
 
 class View(QMainWindow):
     def __init__(self, controller):
+        """
+        Initializes the main window.
+        :param controller: Controller object.
+        """
         super(View, self).__init__()
 
         self.controller = controller
-        self.parameter_dialog = None
 
         # Window Title and icon
         self.setWindowTitle("UnifiedGUI")
@@ -27,14 +31,19 @@ class View(QMainWindow):
         self.menu_bar = MenuBarView.MenuBarView(self)
         self.setMenuBar(self.menu_bar)
 
+        # Tool bar
         self.toolbar = ToolbarView.ToolbarView()
         self.addToolBar(self.toolbar)
 
+        # Status bar
         self.status_bar = StatusBarView.StatusBarView()
         self.setStatusBar(self.status_bar)
 
-        central_widget = QWidget(self)
+        # Log widget
+        self.log_view = LogView.LogView(self)
+        self.addDockWidget(Qt.BottomDockWidgetArea, self.log_view)
 
+        central_widget = QWidget(self)
         layout = QHBoxLayout()
         splitter = QSplitter(Qt.Horizontal)
 
@@ -54,10 +63,6 @@ class View(QMainWindow):
 
         self.setCentralWidget(central_widget)
 
-        dock = LogView.LogView()
-
-        self.addDockWidget(Qt.BottomDockWidgetArea, dock)
-
         self.timer = QTimer()
         # A QTimer with a timeout of 0 will time out as soon as possible.
         self.timer.setInterval(0)
@@ -67,48 +72,78 @@ class View(QMainWindow):
         self.last_time = time.time()
         self.last_fps = []
 
-    def update_(self):
-        decoded = self.controller.get_decoded()
-        if decoded is not None:
-            received, landmarks, symbol_intervals, symbol_values, sequence = decoded['received'], decoded['landmarks'], decoded['symbol_intervals'], decoded['symbol_values'], decoded['sequence']
-
-            self.data_view.update_values(received)
-            self.data_view.update_landmarks(landmarks)
-            self.data_view.update_symbol_intervals(symbol_intervals)
-            self.data_view.update_symbol_values(symbol_intervals, symbol_values)
-
-            self.decoder_view.update_symbol_values(symbol_values)
-            self.decoder_view.update_sequence(sequence)
-
-        # TODO: FPS calculation
-        time_ = time.time()
-        time_difference = time_ - self.last_time + 0.0000001
-        fps = 1 / time_difference
-        self.last_fps.append(fps)
-        if len(self.last_fps) == 10:
-            fps_avg = int(np.round(sum(self.last_fps) / len(self.last_fps)))
-            self.status_bar.set_fps(fps_avg)
-            self.last_fps = []
-        self.last_time = time_
-
-    def decoder_added(self, decoder_type, receiver_info, landmark_info, parameter_values):
-        # Update decoder view
-        self.decoder_view.decoder_added(decoder_type, parameter_values)
-
-        # Update data view
-        self.data_view.decoder_added(receiver_info, landmark_info)
-
-    def decoder_removed(self):
-        self.data_view.decoder_removed()
-        self.decoder_view.decoder_removed()
-
-    def get_parameter_values(self, parameters, current_values=None):
-        self.parameter_dialog = ParameterDialog.ParameterDialog(parameters, current_values=current_values)
-        return self.parameter_dialog.exec()
-
     def closeEvent(self, close_event: QCloseEvent):
-        if MessageBoxes.question(self.style(), "Exit?", "Are you sure you want to exit?"):
+        """
+        Re-defines the close event by asking the user for confirmation before actually closing.
+        :param close_event: Close event.
+        """
+        if Utils.ViewUtils.message_box_question(self.style(), "Exit?", "Are you sure you want to exit?"):
             self.controller.close()
             close_event.accept()
         else:
             close_event.ignore()
+
+    def decoder_added(self, decoder_info):
+        """
+        Do stuff when a decoder is added.
+        :param decoder_info: Information about decoder.
+        """
+        self.data_view.decoder_added(decoder_info)
+        self.decoder_view.decoder_added(decoder_info)
+        self.update_window_title()
+
+    def decoder_removed(self):
+        """
+        Do stuff when a decoder is removed.
+        """
+        self.data_view.decoder_removed()
+        self.decoder_view.decoder_removed()
+        self.update_window_title()
+
+    def toggle_log(self, state):
+        """
+        Toggles the log wiget.
+        This is executed if the user clicks on the X button on the log window or via the menu ba.
+        :param state: True -> Show, False -> Hide
+        """
+        if state:
+            self.log_view.show()
+            self.menu_bar.action_log_toggle.setChecked(True)
+        else:
+            self.log_view.hide()
+            self.menu_bar.action_log_toggle.setChecked(False)
+
+    def update_(self):
+        """
+        Updates the view.
+        This function is repeatedly called whenever the QTimer times out.
+        """
+        decoded = self.controller.get_decoded()
+        if decoded is not None:
+            self.data_view.update_(decoded)
+            self.decoder_view.update_(decoded)
+
+        time_ = time.time()
+        time_difference = time_ - self.last_time + sys.float_info.epsilon
+        fps = 1 / time_difference
+        self.last_fps.append(fps)
+        if len(self.last_fps) == 10:
+            fps_avg = int(np.mean(self.last_fps))
+            self.status_bar.set_fps(fps_avg)
+            self.last_fps = []
+        self.last_time = time_
+
+    def update_window_title(self):
+        """
+        Updates the window title based on currently active encoders/decoders.
+        """
+        title = "UnifiedGUI"
+        decoder_info, encoder_info = self.controller.get_decoder_info(), self.controller.get_encoder_info()
+        if encoder_info is not None and decoder_info is not None:
+            title += " [Encoder: " + encoder_info['type']
+            title += " | Decoder:" + decoder_info['type'] + "]"
+        elif encoder_info is not None:
+            title += " [Encoder: " + encoder_info['type'] + "]"
+        elif decoder_info is not None:
+            title += " [Decoder: " + decoder_info['type'] + "]"
+        self.setWindowTitle(title)

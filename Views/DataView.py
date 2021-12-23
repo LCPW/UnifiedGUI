@@ -6,11 +6,19 @@ from Views import PlotView, TablesView
 
 
 class DataView(QWidget):
-    def __init__(self, main_view):
+    """
+    Widget responsible for visualizing the data from the decoder.
+    Two representation are available: Live plot and tables.
+    """
+    def __init__(self, view):
+        """
+        Initializes the data view.
+        :param view: Reference to main view widget.
+        """
         super().__init__()
         layout = QVBoxLayout()
 
-        self.main_view = main_view
+        self.view = view
 
         self.tabs = QTabWidget()
         self.tab_tables = TablesView.TablesView()
@@ -23,23 +31,25 @@ class DataView(QWidget):
 
         self.setLayout(layout)
 
-    def decoder_added(self, receiver_info, landmark_info):
-        self.tab_tables.decoder_added(receiver_info)
-        self.tab_plot.decoder_added(receiver_info, landmark_info)
+    def decoder_added(self, decoder_info):
+        """
+        Do stuff when a decoder is added.
+        :param decoder_info: Information about decoder.
+        """
+        self.tab_tables.decoder_added(decoder_info)
+        self.tab_plot.decoder_added(decoder_info)
 
     def decoder_removed(self):
+        """
+        Do stuff when the decoder is removed.
+        """
         self.tab_tables.decoder_removed()
         self.tab_plot.decoder_removed()
 
-    def update_values(self, vals):
-        self.tab_tables.update_tables(vals)
-        self.tab_plot.plot_widget.update_datalines(vals)
-
-    def update_landmarks(self, landmarks):
-        self.tab_plot.plot_widget.update_landmarks(landmarks)
-
-    def update_symbol_intervals(self, symbol_intervals):
-        self.tab_plot.plot_widget.update_symbol_intervals(symbol_intervals)
-
-    def update_symbol_values(self, symbol_intervals, symbol_values):
-        self.tab_plot.plot_widget.update_symbol_values(symbol_intervals, symbol_values)
+    def update_(self, decoded):
+        """
+        Updates this widget with new information from the decoder.
+        :param decoded: Decoder value updates.
+        """
+        self.tab_plot.update_(decoded)
+        self.tab_tables.update_(decoded)

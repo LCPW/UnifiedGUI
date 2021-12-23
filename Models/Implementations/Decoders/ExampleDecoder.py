@@ -1,5 +1,6 @@
 from Models.Interfaces.DecoderInterface import DecoderInterface
 import random
+import time
 
 PARAMETERS = [
     {
@@ -44,15 +45,37 @@ class ExampleDecoder(DecoderInterface):
         self.receiver_types = ["ExampleReceiver"] * 3
 
         # Optional
-        self.landmark_names = ['Test1', 'Test2']
-        self.landmark_symbols = ['x', 'd']
+        self.receiver_names = ["Alpha", "Beta", "Gamma"]
+        self.landmark_names = ['Landmark1', 'Landmark2']
 
-    def setup(self):
+        # self.plot_settings = {
+        #     'datalines_active': [[True, False], [False, True], [True, False]],
+        #     'datalines_width': 1,
+        #     #'datalines_color': [],
+        #     '#datalines_style': [],
+        #     #'landmarks_active': [],
+        #     'landmarks_size': 15,
+        #     'landmarks_symbols': ['x', 'd'],
+        #     'step_size': 1,
+        #     'symbol_intervals': True,
+        #     'symbol_intervals_color': 'k',
+        #     'symbol_intervals_width': 1,
+        #     'symbol_values_fixed_height': 1,
+        #     'symbol_values_position': 'above',
+        #     'symbol_values_size': 20,
+        #     'symbol_values': True,
+        #     'symbol_values_height_factor': 1.1
+        # }
+
         super().setup()
 
     def calculate_symbol_intervals(self):
-        if self.timestamps[0] is not None:
-            self.symbol_intervals = self.timestamps[0][::50]
+        if not self.symbol_intervals:
+            self.symbol_intervals = [time.time()]
+        else:
+            t = time.time()
+            if t - self.symbol_intervals[-1] > 1:
+                self.symbol_intervals.append(t)
 
     def calculate_symbol_values(self):
         x = len(self.symbol_intervals) - 1
@@ -62,7 +85,6 @@ class ExampleDecoder(DecoderInterface):
             self.symbol_values.append(y)
 
     def calculate_landmarks(self):
-        # TODO: set_landmarks(i, values) ? -> direkt mit check ob i auch passt -> property
         x = [0.5 * (self.symbol_intervals[a] + self.symbol_intervals[a+1]) for a in range(max(0, len(self.symbol_intervals) - 1))]
         y = [self.received[0][i, 0] for i in range(len(x))]
         for i in range(self.num_landmarks):
@@ -75,5 +97,5 @@ class ExampleDecoder(DecoderInterface):
             c = 0
             for bit in vs:
                 c = c * 2 + bit
-            c += 64
+            c += 65
             self.sequence += chr(c)

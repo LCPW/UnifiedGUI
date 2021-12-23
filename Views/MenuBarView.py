@@ -12,14 +12,22 @@ class MenuBarView(QMenuBar):
         menu_file = self.addMenu("File")
         menu_file.addAction("Exit", self.view.close)
 
+        menu_log = self.addMenu("Log")
+        self.action_log_toggle = QAction("Show Log", self)
+        self.action_log_toggle.triggered.connect(self.view.toggle_log)
+        self.action_log_toggle.setCheckable(True)
+        self.action_log_toggle.setChecked(True)
+        menu_log.addAction(self.action_log_toggle)
+
         menu_settings = self.addMenu("Settings")
 
         menu_help = self.addMenu("Help")
         action_help = QAction(text="Open Documentation (PDF)", parent=self, icon=QIcon('./Views/Icons/pdf.png'))
-        action_help.triggered.connect(self.show_help)
+        action_help.triggered.connect(self.show_documentation)
         menu_help.addAction(action_help)
 
-    def show_help(self):
+    @staticmethod
+    def show_documentation():
         path = os.path.join('.', 'Docs', 'UnifiedGUI.pdf')
         p = subprocess.Popen([path], shell=True)
         #if p.returncode != 0:

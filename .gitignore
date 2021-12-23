@@ -1,5 +1,6 @@
 # User-specific settings
-Utils/Settings/settings.json
+/Utils/Settings/settings.json
+/Utils/PlotSettings/DecoderPlotSettings/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -130,4 +131,3 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-/Utils/Settings/settings.json

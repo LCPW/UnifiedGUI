@@ -1,9 +1,9 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-
 import logging
-from Views import Utils
+
+from Utils import Logging
 
 
 class LogTextEdit(QPlainTextEdit, logging.Handler):
@@ -21,8 +21,10 @@ class LogTextEdit(QPlainTextEdit, logging.Handler):
 
 
 class LogView(QDockWidget):
-    def __init__(self):
+    def __init__(self, view):
         super(LogView, self).__init__("Log")
+
+        self.view = view
 
         #self.setWindowIcon(view_utils.get_icon('terminal'))
         #self.setTitleBarWidget(QIcon('./Views/Icons/terminal.png'))
@@ -33,9 +35,7 @@ class LogView(QDockWidget):
         splitter = QSplitter(Qt.Vertical)
 
         log_text_edit = LogTextEdit()
-        log_text_edit.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-        logging.getLogger().addHandler(log_text_edit)
-        logging.getLogger().setLevel(logging.DEBUG)
+        Logging.init(log_text_edit)
 
         splitter.addWidget(log_text_edit)
 
@@ -43,8 +43,8 @@ class LogView(QDockWidget):
         #self.DockWidgetHorizontalTitleBar = True
         self.setWidget(splitter)
 
-        #log_text_edit.emit("Hi")
-        #log_text_edit.emit("Hi2")
-
         #with open('./Views/Style.qss', 'r') as f:
             #QApplication.instance().setStyleSheet(f.read())
+
+    def closeEvent(self, close_event: QCloseEvent):
+        self.view.toggle_log(False)

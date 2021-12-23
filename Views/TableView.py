@@ -23,11 +23,10 @@ class TableView(QTableWidget):
         self.horizontalHeader().setStretchLastSection(True)
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-    def update_table(self, timestamps, values):
-        length = len(values)
+    def update_table(self, length, timestamps, values):
         self.setRowCount(length)
         for i in range(self.old_length, length):
             self.setItem(i, 0, QTableWidgetItem(str(datetime.fromtimestamp(timestamps[i]))))
-            for j in range(0, values.shape[1]):
-                self.setItem(i, j+1, QTableWidgetItem(str(values[i, j])))
+            for sensor_index in range(0, values.shape[1]):
+                self.setItem(i, sensor_index+1, QTableWidgetItem(str(values[i, sensor_index])))
         self.old_length = length

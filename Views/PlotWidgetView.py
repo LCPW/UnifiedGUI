@@ -8,7 +8,6 @@ import numpy as np
 
 class PlotWidgetView(pg.PlotWidget):
     def __init__(self, plot_view):
-        #super().__init__(axisItems={'bottom': TimeAxisItem(orientation='bottom')})
         super().__init__(axisItems={'bottom': pg.DateAxisItem(orientation='bottom')})
 
         self.plot_view = plot_view
@@ -23,34 +22,30 @@ class PlotWidgetView(pg.PlotWidget):
         # Grid
         self.showGrid(x=True, y=True)
 
-        self.data_lines = []
-        self.landmarks = []
-        self.vertical_lines = []
-        self.text_items = []
-
-        self.max_value = 0
-
-        # TODO?
-        self.step_size = 1
-        # self.setDownsampling(ds=10)
-
-        # TODO: Gut, aber noch besser waere es wenn es der User auswaehlen koennte
-        # self.enableAutoRange(axis='y')
         self.setMouseEnabled(x=True, y=False)
 
+        # Legend
         self.legend = pg.LegendItem()
         self.legend.setParentItem(self.getPlotItem())
+
+        self.data_lines = []
+        self.landmarks = []
+        self.text_items = []
+        self.vertical_lines = []
 
     def add_datalines(self, receiver_info):
         """
         Adds new datalines to the plot.
         :param receiver_info: Info about receivers (receiver name + sensor desciptions).
         """
-        for i in range(len(receiver_info)):
-            name, sensor_names = receiver_info[i]['name'], receiver_info[i]['sensor_names']
+        for receiver_index in range(receiver_info['num']):
+            name, sensor_names = receiver_info['names'][receiver_index], receiver_info['sensor_names'][receiver_index]
             data_lines_ = []
-            for j in range(len(sensor_names)):
-                data_line = self.plot([], [], name=name + ": " + sensor_names[j], pen=self.plot_view.settings['datalines_pens'][i][j])
+            for sensor_index in range(len(sensor_names)):
+                pen = pg.mkPen(color=QColor(self.plot_view.settings['datalines_color'][receiver_index][sensor_index]),
+                               style=getattr(Qt, self.plot_view.settings['datalines_style'][receiver_index][sensor_index]),
+                               width=self.plot_view.settings['datalines_width'])
+                data_line = self.plot([], [], name=name + ": " + sensor_names[sensor_index], pen=pen)
                 data_lines_.append(data_line)
                 self.legend.addItem(data_line, data_line.name())
             self.data_lines.append(data_lines_)
@@ -60,9 +55,12 @@ class PlotWidgetView(pg.PlotWidget):
         Adds new landmarks to the plot.
         :param landmark_info: Info about landmarks (name + symbols).
         """
-        num_landmarks = landmark_info['num']
-        for i in range(num_landmarks):
-            landmark_ = self.plot([], [], pen=None, symbol=self.plot_view.settings['landmarks_symbols'][i], name=landmark_info['names'][i])
+        for landmark_index in range(landmark_info['num']):
+            landmark_ = self.plot([], [],
+                                  pen=None,
+                                  symbol=self.plot_view.settings['landmarks_symbols'][landmark_index],
+                                  name=landmark_info['names'][landmark_index],
+                                  symbolSize=self.plot_view.settings['landmarks_size'])
             self.landmarks.append(landmark_)
             self.legend.addItem(landmark_, landmark_.name())
 
@@ -73,8 +71,6 @@ class PlotWidgetView(pg.PlotWidget):
         :param sensor_index: Sensor index of the dataline to be cleared.
         """
         self.data_lines[receiver_index][sensor_index].clear()
-        #self.legend.removeItem(self.data_lines[receiver_index][sensor_index])
-        #self.update_legend()
         self.repaint_plot()
 
     def clear_landmark(self, landmark_index):
@@ -83,8 +79,6 @@ class PlotWidgetView(pg.PlotWidget):
         :param landmark_index: Index of the landmark to be cleared.
         """
         self.landmarks[landmark_index].clear()
-        #self.legend.removeItem(self.landmarks[landmark_index])
-        #self.update_legend()
         self.repaint_plot()
 
     def clear_symbol_intervals(self):
@@ -110,8 +104,9 @@ class PlotWidgetView(pg.PlotWidget):
         Repaints the plot.
         In some cases, the plot does not update its content, especially when elements are removed and the plot is not the focused window.
         In this case, the plot has to be updated manually.
+        Note:   This is pretty ugly, potentially there is a more elegant way to do this.
+                Using update, repaint, resize or QApplication.processEvents did not work.
         """
-        # Other way possible? update, repaint, resize, QApplication.processEvents do not work...
         self.hide()
         self.show()
 
@@ -131,7 +126,6 @@ class PlotWidgetView(pg.PlotWidget):
         self.landmarks = []
         self.clear_symbol_intervals()
         self.clear_symbol_values()
-        self.max_value = 0
         self.repaint_plot()
 
     def set_landmark_symbol(self, landmark_index):
@@ -148,41 +142,46 @@ class PlotWidgetView(pg.PlotWidget):
         :param receiver_index: Receiver index of the dataline.
         :param sensor_index: Sensor index of the dataline.
         """
-        pen = self.plot_view.settings['datalines_pens'][receiver_index][sensor_index]
+        pen = pg.mkPen(color=self.plot_view.settings['datalines_color'][receiver_index][sensor_index],
+                       style=getattr(Qt, self.plot_view.settings['datalines_style'][receiver_index][sensor_index]),
+                       width=self.plot_view.settings['datalines_width'])
         self.data_lines[receiver_index][sensor_index].setPen(pen)
 
-    def update_datalines(self, vals):
+    def update_(self, decoded):
+        """
+        Updates this widget with new information from the decoder.
+        :param decoded: Decoder value updates.
+        """
+        received, landmarks, symbol_intervals, symbol_values, sequence = decoded['received'], decoded['landmarks'], decoded['symbol_intervals'], decoded['symbol_values'], decoded['sequence']
+        self.update_datalines(received)
+        self.update_landmarks(landmarks)
+        self.update_symbol_intervals(symbol_intervals)
+        self.update_symbol_values(received, symbol_intervals, symbol_values)
+
+    def update_datalines(self, received):
         """
         Updates the datalines with new values from the decoder.
-        :param vals: Measurement values from the receivers.
+        :param received: Measurement values from the receivers.
         """
-        timestamps, values = vals['timestamps'], vals['values']
+        lengths, timestamps, values = received['lengths'], received['timestamps'], received['values']
         for receiver_index in range(len(values)):
-            if timestamps[receiver_index] is not None:
+            if lengths[receiver_index] > 0:
                 for sensor_index in range(values[receiver_index].shape[1]):
                     if self.plot_view.settings['datalines_active'][receiver_index][sensor_index]:
-                        x = timestamps[receiver_index]
-                        y = values[receiver_index][:, sensor_index]
-                        length_ = min(len(x), len(y))
-                        x, y = x[:length_], y[:length_]
-                        self.data_lines[receiver_index][sensor_index].setData(x[::self.step_size], y[::self.step_size])
-
-        # TODO: ?
-        try:
-            self.max_value = max([np.max(a) for a in values])
-        except:
-            pass
-        self.last_vals = vals
+                        length = lengths[receiver_index]
+                        x = timestamps[receiver_index][:length:self.plot_view.settings['step_size']]
+                        y = values[receiver_index][:length:self.plot_view.settings['step_size'], sensor_index]
+                        self.data_lines[receiver_index][sensor_index].setData(x, y)
 
     def update_landmarks(self, landmarks):
         """
         Updates the landmarks with new values from the decoder.
         :param landmarks: Landmark coordinates.
         """
-        for i in range(len(landmarks)):
-            if landmarks[i] is not None and self.plot_view.settings['landmarks_active'][i]:
-                x, y = landmarks[i]['x'], landmarks[i]['y']
-                self.landmarks[i].setData(x, y)
+        for landmark_index in range(len(landmarks)):
+            if landmarks[landmark_index] is not None and self.plot_view.settings['landmarks_active'][landmark_index]:
+                x, y = landmarks[landmark_index]['x'], landmarks[landmark_index]['y']
+                self.landmarks[landmark_index].setData(x, y)
         self.last_landmarks = landmarks
 
     def update_legend(self):
@@ -206,16 +205,17 @@ class PlotWidgetView(pg.PlotWidget):
         """
         if self.plot_view.settings['symbol_intervals']:
             for timestamp in symbol_intervals[len(self.vertical_lines):]:
-                vertical = pg.InfiniteLine(pos=timestamp, angle=90, movable=False, pen=self.plot_view.settings['symbol_intervals_pen'])
+                pen = pg.mkPen(color=self.plot_view.settings['symbol_intervals_color'],
+                               width=self.plot_view.settings['symbol_intervals_width'])
+                vertical = pg.InfiniteLine(pos=timestamp, angle=90, movable=False, pen=pen)
                 self.addItem(vertical)
                 self.vertical_lines.append(vertical)
 
-        self.last_symbol_intervals = symbol_intervals
-
-    def update_symbol_values(self, symbol_intervals, symbol_values):
+    def update_symbol_values(self, vals, symbol_intervals, symbol_values):
         """
         Updates the symbol values with new values from the decoder.
-        :param symbol_intervals: Symbol interval positions (relevant for the position of the symbol values).
+        :param vals: Measurement values from the receivers (relevant for the y-position of the symbol values).
+        :param symbol_intervals: Symbol interval positions (relevant for the x-position of the symbol values).
         :param symbol_values: Symbol values.
         """
         # This is necessary (for now), because symbol_values/symbol_intervals are not updated atomically
@@ -224,22 +224,29 @@ class PlotWidgetView(pg.PlotWidget):
         if self.plot_view.settings['symbol_values']:
             for i in range(len(self.text_items), len(symbol_values)):
                 x_pos = 0.5 * (symbol_intervals[i] + symbol_intervals[i+1])
+
+                if self.plot_view.settings['symbol_values_position'] in ['above', 'below']:
+                    timestamps, values = vals['timestamps'], vals['values']
+                    minimum_values, maximum_values = [], []
+                    for receiver_index in range(len(timestamps)):
+                        left_index = np.argmin(list(map(abs, timestamps[receiver_index] - symbol_intervals[i])))
+                        right_index = np.argmin(list(map(abs, timestamps[receiver_index] - symbol_intervals[i+1])))
+                        max_tmp = np.max(values[receiver_index][left_index:right_index])
+                        min_tmp = np.min(values[receiver_index][left_index:right_index])
+                        maximum_values.append(max_tmp)
+                        minimum_values.append(min_tmp)
+                    maximum_interval_value = max(maximum_values)
+                    minimum_interval_value = min(minimum_values)
+
+                    amplitude = maximum_interval_value - minimum_interval_value
+                    if self.plot_view.settings['symbol_values_position'] == 'above':
+                        y_pos = maximum_interval_value + (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) * amplitude
+                    else:
+                        y_pos = minimum_interval_value - (0.1 - 0.001 * self.plot_view.settings['symbol_values_size']) * amplitude
+                else:
+                    y_pos = self.plot_view.settings['symbol_values_fixed_height']
                 text = pg.TextItem(str(symbol_values[i]), color='k')
-                text.setPos(x_pos, self.plot_view.settings['symbol_values_height_factor'] * self.max_value)
+                text.setPos(x_pos, y_pos)
+                text.setFont(QFont('MS Shell Dlg 2', self.plot_view.settings['symbol_values_size']))
                 self.addItem(text)
                 self.text_items.append(text)
-        self.last_symbol_values = symbol_values
-
-
-# class TimeAxisItem(pg.AxisItem):
-#     """
-#     Converts the timestamps from a float to a human-readable format for the x-axis ticks.
-#     """
-#     def tickStrings(self, values, scale, spacing):
-#         try:
-#             x = [datetime.fromtimestamp(value) for value in values]
-#             # x = [datetime.time(value) for value in values]
-#         # This catches the case that negative values can not be converted into timestamps
-#         except OSError:
-#             x = ['undefined'] * len(values)
-#         return x
