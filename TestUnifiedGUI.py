@@ -36,7 +36,7 @@ class TestDecoders(unittest.TestCase):
     def test_parameters(self):
         for m in self.modules:
             try:
-                params = m.PARAMETERS
+                params = m.get_parameters()
             except AttributeError:
                 return
             if params is not None:

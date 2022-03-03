@@ -130,8 +130,8 @@ def get_decoder_parameters(decoder_type):
     """
     module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
     try:
-        parameters = module.PARAMETERS
+        parameters = module.get_parameters()
     except AttributeError:
-        Logging.info("No parameters defined.")
+        Logging.warning("Function get_parameters() not defined.")
         parameters = None
     return parameters

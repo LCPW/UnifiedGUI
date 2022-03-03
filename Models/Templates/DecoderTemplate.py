@@ -10,3 +10,7 @@ class ExampleDecoder(DecoderInterface):
         self.receiver_types = None
 
         super().setup()
+
+
+def get_parameters():
+    return None

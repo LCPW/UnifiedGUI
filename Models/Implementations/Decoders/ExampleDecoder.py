@@ -2,41 +2,6 @@ from Models.Interfaces.DecoderInterface import DecoderInterface
 import random
 import time
 
-PARAMETERS = [
-    {
-        'description': "Parameter1",
-        'decimals': 4,
-        'dtype': 'float',
-        'min': 0,
-        'max': 100,
-        'default': 50,
-    },
-    {
-        'description': "Parameter2",
-        'dtype': 'bool',
-        'default': True
-    },
-    {
-        'description': "Parameter3",
-        'dtype': 'item',
-        'items': ['A', 'B', 'C'],
-        'default': 'B'
-    },
-    {
-        'description': "Parameter4",
-        'dtype': 'int',
-        'min': 0,
-        'max': 100,
-        'default': 25,
-    },
-    {
-        'description': "Parameter5",
-        'dtype': 'string',
-        'default': "Hello World",
-        'max_length': 20
-    }
-]
-
 
 class ExampleDecoder(DecoderInterface):
     def __init__(self, parameters, parameter_values):
@@ -98,3 +63,41 @@ class ExampleDecoder(DecoderInterface):
                 c = c * 2 + bit
             c += 65
             self.sequence += chr(c)
+
+
+def get_parameters():
+    parameters = [
+        {
+            'description': "Parameter1",
+            'decimals': 4,
+            'dtype': 'float',
+            'min': 0,
+            'max': 100,
+            'default': 50,
+        },
+        {
+            'description': "Parameter2",
+            'dtype': 'bool',
+            'default': True
+        },
+        {
+            'description': "Parameter3",
+            'dtype': 'item',
+            'items': ['A', 'B', 'C'],
+            'default': 'B'
+        },
+        {
+            'description': "Parameter4",
+            'dtype': 'int',
+            'min': 0,
+            'max': 100,
+            'default': 25,
+        },
+        {
+            'description': "Parameter5",
+            'dtype': 'string',
+            'default': "Hello World",
+            'max_length': 20
+        }
+    ]
+    return parameters
