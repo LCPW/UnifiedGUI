@@ -60,6 +60,7 @@ class PlotWidgetView(pg.PlotWidget):
                                   pen=None,
                                   symbol=self.plot_view.settings['landmarks_symbols'][landmark_index],
                                   name=landmark_info['names'][landmark_index],
+                                  symbolBrush=self.plot_view.settings['landmarks_color'][landmark_index],
                                   symbolSize=self.plot_view.settings['landmarks_size'])
             self.landmarks.append(landmark_)
             self.legend.addItem(landmark_, landmark_.name())
@@ -128,15 +129,25 @@ class PlotWidgetView(pg.PlotWidget):
         self.clear_symbol_values()
         self.repaint_plot()
 
-    def set_landmark_symbol(self, landmark_index):
+    def set_landmark_pen(self, landmark_index):
         """
-        Sets a new symbol for a given landmark based on the settings.
-        :param landmark_index: Index of the landmark.
+        Updates the pen for given landmark.
+        :param landmark_index: Index of the landmark pen to be updated.
         """
         symbol = self.plot_view.settings['landmarks_symbols'][landmark_index]
         self.landmarks[landmark_index].setSymbol(symbol)
+        self.landmarks[landmark_index].setSymbolSize(self.plot_view.settings['landmarks_size'])
+        self.landmarks[landmark_index].setSymbolBrush(self.plot_view.settings['landmarks_color'][landmark_index])
+        self.repaint_plot()
 
-    def set_pen(self, receiver_index, sensor_index):
+    def set_landmark_pens(self):
+        """
+        Updates all landmark pens.
+        """
+        for landmark_index in range(len(self.landmarks)):
+            self.set_landmark_pen(landmark_index)
+
+    def set_dataline_pen(self, receiver_index, sensor_index):
         """
         Sets a new pen for a given dataline based on the settings.
         :param receiver_index: Receiver index of the dataline.
@@ -146,6 +157,40 @@ class PlotWidgetView(pg.PlotWidget):
                        style=getattr(Qt, self.plot_view.settings['datalines_style'][receiver_index][sensor_index]),
                        width=self.plot_view.settings['datalines_width'])
         self.data_lines[receiver_index][sensor_index].setPen(pen)
+
+    def set_dataline_pens(self):
+        """
+        Updates the pens for all datalines.
+        """
+        for receiver_index in range(len(self.data_lines)):
+            for sensor_index in range(len(self.data_lines[receiver_index])):
+                self.set_dataline_pen(receiver_index, sensor_index)
+
+    def set_symbol_intervals_pen(self):
+        """
+        Updates the pen for the symbol intervals.
+        """
+        pen = pg.mkPen(color=self.plot_view.settings['symbol_intervals_color'], width=self.plot_view.settings['symbol_intervals_width'])
+        for vertical_line in self.vertical_lines:
+            vertical_line.setPen(pen)
+
+    def set_symbol_values_size(self):
+        """
+        Updates the size of the symbol value text items.
+        """
+        font = QFont('MS Shell Dlg 2', self.plot_view.settings['symbol_values_size'])
+        for text_item in self.text_items:
+            text_item.setFont(font)
+
+    def settings_updated(self):
+        """
+        Updates style elements according to the settings.
+        This function is called after the plot settings have been reset to default.
+        """
+        self.set_dataline_pens()
+        self.set_landmark_pens()
+        self.set_symbol_intervals_pen()
+        self.update_legend()
 
     def update_(self, decoded):
         """
@@ -225,24 +270,27 @@ class PlotWidgetView(pg.PlotWidget):
             for i in range(len(self.text_items), len(symbol_values)):
                 x_pos = 0.5 * (symbol_intervals[i] + symbol_intervals[i+1])
 
-                if self.plot_view.settings['symbol_values_position'] in ['above', 'below']:
+                if self.plot_view.settings['symbol_values_position'] in ['Above', 'Below']:
                     timestamps, values = vals['timestamps'], vals['values']
                     minimum_values, maximum_values = [], []
                     for receiver_index in range(len(timestamps)):
                         left_index = np.argmin(list(map(abs, timestamps[receiver_index] - symbol_intervals[i])))
                         right_index = np.argmin(list(map(abs, timestamps[receiver_index] - symbol_intervals[i+1])))
-                        max_tmp = np.max(values[receiver_index][left_index:right_index])
-                        min_tmp = np.min(values[receiver_index][left_index:right_index])
+                        if left_index == right_index:
+                            max_tmp = np.max(values[receiver_index][left_index])
+                            min_tmp = np.max(values[receiver_index][left_index])
+                        else:
+                            max_tmp = np.max(values[receiver_index][left_index:right_index])
+                            min_tmp = np.min(values[receiver_index][left_index:right_index])
                         maximum_values.append(max_tmp)
                         minimum_values.append(min_tmp)
                     maximum_interval_value = max(maximum_values)
                     minimum_interval_value = min(minimum_values)
 
-                    amplitude = maximum_interval_value - minimum_interval_value
-                    if self.plot_view.settings['symbol_values_position'] == 'above':
-                        y_pos = maximum_interval_value + (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) * amplitude
+                    if self.plot_view.settings['symbol_values_position'] == 'Above':
+                        y_pos = maximum_interval_value + (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) * np.abs(maximum_interval_value)
                     else:
-                        y_pos = minimum_interval_value - (0.1 - 0.001 * self.plot_view.settings['symbol_values_size']) * amplitude
+                        y_pos = minimum_interval_value - (0.1 + 0.001 * self.plot_view.settings['symbol_values_size'])*np.abs(minimum_interval_value)
                 else:
                     y_pos = self.plot_view.settings['symbol_values_fixed_height']
                 text = pg.TextItem(str(symbol_values[i]), color='k')

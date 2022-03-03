@@ -4,18 +4,18 @@ import importlib
 import sys
 
 
-# TODO: Option to test only a single file instead of all decoders?
-# TODO: Individual Testcase file for each type
-
 def is_same_shape2(l1, l2):
     return len(l1) == len(l2) and all([len(l1[i]) == len(l2[i]) for i in range(len(l1))])
+
+
+def message(msg, mod):
+    return msg + " [Module: " + str(mod) + "]."
 
 
 class TestDecoders(unittest.TestCase):
     SINGLE_FILE = None
 
     def setUp(self):
-        # self.single_file = None
         self.modules = []
         self.classes = []
 
@@ -30,19 +30,10 @@ class TestDecoders(unittest.TestCase):
             if extension == '.py':
                 m = importlib.import_module('.' + name, package='Models.Implementations.Decoders')
                 self.modules.append(m)
-                # TODO: ???
                 c = getattr(m, name)(None, None)
                 self.classes.append(c)
 
-    # def test1(self):
-    #    actual = True
-    #    expected = True
-    #    self.assertEqual(expected, actual, msg="123")
-
     def test_parameters(self):
-        def message(msg, mod):
-            return msg + "[Module: " + str(mod) + "]."
-
         for m in self.modules:
             try:
                 params = m.PARAMETERS
@@ -56,8 +47,7 @@ class TestDecoders(unittest.TestCase):
                     self.assertIn('description', keys, message("Description must be defined.", m))
                     self.assertIsInstance(p['description'], str, message("Description must be str.", m))
                     self.assertIn('dtype', keys, message("Datatype must be defined.", m))
-                    self.assertIn(p['dtype'], ['bool', 'int', 'float', 'string', 'item'],
-                                  message("Parameter datatype not support in module", m))
+                    self.assertIn(p['dtype'], ['bool', 'int', 'float', 'string', 'item'], message("Parameter datatype not support in module", m))
                     self.assertIn('default', keys, message("Default must be defined.", m))
 
                     if p['dtype'] == 'bool':
@@ -69,8 +59,7 @@ class TestDecoders(unittest.TestCase):
                         self.assertIn('max', keys, message("Maximum must be defined.", m))
                         self.assertIsInstance(p['max'], int, message("Maximum value must be int.", m))
                     elif p['dtype'] == 'float':
-                        self.assertIsInstance(p['default'], (float, int),
-                                              message("Default value must be float or int.", m))
+                        self.assertIsInstance(p['default'], (float, int), message("Default value must be float or int.", m))
                         self.assertIn('min', keys, message("Minimum must be defined.", m))
                         self.assertIsInstance(p['min'], (float, int), message("Minimum value must be float or int.", m))
                         self.assertIn('min', keys, message("Maximum must be defined.", m))
@@ -89,11 +78,18 @@ class TestDecoders(unittest.TestCase):
                         self.assertIn(p['default'], p['items'], message("Default item must be in items.", m))
 
     def test_receivers(self):
-        for c in self.classes:
-            self.assertIn('receiver_types', dir(c), "receiver_types not defined.")
-            self.assertIsInstance(c.receiver_types, list, "receiver_types is not a list.")
-            self.assertGreater(len(c.receiver_types), 0, "receiver_types must contain at least one receiver.")
-            # TODO: Test that receivers actually exist
+        for i in range(len(self.classes)):
+            c = self.classes[i]
+            m = self.modules[i]
+            self.assertIn('receiver_types', dir(c), message("receiver_types not defined.", m))
+            self.assertIsInstance(c.receiver_types, list, message("receiver_types is not a list.", m))
+            self.assertGreater(len(c.receiver_types), 0, message("receiver_types must contain at least one receiver.", m))
+            path = os.path.join('.', 'Models', 'Implementations', 'Receivers')
+            names_extensions = [os.path.splitext(file) for file in os.listdir(path)]
+            names_extensions = list(filter(lambda name_extension: name_extension[1] == '.py', names_extensions))
+            names = [name_extension[0] for name_extension in names_extensions]
+            for receiver in c.receiver_types:
+                self.assertIn(receiver, names, message("Specified receiver not found.", m))
 
 
 class TestEncoders(unittest.TestCase):
@@ -109,26 +105,18 @@ class TestTransmitters(unittest.TestCase):
     pass
 
 
-# if __name__ == '__main__':
-#     unittest.main()
-
 if __name__ == '__main__':
-    # TODO
     if len(sys.argv) == 3:
         file = sys.argv.pop()
-        if sys.argv[2] == 'TestEncoders':
+        if sys.argv[1] == 'TestEncoders':
             TestEncoders.SINGLE_FILE = file
-        elif sys.argv[2] == 'TestDecoders':
+        elif sys.argv[1] == 'TestDecoders':
             TestDecoders.SINGLE_FILE = file
-        elif sys.argv[2] == 'TestReceivers':
+        elif sys.argv[1] == 'TestReceivers':
             TestReceivers.SINGLE_FILE = file
-        elif sys.argv[2] == 'TestTransmitters':
+        elif sys.argv[1] == 'TestTransmitters':
             TestTransmitters.SINGLE_FILE = file
         else:
             print(f"{sys.argv[2]} is not a valid argument.")
             sys.exit(1)
-
-    print("ARGV")
-    print(sys.argv)
-    # sys.argv = sys.argv[:2]
     unittest.main()

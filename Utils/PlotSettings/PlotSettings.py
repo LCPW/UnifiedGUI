@@ -81,6 +81,11 @@ class PlotSettings:
         else:
             settings['landmarks_active'] = [True] * landmark_info['num']
 
+        if 'landmarks_color' in list(plot_settings.keys()):
+            settings['landmarks_color'] = plot_settings['datalines_color']
+        else:
+            settings['landmarks_color'] = ['k'] * landmark_info['num']
+
         if 'landmarks_size' in list(plot_settings.keys()):
             settings['landmarks_size'] = plot_settings['landmarks_size']
         else:
@@ -129,7 +134,7 @@ class PlotSettings:
         if 'symbol_values_position' in list(plot_settings.keys()):
             settings['symbol_values_position'] = plot_settings['symbol_values_position']
         else:
-            settings['symbol_values_position'] = 'above'
+            settings['symbol_values_position'] = 'Above'
 
         if 'symbol_values_size' in list(plot_settings.keys()):
             settings['symbol_values_size'] = plot_settings['symbol_values_size']

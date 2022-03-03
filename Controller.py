@@ -34,8 +34,8 @@ class Controller:
         Logging.info("Starting UnifiedGUI.")
 
         # Main program loop
+        fps = self.settings.settings['FRAMES_PER_SECOND']
         while self.running:
-            fps = self.settings.settings['FRAMES_PER_SECOND']
             self.run(sleep_time=1.0/fps)
 
         self.shutdown()
@@ -89,6 +89,13 @@ class Controller:
         if ok:
             self.model.decoder.parameter_values = parameter_values
             self.view.decoder_view.parameters_edited(parameter_values)
+
+    def get_available_decoders(self):
+        """
+        Get a list of available decoders.
+        :return: List of available decoders.
+        """
+        return self.model.get_available_decoders()
 
     def get_decoded(self):
         """

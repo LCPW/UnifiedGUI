@@ -48,24 +48,23 @@ class ExampleDecoder(DecoderInterface):
         self.receiver_names = ["Alpha", "Beta", "Gamma"]
         self.landmark_names = ['Landmark1', 'Landmark2']
 
-        # self.plot_settings = {
-        #     'datalines_active': [[True, False], [False, True], [True, False]],
-        #     'datalines_width': 1,
-        #     #'datalines_color': [],
-        #     '#datalines_style': [],
-        #     #'landmarks_active': [],
-        #     'landmarks_size': 15,
-        #     'landmarks_symbols': ['x', 'd'],
-        #     'step_size': 1,
-        #     'symbol_intervals': True,
-        #     'symbol_intervals_color': 'k',
-        #     'symbol_intervals_width': 1,
-        #     'symbol_values_fixed_height': 1,
-        #     'symbol_values_position': 'above',
-        #     'symbol_values_size': 20,
-        #     'symbol_values': True,
-        #     'symbol_values_height_factor': 1.1
-        # }
+        self.plot_settings = {
+            'datalines_active': [[True, False], [False, True], [True, False]],
+            'datalines_width': 1,
+            '#datalines_style': [],
+            'landmarks_active': [True, False],
+            'landmarks_size': 15,
+            'landmarks_symbols': ['x', 'd'],
+            'step_size': 1,
+            'symbol_intervals': True,
+            'symbol_intervals_color': 'k',
+            'symbol_intervals_width': 1,
+            'symbol_values_fixed_height': 1,
+            'symbol_values_position': 'above',
+            'symbol_values_size': 20,
+            'symbol_values': True,
+            'symbol_values_height_factor': 1.1
+        }
 
         super().setup()
 

@@ -1,4 +1,5 @@
 import importlib
+import os
 
 from Utils import Logging
 
@@ -37,6 +38,18 @@ class Model:
         :param encoder_type: Encoder type.
         """
         pass
+
+    @staticmethod
+    def get_available_decoders():
+        """
+        Get a list of available decoders.
+        :return: List of available decoders.
+        """
+        path = os.path.join('.', 'Models', 'Implementations', 'Decoders')
+        names_extensions = [os.path.splitext(file) for file in os.listdir(path)]
+        names_extensions = list(filter(lambda name_extension: name_extension[1] == '.py', names_extensions))
+        names = [name_extension[0] for name_extension in names_extensions]
+        return names
 
     def get_decoded(self):
         """

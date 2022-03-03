@@ -79,6 +79,7 @@ class View(QMainWindow):
         """
         if Utils.ViewUtils.message_box_question(self.style(), "Exit?", "Are you sure you want to exit?"):
             self.controller.close()
+            self.data_view.tab_plot.plot_settings_dialog.close()
             close_event.accept()
         else:
             close_event.ignore()

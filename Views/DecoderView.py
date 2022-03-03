@@ -5,10 +5,6 @@ import os
 import Utils.ViewUtils
 from Utils import ViewUtils
 
-# TODO: Refactor
-# Bigger font for titles
-# FONT_BIG = QFont('MS Shell Dlg 2', 14, weight=QFont.Bold)
-
 
 # class DecoderDockWidget(QDockWidget):
 #     def __init__(self, main_view):
@@ -16,7 +12,6 @@ from Utils import ViewUtils
 #         decoder_view = DecoderView(main_view)
 #         self.setWidget(decoder_view)
 
-# TODO: Documentation
 
 class DecoderView(QWidget):
     """
@@ -33,9 +28,6 @@ class DecoderView(QWidget):
         self.view = view
 
         self.layout = QVBoxLayout()
-        # TODO: Lines
-        # Position for potential grid layout
-        # self.positions = ['header', 'subheader', 'toolbar', 'parameters_label, parameters, symbol_values_label, symbol_values, sequence_label, sequence']
 
         self.toolbar = QToolBar()
 
@@ -76,8 +68,6 @@ class DecoderView(QWidget):
         label = QLabel("Decoder")
         label.setObjectName("header")
 
-        #label.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
-
         self.label_subtitle = QLabel("No decoder selected")
 
         self.layout.addWidget(label)
@@ -97,30 +87,41 @@ class DecoderView(QWidget):
         self.table_parameters = None
 
     def parameters_edited(self, parameter_values):
+        """
+        Update table when parameters are edited.
+        :param parameter_values: New parameter values.
+        """
         for i in range(len(parameter_values)):
             value = list(parameter_values.values())[i]
             self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
 
     def add_decoder(self):
-        # TODO: Belongs in model?
-        path = os.path.join('.', 'Models', 'Implementations', 'Decoders')
-        names_extensions = [os.path.splitext(file) for file in os.listdir(path)]
-        names_extensions = list(filter(lambda name_extension: name_extension[1] == '.py', names_extensions))
-        names = [name_extension[0] for name_extension in names_extensions]
+        """
+        Add a new decoder.
+        """
+        names = self.view.controller.get_available_decoders()
 
         decoder_type, ok = QInputDialog.getItem(self, "Add Decoder", "Decoder type", names, 0, False)
         if ok:
             self.view.controller.add_decoder(decoder_type)
 
     def remove_decoder(self):
+        """
+        Removes the decoder.
+        """
         if Utils.ViewUtils.message_box_warning(self.style(), "Remove decoder?", "Are you sure you want to remove the decoder?", "All data that has not been exported yet, cannot be recovered."):
             self.view.controller.remove_decoder()
 
     def start_decoder(self):
-        # TODO: Allow for restarting after stopped
+        """
+        Starts the decoder.
+        """
         self.view.controller.start_decoder()
 
     def stop_decoder(self):
+        """
+        Stops the decoder.
+        """
         if Utils.ViewUtils.message_box_warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
             self.view.controller.stop_decoder()
 
@@ -141,9 +142,10 @@ class DecoderView(QWidget):
             # Table will fit the screen horizontally
             self.table_parameters.horizontalHeader().setStretchLastSection(True)
             self.table_parameters.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-            # TODO: Nochmal anschauen: https://doc.qt.io/qt-5/qtableview.html
+            # https://doc.qt.io/qt-5/qtableview.html
             #self.table_parameters.verticalHeader().setStretchLastSection(True)
             self.table_parameters.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            self.table_parameters.verticalHeader().hide()
             #self.table_parameters.resizeRowsToContents()
             for i in range(len(parameter_values)):
                 description = list(parameter_values.keys())[i]

@@ -20,36 +20,26 @@ class ParameterDialog(QDialog):
             label = QLabel(description)
             type_ = param['dtype']
             w = None
-            # self.values[i] = param['default']
             if type_ == 'bool':
                 w = QCheckBox()
                 w.setChecked(current_values[i] if current_values else param['default'])
-                #w.clicked.connect(generate_lambda(i, w.isChecked()))
             elif type_ == 'int':
                 w = QSpinBox()
                 w.setRange(param['min'], param['max'])
                 w.setValue(current_values[i] if current_values else param['default'])
-                #w.valueChanged.connect(generate_lambda(i, w.value()))
-                # Evtl. noch singleStep
-                # w.Value()
             elif type_ == 'float':
                 w = QDoubleSpinBox()
                 w.setRange(param['min'], param['max'])
                 w.setValue(current_values[i] if current_values else param['default'])
                 w.setDecimals(param['decimals'])
-                #w.valueChanged.connect(generate_lambda(i, w.value()))
-                # Evtl. noch singleStep
             elif type_ == 'item':
                 w = QComboBox()
                 w.addItems(param['items'])
-                # TODO: Check if default is actually in items
                 w.setCurrentIndex(param['items'].index(current_values[i] if current_values else param['default']))
-                #w.activated.connect(generate_lambda(i, w.currentText()))
             elif type_ == 'string':
                 w = QLineEdit()
                 w.setMaxLength(param['max_length'])
                 w.setText(current_values[i] if current_values else param['default'])
-                #w.textEdited.connect(generate_lambda(i, w.text()))
             self.widgets.append((w, type_, description))
             layout.addRow(label, w)
 
@@ -72,5 +62,4 @@ class ParameterDialog(QDialog):
             elif t == 'string':
                 value = w.text()
             self.values[description] = value
-        #print(self.values)
         self.accept()

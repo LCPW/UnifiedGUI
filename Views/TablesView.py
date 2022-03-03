@@ -5,8 +5,6 @@ from PyQt5.QtWidgets import *
 
 from Views import TableView
 
-# TODO: Docu
-
 
 class TablesView(QWidget):
     """
@@ -40,6 +38,9 @@ class TablesView(QWidget):
             self.tabs.addTab(self.tables[receiver_index], str(name))
 
     def decoder_removed(self):
+        """
+        Do stuff when the decoder is removed.
+        """
         for table in self.tables:
             self.tabs.removeTab(self.tabs.indexOf(table))
         self.tables = []
@@ -50,9 +51,6 @@ class TablesView(QWidget):
         :param decoded: Decoder value updates.
         """
         received = decoded['received']
-        self.update_values(received)
-
-    def update_values(self, received):
         lengths, timestamps, values = received['lengths'], received['timestamps'], received['values']
         for i in range(len(timestamps)):
             if timestamps[i] is not None:

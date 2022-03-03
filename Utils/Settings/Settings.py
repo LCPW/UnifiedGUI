@@ -1,4 +1,3 @@
-import shelve
 import json
 import os
 
@@ -6,10 +5,11 @@ from Utils import Logging
 
 SETTINGS_PATH = os.path.join('Utils', 'Settings')
 
-# TODO: Docu
-
 
 class Settings:
+    """
+    This module allows for settings to be stored after closing the window.
+    """
     def __init__(self):
         self.path = os.path.join(SETTINGS_PATH, 'settings.json')
         self.default_path = os.path.join(SETTINGS_PATH, 'settings_default.json')
@@ -30,8 +30,8 @@ class Settings:
                 self.settings[key] = self.settings_default[key]
 
     def shutdown(self):
+        """
+        Save settings in JSON file.
+        """
         with open(self.path, 'w') as outfile:
             json.dump(self.settings, outfile, indent=4)
-
-    def get(self, key):
-        pass

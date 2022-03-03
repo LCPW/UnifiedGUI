@@ -7,7 +7,6 @@ from Views import PlotWidgetView, PlotSettingsDialog
 from Utils.PlotSettings import PlotSettings
 from Utils import ViewUtils
 
-# TODO: Refactor?
 X_RANGE = {
     'decimals': 4,
     'min': 1e-4,
@@ -15,7 +14,6 @@ X_RANGE = {
     'initial': 5
 }
 
-# TODO: Refactor?
 SYMBOLS = {
     'Circle': 'o',
     'Square': 's',
@@ -30,13 +28,13 @@ SYMBOLS = {
     'Star': 'star',
     'Cross': 'x',
     'Crosshair': 'crosshair',
-    # 'Arrow up': 'arrow_up',
-    # 'Arrow down': 'arrow_down',
-    # 'Arrow left': 'arrow_left'
 }
 
 
 class PlotView(QWidget):
+    """
+    This widget contains the plot widget as well as the toolbar above the plot, including a button for the plot settings.
+    """
     def __init__(self, data_view):
         super().__init__()
 
@@ -123,6 +121,7 @@ class PlotView(QWidget):
         self.settings_object = PlotSettings.PlotSettings(decoder_info)
         self.add_datalines(decoder_info['receivers'])
         self.add_landmarks(decoder_info['landmarks'])
+        self.plot_settings_dialog.decoder_added()
         self.button_settings.setEnabled(True)
 
     def decoder_removed(self):
@@ -146,17 +145,9 @@ class PlotView(QWidget):
         self.plot_settings_dialog = PlotSettingsDialog.PlotSettingsDialog(self)
         self.plot_settings_dialog.add_datalines(decoder_info['receivers'])
         self.plot_settings_dialog.add_landmarks(decoder_info['landmarks'])
+        self.plot_settings_dialog.decoder_added()
         self.plot_settings_dialog.show()
-
-    def set_style(self, receiver_index, sensor_index, combobox):
-        """
-        Sets the line style for a given dataline (Qt.SolidLine, etc.).
-        :param receiver_index: Receiver index of the dataline.
-        :param sensor_index: Sensor index of the dataline.
-        :param combobox: Combobox containing the style item.
-        """
-        self.settings['datalines_style'][receiver_index][sensor_index] = combobox.currentText()
-        self.plot_widget.set_pen(receiver_index, sensor_index)
+        self.plot_widget.settings_updated()
 
     def set_color(self, receiver_index, sensor_index):
         """
@@ -169,8 +160,37 @@ class PlotView(QWidget):
         # Is False if the user pressed Cancel
         if color.isValid():
             self.settings['datalines_color'][receiver_index][sensor_index] = color.name()
-            self.plot_widget.set_pen(receiver_index, sensor_index)
+            self.plot_widget.set_dataline_pen(receiver_index, sensor_index)
             self.plot_settings_dialog.buttons_color[receiver_index][sensor_index].setStyleSheet("background-color: " + color.name())
+
+    def set_datalines_width(self, width):
+        """
+        Sets the width for all datalines.
+        :param width: New width of the datalines.
+        """
+        self.settings['datalines_width'] = width
+        self.plot_widget.set_dataline_pens()
+
+    def set_landmark_color(self, landmark_index):
+        """
+        Sets the color of the symbols of a given landmark set.
+        :param landmark_index: Index of the landmark.
+        """
+        initial_color = QColor(self.settings['landmarks_color'][landmark_index])
+        color = QColorDialog.getColor(initial_color)
+        # Is False if the user pressed Cancel
+        if color.isValid():
+            self.settings['landmarks_color'][landmark_index] = color.name()
+            self.plot_widget.set_landmark_pen(landmark_index)
+            self.plot_settings_dialog.buttons_landmarks_color[landmark_index].setStyleSheet("background-color: " + color.name())
+
+    def set_landmarks_size(self, size):
+        """
+        Sets the size for the landmarks.
+        :param size: New size.
+        """
+        self.settings['landmarks_size'] = size
+        self.plot_widget.set_landmark_pens()
 
     def set_landmark_symbol(self, landmark_index, combobox):
         """
@@ -180,7 +200,71 @@ class PlotView(QWidget):
         """
         symbol = SYMBOLS[combobox.currentText()]
         self.settings['landmarks_symbols'][landmark_index] = symbol
-        self.plot_widget.set_landmark_symbol(landmark_index)
+        self.plot_widget.set_landmark_pen(landmark_index)
+
+    def set_style(self, receiver_index, sensor_index, combobox):
+        """
+        Sets the line style for a given dataline (Qt.SolidLine, etc.).
+        :param receiver_index: Receiver index of the dataline.
+        :param sensor_index: Sensor index of the dataline.
+        :param combobox: Combobox containing the style item.
+        """
+        self.settings['datalines_style'][receiver_index][sensor_index] = combobox.currentText()
+        self.plot_widget.set_dataline_pen(receiver_index, sensor_index)
+
+    def set_symbol_intervals_color(self):
+        """
+        Sets the color of the vertical lines that indicate symbol intervals.
+        """
+        initial_color = QColor(self.settings['symbol_intervals_color'])
+        color = QColorDialog.getColor(initial_color)
+        # Is False if the user pressed Cancel
+        if color.isValid():
+            self.settings['symbol_intervals_color'] = color.name()
+            self.plot_widget.set_symbol_intervals_pen()
+            self.plot_settings_dialog.button_symbol_intervals_color.setStyleSheet("background-color: " + color.name())
+        self.plot_widget.set_symbol_intervals_pen()
+
+    def set_symbol_intervals_width(self, width):
+        """
+        Sets the width of the vertical lines that indicate symbol intervals.
+        :param width: Width of the vertical lines.
+        """
+        self.settings['symbol_intervals_width'] = width
+        self.plot_widget.set_symbol_intervals_pen()
+
+    def set_symbol_values_height(self, height):
+        """
+        Sets the height for the symbol values if fixed height is used.
+        :param height: Fixed height of the symbol values.
+        """
+        self.settings['symbol_values_fixed_height'] = height
+        self.plot_widget.clear_symbol_values()
+
+    def set_symbol_values_position(self, index):
+        """
+        Sets the position of the symbol values.
+        :param index: Index of the position (Above = 0, Below = 1, Fixed = 2)
+        """
+        if index == 0:
+            position = "Above"
+            self.plot_settings_dialog.spinbox_symbol_values_fixed_height.setEnabled(False)
+        elif index == 1:
+            position = "Below"
+            self.plot_settings_dialog.spinbox_symbol_values_fixed_height.setEnabled(False)
+        else:
+            position = "Fixed"
+            self.plot_settings_dialog.spinbox_symbol_values_fixed_height.setEnabled(True)
+        self.settings['symbol_values_position'] = position
+        self.plot_widget.clear_symbol_values()
+
+    def set_symbol_values_size(self, size):
+        """
+        Sets font size for symbol values
+        :param size: font size.
+        """
+        self.settings['symbol_values_size'] = size
+        self.plot_widget.set_symbol_values_size()
 
     def set_x_range(self, widget):
         """
