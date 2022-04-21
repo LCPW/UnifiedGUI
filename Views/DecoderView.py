@@ -201,7 +201,7 @@ class DecoderView(QWidget):
         """
         Removes the decoder.
         """
-        if Utils.ViewUtils.message_box_warning(self.style(), "Remove decoder?", "Are you sure you want to remove the decoder?", "All data that has not been exported yet, cannot be recovered."):
+        if ViewUtils.message_box_warning(self.style(), "Remove decoder?", "Are you sure you want to remove the decoder?", "All data that has not been exported yet, cannot be recovered."):
             self.view.controller.remove_decoder()
 
     def start_decoder(self):
@@ -214,7 +214,7 @@ class DecoderView(QWidget):
         """
         Stops the decoder.
         """
-        if Utils.ViewUtils.message_box_warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
+        if ViewUtils.message_box_warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
             self.view.controller.stop_decoder()
 
     def update_(self, decoded):
