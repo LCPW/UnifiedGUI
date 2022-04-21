@@ -19,9 +19,6 @@ class PlotWidgetView(pg.PlotWidget):
         self.setLabel('left', "Value")
         self.setLabel('bottom', "Time")
 
-        # Grid
-        self.showGrid(x=True, y=True)
-
         self.setMouseEnabled(x=True, y=False)
 
         # Legend
@@ -290,7 +287,7 @@ class PlotWidgetView(pg.PlotWidget):
                     if self.plot_view.settings['symbol_values_position'] == 'Above':
                         y_pos = maximum_interval_value + (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) * np.abs(maximum_interval_value)
                     else:
-                        y_pos = minimum_interval_value - (0.1 + 0.001 * self.plot_view.settings['symbol_values_size'])*np.abs(minimum_interval_value)
+                        y_pos = minimum_interval_value - (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) * np.abs(minimum_interval_value)
                 else:
                     y_pos = self.plot_view.settings['symbol_values_fixed_height']
                 text = pg.TextItem(str(symbol_values[i]), color='k')

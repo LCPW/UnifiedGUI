@@ -6,7 +6,7 @@ import logging
 
 from Models import Model
 from Views import View
-from Utils.Settings import Settings
+from Utils.Settings import SettingsStore
 from Utils import Logging, ViewUtils
 
 
@@ -21,7 +21,6 @@ class Controller:
         """
         self.model = Model.Model()
         self.view = None
-        self.settings = Settings.Settings()
 
         self.running = True
 
@@ -34,25 +33,18 @@ class Controller:
         Logging.info("Starting UnifiedGUI.")
 
         # Main program loop
-        fps = self.settings.settings['FRAMES_PER_SECOND']
+        fps = SettingsStore.settings['FRAMES_PER_SECOND']
         while self.running:
             self.run(sleep_time=1.0/fps)
 
         self.shutdown()
-
-    def add_encoder(self, encoder_type):
-        """
-        Adds a new encoder
-        :param encoder_type: Encoder type.
-        """
-        self.model.add_encoder(encoder_type)
 
     def add_decoder(self, decoder_type):
         """
         Adds a new decoder.
         :param decoder_type: Decoder type.
         """
-        parameters = Model.get_decoder_parameters(decoder_type)
+        parameters = self.model.get_decoder_parameters(decoder_type)
         # No parameters defined -> No parameter values obviously
         if parameters is None:
             parameter_values = None
@@ -69,6 +61,36 @@ class Controller:
         decoder_info = self.model.add_decoder(decoder_type, parameters, parameter_values)
         decoder_info.update({'parameter_values': parameter_values})
         self.view.decoder_added(decoder_info)
+
+    def add_encoder(self, encoder_type):
+        """
+        Adds a new encoder
+        :param encoder_type: Encoder type.
+        """
+        parameters = self.model.get_encoder_parameters(encoder_type)
+        # No parameters defined -> No parameter values obviously
+        if parameters is None:
+            parameter_values = None
+        # Parameters defined -> Execute ParameterDialog
+        else:
+            ok, values = ViewUtils.get_parameter_values(parameters)
+            # User clicked Ok Button -> Everything is fine, get the values and continue
+            if ok:
+                parameter_values = values
+            # User clicked Cancel -> Do not add decoder
+            else:
+                return
+
+        encoder_info = self.model.add_encoder(encoder_type, parameters, parameter_values)
+        encoder_info.update({'parameter_values': parameter_values})
+        self.view.encoder_added(encoder_info)
+
+    def cancel_transmission(self):
+        """
+        Cancels an ongoing transmission.
+        This is executed when the user clicks on the Cancel button.
+        """
+        self.model.encoder.cancel_transmission()
 
     def close(self):
         """
@@ -88,7 +110,25 @@ class Controller:
         # User clicked Ok Button -> Everything is fine, get the values and continue
         if ok:
             self.model.decoder.parameter_values = parameter_values
+            self.model.decoder.parameters_eidted()
             self.view.decoder_view.parameters_edited(parameter_values)
+
+    def edit_encoder_parameters(self):
+        """
+        Let the user edit the encoder parameters by executing a dialog.
+        """
+        parameters = self.model.encoder.parameters
+        current_values = list(self.model.encoder.parameter_values.values())
+
+        ok, parameter_values = ViewUtils.get_parameter_values(parameters, current_values)
+        # User clicked Ok Button -> Everything is fine, get the values and continue
+        if ok:
+            self.model.encoder.parameter_values = parameter_values
+            self.model.encoder.parameters_edited()
+            self.view.encoder_view.parameters_edited(parameter_values)
+
+    def encode_with_check(self, sequence):
+        return self.model.encoder.encode_with_check(sequence)
 
     def get_available_decoders(self):
         """
@@ -96,6 +136,13 @@ class Controller:
         :return: List of available decoders.
         """
         return self.model.get_available_decoders()
+
+    def get_available_encoders(self):
+        """
+        Get a list of available encoders.
+        :return: List of available encoders.
+        """
+        return self.model.get_available_encoders()
 
     def get_decoded(self):
         """
@@ -132,6 +179,7 @@ class Controller:
         Removes the encoder.
         """
         self.model.remove_encoder()
+        self.view.encoder_removed()
 
     def run(self, sleep_time):
         """
@@ -172,7 +220,7 @@ class Controller:
         # No settings object
         except AttributeError:
             pass
-        self.settings.shutdown()
+        SettingsStore.shutdown()
         # Do not show any exception when something fails while shutting down
         logging.raiseExceptions = False
         logging.shutdown()
@@ -190,3 +238,10 @@ class Controller:
         """
         self.model.stop_decoder()
         self.view.decoder_view.decoder_stopped()
+
+    def transmit_symbol_values(self, symbol_values):
+        """
+        Transmit given symbol values.
+        :param symbol_values: Symbol values to transmit.
+        """
+        self.model.encoder.transmit_symbol_values(symbol_values)

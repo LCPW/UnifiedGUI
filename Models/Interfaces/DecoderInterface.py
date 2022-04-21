@@ -3,8 +3,7 @@ import threading
 import numpy as np
 
 from Utils import Logging
-
-ARRAY_LENGTH = 10000
+from Utils.Settings import SettingsStore
 
 
 class DecoderInterface:
@@ -93,14 +92,14 @@ class DecoderInterface:
         :param values: New measurement values.
         """
         if self.lengths[receiver_index] == 0:
-            self.timestamps[receiver_index] = np.empty((ARRAY_LENGTH,))
+            self.timestamps[receiver_index] = np.empty((SettingsStore.settings['DECODER_ARRAY_LENGTH'],))
             self.timestamps[receiver_index][0] = timestamp
-            self.received[receiver_index] = np.empty((ARRAY_LENGTH, len(values)))
+            self.received[receiver_index] = np.empty((SettingsStore.settings['DECODER_ARRAY_LENGTH'], len(values)))
             self.received[receiver_index][0] = np.array(values)
         else:
             if self.lengths[receiver_index] == len(self.timestamps[receiver_index]):
-                self.timestamps[receiver_index] = np.concatenate((self.timestamps[receiver_index], np.empty((ARRAY_LENGTH,))))
-                self.received[receiver_index] = np.vstack((self.received[receiver_index], np.empty((ARRAY_LENGTH, len(values)))))
+                self.timestamps[receiver_index] = np.concatenate((self.timestamps[receiver_index], np.empty((SettingsStore.settings['DECODER_ARRAY_LENGTH'],))))
+                self.received[receiver_index] = np.vstack((self.received[receiver_index], np.empty((SettingsStore.settings['DECODER_ARRAY_LENGTH'], len(values)))))
 
             self.timestamps[receiver_index][self.lengths[receiver_index]] = timestamp
             self.received[receiver_index][self.lengths[receiver_index]] = values
@@ -206,6 +205,13 @@ class DecoderInterface:
             'sequence': self.sequence
         }
         return self.decoded
+
+    def parameters_edited(self):
+        """
+        Do stuff when the parameters are edited by the user.
+        May be overriden in the concrete implementation.
+        """
+        pass
 
     def start(self):
         """

@@ -1,5 +1,6 @@
 import time
 from Utils import Logging
+from Utils.Settings import SettingsStore
 
 
 class ReceiverInterface:
@@ -29,6 +30,22 @@ class ReceiverInterface:
         if len(self.sensor_names) != self.num_sensors:
             Logging.warning("Sensor names do not match number of sensors!")
             self.sensor_names = ["Sensor" + str(i + 1) for i in range(self.num_sensors)]
+
+    def listen(self):
+        """
+        Runs an infinite loop of calling listen_step to check for new measurement values.
+        """
+        while True:
+            self.listen_step()
+            time.sleep(SettingsStore.settings['RECEIVER_LISTEN_SLEEP_TIME'])
+
+    def listen_step(self):
+        """
+        Check for new measurement values.
+        This function will be executed periodically.
+        Should be overridden in the concrete receiver implementation.
+        """
+        Logging.warning("listen_step not implemented in your receiver!", repeat=False)
 
     def get_available(self):
         """

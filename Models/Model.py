@@ -28,16 +28,18 @@ class Model:
         """
         module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
         self.decoder = getattr(module, decoder_type)(parameters, parameter_values)
-        # return self.decoder.receiver_info, self.decoder.landmark_info
         return self.decoder.info
 
-    def add_encoder(self, encoder_type):
+    def add_encoder(self, encoder_type, parameters, parameter_values):
         """
         Adds a new encoder.
-        Not yet implemented.
         :param encoder_type: Encoder type.
+        :param parameters: Inforamtion about parameters.
+        :param parameter_values: User-defined parameter values.
         """
-        pass
+        module = importlib.import_module('.' + encoder_type, package='Models.Implementations.Encoders')
+        self.encoder = getattr(module, encoder_type)(parameters, parameter_values)
+        return self.encoder.info
 
     @staticmethod
     def get_available_decoders():
@@ -46,6 +48,18 @@ class Model:
         :return: List of available decoders.
         """
         path = os.path.join('.', 'Models', 'Implementations', 'Decoders')
+        names_extensions = [os.path.splitext(file) for file in os.listdir(path)]
+        names_extensions = list(filter(lambda name_extension: name_extension[1] == '.py', names_extensions))
+        names = [name_extension[0] for name_extension in names_extensions]
+        return names
+
+    @staticmethod
+    def get_available_encoders():
+        """
+        Get a list of available encoders.
+        :return: List of avilable encoders.
+        """
+        path = os.path.join('.', 'Models', 'Implementations', 'Encoders')
         names_extensions = [os.path.splitext(file) for file in os.listdir(path)]
         names_extensions = list(filter(lambda name_extension: name_extension[1] == '.py', names_extensions))
         names = [name_extension[0] for name_extension in names_extensions]
@@ -72,6 +86,36 @@ class Model:
             return self.decoder.info
         else:
             return None
+
+    @staticmethod
+    def get_decoder_parameters(decoder_type):
+        """
+        Gets information about parameters of a given decoder type.
+        :param decoder_type: Decoder type.
+        :return: Parameter information.
+        """
+        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        try:
+            parameters = module.get_parameters()
+        except AttributeError:
+            Logging.info("Function get_parameters not defined.")
+            parameters = None
+        return parameters
+
+    @staticmethod
+    def get_encoder_parameters(encoder_type):
+        """
+        Gets information about parameters of a given encoder type.
+        :param encoder_type: Encoder type.
+        :return: Parameter information.
+        """
+        module = importlib.import_module('.' + encoder_type, package='Models.Implementations.Encoders')
+        try:
+            parameters = module.get_parameters()
+        except AttributeError:
+            Logging.info("Function get_parameters not defined.")
+            parameters = None
+        return parameters
 
     def get_encoder_info(self):
         """
@@ -120,18 +164,3 @@ class Model:
         Stops the decoder.
         """
         self.decoder.stop()
-
-
-def get_decoder_parameters(decoder_type):
-    """
-    Gets information about parameters of a given decoder type.
-    :param decoder_type: Decoder type.
-    :return: Parameter information.
-    """
-    module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
-    try:
-        parameters = module.get_parameters()
-    except AttributeError:
-        Logging.warning("Function get_parameters() not defined.")
-        parameters = None
-    return parameters

@@ -1,8 +1,6 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import os
 
-import Utils.ViewUtils
 from Utils import ViewUtils
 
 
@@ -86,15 +84,6 @@ class DecoderView(QWidget):
         self.label_parameters = None
         self.table_parameters = None
 
-    def parameters_edited(self, parameter_values):
-        """
-        Update table when parameters are edited.
-        :param parameter_values: New parameter values.
-        """
-        for i in range(len(parameter_values)):
-            value = list(parameter_values.values())[i]
-            self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
-
     def add_decoder(self):
         """
         Add a new decoder.
@@ -104,26 +93,6 @@ class DecoderView(QWidget):
         decoder_type, ok = QInputDialog.getItem(self, "Add Decoder", "Decoder type", names, 0, False)
         if ok:
             self.view.controller.add_decoder(decoder_type)
-
-    def remove_decoder(self):
-        """
-        Removes the decoder.
-        """
-        if Utils.ViewUtils.message_box_warning(self.style(), "Remove decoder?", "Are you sure you want to remove the decoder?", "All data that has not been exported yet, cannot be recovered."):
-            self.view.controller.remove_decoder()
-
-    def start_decoder(self):
-        """
-        Starts the decoder.
-        """
-        self.view.controller.start_decoder()
-
-    def stop_decoder(self):
-        """
-        Stops the decoder.
-        """
-        if Utils.ViewUtils.message_box_warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
-            self.view.controller.stop_decoder()
 
     def decoder_added(self, decoder_info):
         """
@@ -136,6 +105,8 @@ class DecoderView(QWidget):
         if parameter_values:
             self.label_parameters = QLabel("Parameter values")
             self.table_parameters = QTableWidget()
+            # Set non-editable
+            self.table_parameters.setEditTriggers(QAbstractItemView.NoEditTriggers)
             self.table_parameters.setRowCount(len(parameter_values))
             self.table_parameters.setColumnCount(2)
             self.table_parameters.setHorizontalHeaderLabels(["Description", "Value"])
@@ -143,8 +114,8 @@ class DecoderView(QWidget):
             self.table_parameters.horizontalHeader().setStretchLastSection(True)
             self.table_parameters.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
             # https://doc.qt.io/qt-5/qtableview.html
-            #self.table_parameters.verticalHeader().setStretchLastSection(True)
-            self.table_parameters.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            # self.table_parameters.verticalHeader().setStretchLastSection(True)
+            # self.table_parameters.verticalHeader().setSectionResizeMode(QHeaderView.Stretch)
             self.table_parameters.verticalHeader().hide()
             #self.table_parameters.resizeRowsToContents()
             for i in range(len(parameter_values)):
@@ -154,23 +125,23 @@ class DecoderView(QWidget):
                 self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
             self.button_parameters.setEnabled(True)
 
+        self.label_sequence = QLabel("Sequence")
+        self.text_edit_sequence = QPlainTextEdit()
+        self.text_edit_sequence.setReadOnly(True)
+
         self.label_symbol_values = QLabel("Symbol values")
         self.text_edit_symbol_values = QPlainTextEdit()
         self.text_edit_symbol_values.setReadOnly(True)
-
-        self.label_sequence = QLabel("Decoded sequence")
-        self.text_edit_sequence = QPlainTextEdit()
-        self.text_edit_sequence.setReadOnly(True)
 
         if parameter_values:
             self.layout.addWidget(self.label_parameters)
             self.layout.addWidget(self.table_parameters)
 
-        self.layout.addWidget(self.label_symbol_values)
-        self.layout.addWidget(self.text_edit_symbol_values)
-
         self.layout.addWidget(self.label_sequence)
         self.layout.addWidget(self.text_edit_sequence)
+
+        self.layout.addWidget(self.label_symbol_values)
+        self.layout.addWidget(self.text_edit_symbol_values)
 
         self.button_add_decoder.setEnabled(False)
         self.button_remove_decoder.setEnabled(True)
@@ -181,7 +152,7 @@ class DecoderView(QWidget):
         """
         Do stuff when the decoder is removed.
         """
-        self.label_subtitle.setText("")
+        self.label_subtitle.setText("No decoder selected.")
 
         self.label_symbol_values.deleteLater()
         self.label_sequence.deleteLater()
@@ -217,6 +188,35 @@ class DecoderView(QWidget):
         self.button_start_decoder.setEnabled(False)
         self.button_stop_decoder.setEnabled(False)
 
+    def parameters_edited(self, parameter_values):
+        """
+        Update table when parameters are edited.
+        :param parameter_values: New parameter values.
+        """
+        for i in range(len(parameter_values)):
+            value = list(parameter_values.values())[i]
+            self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
+
+    def remove_decoder(self):
+        """
+        Removes the decoder.
+        """
+        if Utils.ViewUtils.message_box_warning(self.style(), "Remove decoder?", "Are you sure you want to remove the decoder?", "All data that has not been exported yet, cannot be recovered."):
+            self.view.controller.remove_decoder()
+
+    def start_decoder(self):
+        """
+        Starts the decoder.
+        """
+        self.view.controller.start_decoder()
+
+    def stop_decoder(self):
+        """
+        Stops the decoder.
+        """
+        if Utils.ViewUtils.message_box_warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
+            self.view.controller.stop_decoder()
+
     def update_(self, decoded):
         """
         Updates the decoder view based on new information from the decoder.
@@ -238,5 +238,6 @@ class DecoderView(QWidget):
         Converts symbol values list to a string and updates the displayed symbol values.
         :param symbol_values: New symbol values from the decoder.
         """
-        string = "".join(str(symbol_value) for symbol_value in symbol_values)
-        self.text_edit_symbol_values.setPlainText(string)
+        symbol_values_str = str(symbol_values)
+        symbol_values_str = symbol_values_str.replace("[", "").replace("]", "").replace("'", "")
+        self.text_edit_symbol_values.setPlainText(symbol_values_str)

@@ -119,6 +119,7 @@ class PlotView(QWidget):
         :param decoder_info: Information about decoder.
         """
         self.settings_object = PlotSettings.PlotSettings(decoder_info)
+        self.show_grid(self.settings['show_grid'])
         self.add_datalines(decoder_info['receivers'])
         self.add_landmarks(decoder_info['landmarks'])
         self.plot_settings_dialog.decoder_added()
@@ -201,6 +202,13 @@ class PlotView(QWidget):
         symbol = SYMBOLS[combobox.currentText()]
         self.settings['landmarks_symbols'][landmark_index] = symbol
         self.plot_widget.set_landmark_pen(landmark_index)
+
+    def set_step_size(self, step_size):
+        """
+        Sets the step size for values to be shown in the live plot.
+        :param step_size: New step size.
+        """
+        self.settings['step_size'] = step_size
 
     def set_style(self, receiver_index, sensor_index, combobox):
         """
@@ -287,10 +295,30 @@ class PlotView(QWidget):
             self.slider_range.setValue(x_range)
             self.button_range.setEnabled(True)
 
+    def show_grid(self, index):
+        """
+        Enables/disables live plot grid for x-axis and/or y-axis.
+        :param index: Combobox index = {0, 1, 2, 3}
+        """
+        if index == 0:
+            show_grid = 'None'
+        elif index == 1:
+            show_grid = 'x-axis only'
+        elif index == 2:
+            show_grid = 'y-axis only'
+        else:
+            show_grid = 'x-axis and y-axis'
+        self.settings['show_grid'] = show_grid
+        self.plot_widget.showGrid(
+            x=self.settings['show_grid'] in ['x-axis only', 'x-axis and y-axis'],
+            y=self.settings['show_grid'] in ['y-axis only', 'x-axis and y-axis'])
+
     def show_settings(self):
         """
         Shows the settings menu and puts it into focus.
         """
+        self.plot_settings_dialog.resize(0.25*QApplication.primaryScreen().size().width(),
+                                         0.25*QApplication.primaryScreen().size().height())
         self.plot_settings_dialog.show()
         self.plot_settings_dialog.activateWindow()
 

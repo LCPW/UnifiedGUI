@@ -16,6 +16,7 @@ class PlotSettingsDialog(QDialog):
         self.setWindowIcon(ViewUtils.get_icon('settings'))
         self.setModal(False)
 
+        self.tabs = QTabWidget()
         self.layout = QVBoxLayout()
 
         self.checkboxes_receivers_active = []
@@ -26,136 +27,140 @@ class PlotSettingsDialog(QDialog):
         self.comboboxes_landmarks_symbol = []
         self.buttons_landmarks_color = []
 
+        # General
+        self.widget_general = QWidget()
+        self.layout_general = QFormLayout()
+        self.layout_general.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
+
+        # Show grid
+        self.combobox_show_grid = QComboBox()
+        self.combobox_show_grid.addItems(['None', 'x-axis only', 'y-axis only', 'x-axis and y-axis'])
+        self.combobox_show_grid.activated.connect(self.plot_view.show_grid)
+        self.layout_general.addRow(QLabel("Show grid"), self.combobox_show_grid)
+
+        self.spinbox_step_size = QSpinBox()
+        self.spinbox_step_size.setRange(1, 100)
+        self.spinbox_step_size.valueChanged.connect(self.plot_view.set_step_size)
+        self.layout_general.addRow(QLabel("Step size"), self.spinbox_step_size)
+
+        self.widget_general.setLayout(self.layout_general)
+        self.tabs.addTab(self.widget_general, "General")
+
         # Datalines header
-        self.label_datalines = QLabel("Datalines")
-        self.label_datalines.setObjectName("menu_header")
         self.widget_datalines = QWidget()
         self.layout_datalines = QFormLayout()
+        self.layout_datalines.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
 
         # Datalines width
-        self.label_datalines_width = QLabel("Datalines width")
         self.spinbox_datalines_width = QSpinBox()
         self.spinbox_datalines_width.setRange(1, 100)
         self.spinbox_datalines_width.valueChanged.connect(self.plot_view.set_datalines_width)
-        self.layout_datalines.addRow(self.label_datalines_width, self.spinbox_datalines_width)
-
-        self.widget_datalines.setLayout(self.layout_datalines)
+        self.layout_datalines.addRow(QLabel("Datalines width"), self.spinbox_datalines_width)
 
         self.checkboxes_datalines_widget = QWidget()
         self.checkboxes_datalines_layout = QVBoxLayout()
         self.checkboxes_datalines_widget.setLayout(self.checkboxes_datalines_layout)
+        self.layout_datalines.addRow(QLabel("Individual"), self.checkboxes_datalines_widget)
+
+        self.widget_datalines.setLayout(self.layout_datalines)
+        self.tabs.addTab(self.widget_datalines, "Datalines")
 
         # Landmarks header
-        self.label_landmarks = QLabel("Landmarks")
-        self.label_landmarks.setObjectName("menu_header")
-
         self.widget_landmarks = QWidget()
         self.layout_landmarks = QFormLayout()
+        self.layout_landmarks.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
 
         # Show landmarks
-        self.label_show_all_landmarks = QLabel("Show landmarks")
         self.checkbox_all_landmarks = QCheckBox()
         self.checkbox_all_landmarks.setTristate(True)
         self.checkbox_all_landmarks.clicked.connect(self.plot_view.toggle_all_landmarks)
-        self.layout_landmarks.addRow(self.label_show_all_landmarks, self.checkbox_all_landmarks)
+        self.layout_landmarks.addRow(QLabel("Show landmarks"), self.checkbox_all_landmarks)
 
         # Landmarks size
-        self.label_landmarks_size = QLabel("Landmarks size")
         self.spinbox_landmarks_size = QSpinBox()
         self.spinbox_landmarks_size.setRange(1, 100)
         self.spinbox_landmarks_size.valueChanged.connect(self.plot_view.set_landmarks_size)
-        self.layout_landmarks.addRow(self.label_landmarks_size, self.spinbox_landmarks_size)
-
-        self.widget_landmarks.setLayout(self.layout_landmarks)
+        self.layout_landmarks.addRow(QLabel("Landmarks size"), self.spinbox_landmarks_size)
 
         self.checkboxes_landmarks_widget = QWidget()
         self.checkboxes_landmarks_layout = QHBoxLayout()
         self.checkboxes_landmarks_widget.setLayout(self.checkboxes_landmarks_layout)
+        self.layout_landmarks.addRow(QLabel("Individual"), self.checkboxes_landmarks_widget)
+
+        self.widget_landmarks.setLayout(self.layout_landmarks)
+        self.tabs.addTab(self.widget_landmarks, "Landmarks")
 
         # Symbol intervals
-        self.label_symbol_intervals = QLabel("Symbol intervals")
-        self.label_symbol_intervals.setObjectName("menu_header")
         self.widget_symbol_intervals = QWidget()
         self.layout_symbol_intervals = QFormLayout()
+        self.layout_symbol_intervals.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
 
         # Show symbol intervals
-        self.label_show_symbol_intervals = QLabel("Show symbol intervals")
         self.checkbox_symbol_intervals = QCheckBox()
         self.checkbox_symbol_intervals.setChecked(True)
         self.checkbox_symbol_intervals.clicked.connect(self.plot_view.toggle_symbol_intervals)
 
         # Symbol intervals width
-        self.label_symbol_intervals_width = QLabel("Symbol intervals width")
         self.spinbox_symbol_intervals_width = QSpinBox()
         self.spinbox_symbol_intervals_width.setRange(1, 100)
         self.spinbox_symbol_intervals_width.valueChanged.connect(self.plot_view.set_symbol_intervals_width)
 
         # Symbol intervals color
-        self.label_symbol_intervals_color = QLabel("Symbol intervals color")
         self.button_symbol_intervals_color = QPushButton()
         self.button_symbol_intervals_color.clicked.connect(self.plot_view.set_symbol_intervals_color)
 
-        self.layout_symbol_intervals.addRow(self.label_show_symbol_intervals, self.checkbox_symbol_intervals)
-        self.layout_symbol_intervals.addRow(self.label_symbol_intervals_width, self.spinbox_symbol_intervals_width)
-        self.layout_symbol_intervals.addRow(self.label_symbol_intervals_color, self.button_symbol_intervals_color)
+        self.layout_symbol_intervals.addRow(QLabel("Show symbol intervals"), self.checkbox_symbol_intervals)
+        self.layout_symbol_intervals.addRow(QLabel("Symbol intervals width"), self.spinbox_symbol_intervals_width)
+        self.layout_symbol_intervals.addRow(QLabel("Symbol intervals color"), self.button_symbol_intervals_color)
         self.widget_symbol_intervals.setLayout(self.layout_symbol_intervals)
 
+        self.tabs.addTab(self.widget_symbol_intervals, "Symbol intervals")
+
         # Symbol values
-        self.label_symbol_values = QLabel("Symbol values")
-        self.label_symbol_values.setObjectName("menu_header")
         self.widget_symbol_values = QWidget()
         self.layout_symbol_values = QFormLayout()
+        self.layout_symbol_values.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
 
         # Show symbol values
-        self.label_show_symbol_values = QLabel("Show symbol values")
         self.checkbox_symbol_values = QCheckBox()
         self.checkbox_symbol_values.setChecked(True)
         self.checkbox_symbol_values.clicked.connect(self.plot_view.toggle_symbol_values)
 
         # Symbol values position
-        self.label_symbol_values_position = QLabel("Symbol values position")
         self.combobox_symbol_values_position = QComboBox()
         self.combobox_symbol_values_position.addItems(['Above', 'Below', 'Fixed'])
         self.combobox_symbol_values_position.activated.connect(self.plot_view.set_symbol_values_position)
 
         # Symbol values fixed height
-        self.label_symbol_values_fixed_height = QLabel("Symbol values height")
         self.spinbox_symbol_values_fixed_height = QDoubleSpinBox()
         self.spinbox_symbol_values_fixed_height.setDecimals(2)
         self.spinbox_symbol_values_fixed_height.setRange(-100, 100)
         self.spinbox_symbol_values_fixed_height.valueChanged.connect(self.plot_view.set_symbol_values_height)
 
         # Symbol values size
-        self.label_symbol_values_size = QLabel("Symbol values size")
         self.spinbox_symbol_values_size = QSpinBox()
         self.spinbox_symbol_values_size.setRange(1, 100)
         self.spinbox_symbol_values_size.valueChanged.connect(self.plot_view.set_symbol_values_size)
 
-        self.layout_symbol_values.addRow(self.label_show_symbol_values, self.checkbox_symbol_values)
-        self.layout_symbol_values.addRow(self.label_symbol_values_size, self.spinbox_symbol_values_size)
-        self.layout_symbol_values.addRow(self.label_symbol_values_position, self.combobox_symbol_values_position)
-        self.layout_symbol_values.addRow(self.label_symbol_values_fixed_height, self.spinbox_symbol_values_fixed_height)
+        self.layout_symbol_values.addRow(QLabel("Show symbol values"), self.checkbox_symbol_values)
+        self.layout_symbol_values.addRow(QLabel("Symbol values size"), self.spinbox_symbol_values_size)
+        self.layout_symbol_values.addRow(QLabel("Symbol values position"), self.combobox_symbol_values_position)
+        self.layout_symbol_values.addRow(QLabel("Symbol values height"), self.spinbox_symbol_values_fixed_height)
         self.widget_symbol_values.setLayout(self.layout_symbol_values)
+
+        self.tabs.addTab(self.widget_symbol_values, "Symbol values")
 
         button_default_settings = QPushButton("Default settings")
         button_default_settings.clicked.connect(self.plot_view.load_default_settings)
 
-        self.layout.addWidget(self.label_datalines)
-        self.layout.addWidget(self.widget_datalines)
-        self.layout.addWidget(self.checkboxes_datalines_widget)
-        self.layout.addWidget(ViewUtils.line_h())
-        self.layout.addWidget(self.label_landmarks)
-        self.layout.addWidget(self.widget_landmarks)
-        self.layout.addWidget(self.checkboxes_landmarks_widget)
-        self.layout.addWidget(ViewUtils.line_h())
-        self.layout.addWidget(self.label_symbol_intervals)
-        self.layout.addWidget(self.widget_symbol_intervals)
-        self.layout.addWidget(ViewUtils.line_h())
-        self.layout.addWidget(self.label_symbol_values)
-        self.layout.addWidget(self.widget_symbol_values)
-        self.layout.addWidget(ViewUtils.line_h())
-        self.layout.addWidget(button_default_settings)
+        widget_reset = QWidget()
+        widget_reset_layout = QFormLayout()
+        widget_reset_layout.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
+        widget_reset_layout.addRow(QLabel("Reset"), button_default_settings)
+        widget_reset.setLayout(widget_reset_layout)
+        self.tabs.addTab(widget_reset, "Reset")
 
+        self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
 
     def add_datalines(self, receiver_info):
@@ -284,6 +289,8 @@ class PlotSettingsDialog(QDialog):
         """
         Edit settings dialog entries accordingly when a decoder is added.
         """
+        self.combobox_show_grid.setCurrentText(self.plot_view.settings['show_grid'])
+        self.spinbox_step_size.setValue(self.plot_view.settings['step_size'])
         self.spinbox_datalines_width.setValue(self.plot_view.settings['datalines_width'])
         self.spinbox_landmarks_size.setValue(self.plot_view.settings['landmarks_size'])
         self.spinbox_symbol_intervals_width.setValue(self.plot_view.settings['symbol_intervals_width'])

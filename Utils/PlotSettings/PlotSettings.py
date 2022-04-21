@@ -96,6 +96,11 @@ class PlotSettings:
         else:
             settings['landmarks_symbols'] = ['o'] * landmark_info['num']
 
+        if 'show_grid' in list(plot_settings.keys()):
+            settings['show_grid'] = plot_settings['show_grid']
+        else:
+            settings['show_grid'] = 'x-axis and y-axis'
+
         if 'step_size' in list(plot_settings.keys()):
             settings['step_size'] = plot_settings['step_size']
         else:

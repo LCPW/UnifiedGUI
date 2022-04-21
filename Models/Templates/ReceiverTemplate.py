@@ -8,11 +8,8 @@ class ExampleReceiver(ReceiverInterface):
         # Implement: Define number of sensors
         self.num_sensors = None
 
-    def setup(self):
         super().setup()
 
-    def listen(self):
-        while True:
-            # Implement: Read measurement values
-            values = None
-            self.append_values(values)
+    def listen_step(self):
+        # Implement: Listen for new measurement values
+        pass

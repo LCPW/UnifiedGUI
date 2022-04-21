@@ -33,7 +33,7 @@ class View(QMainWindow):
 
         # Tool bar
         self.toolbar = ToolbarView.ToolbarView()
-        self.addToolBar(self.toolbar)
+        # self.addToolBar(self.toolbar)
 
         # Status bar
         self.status_bar = StatusBarView.StatusBarView()
@@ -47,7 +47,7 @@ class View(QMainWindow):
         layout = QHBoxLayout()
         splitter = QSplitter(Qt.Horizontal)
 
-        self.encoder_view = EncoderView.EncoderView()
+        self.encoder_view = EncoderView.EncoderView(self)
         self.data_view = DataView.DataView(self)
         self.decoder_view = DecoderView.DecoderView(self)
 
@@ -101,6 +101,21 @@ class View(QMainWindow):
         self.decoder_view.decoder_removed()
         self.update_window_title()
 
+    def encoder_added(self, encoder_info):
+        """
+        Do stuff when an encoder is added.
+        :param encoder_info: Information about encoder.
+        """
+        self.encoder_view.encoder_added(encoder_info)
+        self.update_window_title()
+
+    def encoder_removed(self):
+        """
+        Do stuff when an encoder is removed.
+        """
+        self.encoder_view.encoder_removed()
+        self.update_window_title()
+
     def toggle_log(self, state):
         """
         Toggles the log wiget.
@@ -123,6 +138,10 @@ class View(QMainWindow):
         if decoded is not None:
             self.data_view.update_(decoded)
             self.decoder_view.update_(decoded)
+
+        encoder_info = self.controller.get_encoder_info()
+        if encoder_info is not None:
+            self.encoder_view.update_(encoder_info)
 
         time_ = time.time()
         time_difference = time_ - self.last_time + sys.float_info.epsilon

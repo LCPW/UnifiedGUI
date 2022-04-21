@@ -96,8 +96,11 @@ class TestEncoders(unittest.TestCase):
     def test234(self):
         self.assertTrue(True)
 
+    # Testcases for encoder attributes
+
 
 class TestReceivers(unittest.TestCase):
+    # Test sensor names
     pass
 
 
