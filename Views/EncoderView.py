@@ -21,24 +21,17 @@ class EncoderView(QWidget):
 
         self.button_add_encoder = QToolButton()
         self.button_add_encoder.setIcon(ViewUtils.get_icon('add'))
-        self.button_add_encoder.setToolTip("Add Encoder")
+        self.button_add_encoder.setToolTip("Add encoder")
         self.button_add_encoder.setEnabled(True)
         self.button_add_encoder.clicked.connect(self.add_encoder)
         self.toolbar.addWidget(self.button_add_encoder)
 
         self.button_remove_encoder = QToolButton()
         self.button_remove_encoder.setIcon(ViewUtils.get_icon('remove'))
-        self.button_remove_encoder.setToolTip("Remove Encoder")
+        self.button_remove_encoder.setToolTip("Remove encoder")
         self.button_remove_encoder.setEnabled(False)
         self.button_remove_encoder.clicked.connect(self.remove_encoder)
         self.toolbar.addWidget(self.button_remove_encoder)
-
-        self.button_parameters = QToolButton()
-        self.button_parameters.setIcon(ViewUtils.get_icon('tune'))
-        self.button_remove_encoder.setToolTip("Edit parameters")
-        self.button_parameters.setEnabled(False)
-        self.button_parameters.clicked.connect(self.view.controller.edit_encoder_parameters)
-        self.toolbar.addWidget(self.button_parameters)
 
         label = QLabel("Encoder")
         label.setObjectName("header")
@@ -76,10 +69,21 @@ class EncoderView(QWidget):
         self.label_subtitle.setText(encoder_info['type'])
 
         parameter_values = encoder_info['parameter_values']
+        self.has_parameters = True if parameter_values else False
         self.label_subtitle.setText(encoder_info['type'])
 
-        if parameter_values:
+        if self.has_parameters:
+            self.widget_label_parameters = QWidget()
+            self.layout_label_parameters = QHBoxLayout()
             self.label_parameters = QLabel("Parameter values")
+            self.button_parameters = QToolButton()
+            self.button_parameters.setEnabled(True)
+            self.button_parameters.setIcon(ViewUtils.get_icon('tune'))
+            self.button_parameters.setToolTip("Edit parameters")
+            self.button_parameters.clicked.connect(self.view.controller.edit_encoder_parameters)
+            self.layout_label_parameters.addWidget(self.label_parameters)
+            self.layout_label_parameters.addWidget(self.button_parameters)
+            self.widget_label_parameters.setLayout(self.layout_label_parameters)
 
             self.table_parameters = QTableWidget()
             # Set non-editable
@@ -100,7 +104,6 @@ class EncoderView(QWidget):
                 value = parameter_values[description]
                 self.table_parameters.setItem(i, 0, QTableWidgetItem(str(description)))
                 self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
-            self.button_parameters.setEnabled(True)
 
         self.widget_sequence = QWidget()
         widget_sequence_layout = QHBoxLayout()
@@ -154,8 +157,8 @@ class EncoderView(QWidget):
         self.progress_bar_transmission = QProgressBar()
         self.progress_bar_transmission.setValue(0)
 
-        if parameter_values:
-            self.layout.addWidget(self.label_parameters)
+        if self.has_parameters:
+            self.layout.addWidget(self.widget_label_parameters)
             self.layout.addWidget(self.table_parameters)
 
         self.layout.addWidget(self.widget_sequence)
@@ -169,7 +172,6 @@ class EncoderView(QWidget):
 
         self.button_add_encoder.setEnabled(False)
         self.button_remove_encoder.setEnabled(True)
-        self.button_parameters.setEnabled(True)
 
     def encoder_removed(self):
         """
@@ -183,15 +185,12 @@ class EncoderView(QWidget):
         self.widget_transmission.deleteLater()
         self.progress_bar_transmission.deleteLater()
 
-        if self.label_parameters:
-            self.label_parameters.deleteLater()
-            self.label_parameters = None
+        if self.has_parameters:
+            self.widget_label_parameters.deleteLater()
             self.table_parameters.deleteLater()
-            self.table_parameters = None
 
         self.button_add_encoder.setEnabled(True)
         self.button_remove_encoder.setEnabled(False)
-        self.button_parameters.setEnabled(False)
 
     def encode(self):
         """
@@ -231,7 +230,8 @@ class EncoderView(QWidget):
         """
         Removes the encoder.
         """
-        self.view.controller.remove_encoder()
+        if ViewUtils.message_box_warning(self.style(), "Remove encoder?", "Are you sure you want to remove the decoder?"):
+            self.view.controller.remove_encoder()
 
     def transmit_symbol_values(self):
         """

@@ -39,6 +39,13 @@ class DataView(QWidget):
         self.tab_tables.decoder_added(decoder_info)
         self.tab_plot.decoder_added(decoder_info)
 
+    def decoder_clear(self):
+        """
+        Clears elements from the plot and tables.
+        """
+        self.tab_plot.decoder_clear()
+        self.tab_tables.decoder_clear()
+
     def decoder_removed(self):
         """
         Do stuff when the decoder is removed.

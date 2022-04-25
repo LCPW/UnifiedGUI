@@ -155,6 +155,23 @@ class DecoderInterface:
         if __debug__ and self.symbol_values and not len(self.symbol_values) == len(self.symbol_intervals) - 1:
             Logging.error("Length of symbol_values is not 1 smaller than length of symbol_intervals!", repeat=False)
 
+    def clear(self):
+        """
+        Clears all data from the decoder and its receivers.
+        This is called when the user presses the clear button for the decoder.
+        """
+        # Clear received
+        self.lengths = [0] * self.num_receivers
+        self.received = [None] * self.num_receivers
+        self.timestamps = [None] * self.num_receivers
+        self.symbol_intervals = []
+        self.symbol_values = []
+        self.sequence = ""
+        self.landmarks = [None] * self.num_landmarks
+
+        for receiver in self.receivers:
+            receiver.buffer = []
+
     def decode(self):
         """
         Main functionality of the decoder that is executed in every step of the main program loop as long as the decode is active.

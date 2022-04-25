@@ -1,5 +1,6 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from PyQt5.QtCore import *
 
 from Utils import ViewUtils
 
@@ -25,43 +26,45 @@ class DecoderView(QWidget):
 
         self.view = view
 
+        self.resize(200, self.height())
+
         self.layout = QVBoxLayout()
 
         self.toolbar = QToolBar()
 
         self.button_add_decoder = QToolButton()
-        self.button_add_decoder.setToolTip("Add Decoder")
+        self.button_add_decoder.setToolTip("Add decoder")
         self.button_add_decoder.setIcon(ViewUtils.get_icon('add'))
         self.button_add_decoder.clicked.connect(self.add_decoder)
         self.toolbar.addWidget(self.button_add_decoder)
 
         self.button_remove_decoder = QToolButton()
-        self.button_remove_decoder.setToolTip("Remove Decoder")
+        self.button_remove_decoder.setToolTip("Remove decoder")
         self.button_remove_decoder.setIcon(ViewUtils.get_icon('remove'))
         self.button_remove_decoder.setEnabled(False)
         self.button_remove_decoder.clicked.connect(self.remove_decoder)
         self.toolbar.addWidget(self.button_remove_decoder)
 
         self.button_start_decoder = QToolButton()
-        self.button_start_decoder.setToolTip("Start Decoder")
+        self.button_start_decoder.setToolTip("Start decoder")
         self.button_start_decoder.setIcon(ViewUtils.get_icon('play'))
         self.button_start_decoder.setEnabled(False)
         self.button_start_decoder.clicked.connect(self.start_decoder)
         self.toolbar.addWidget(self.button_start_decoder)
 
         self.button_stop_decoder = QToolButton()
-        self.button_stop_decoder.setToolTip("Stop Decoder")
+        self.button_stop_decoder.setToolTip("Stop decoder")
         self.button_stop_decoder.setIcon(ViewUtils.get_icon('stop'))
         self.button_stop_decoder.setEnabled(False)
         self.button_stop_decoder.clicked.connect(self.stop_decoder)
         self.toolbar.addWidget(self.button_stop_decoder)
 
-        self.button_parameters = QToolButton()
-        self.button_parameters.setToolTip("Edit Parameters")
-        self.button_parameters.setIcon(ViewUtils.get_icon('tune'))
-        self.button_parameters.setEnabled(False)
-        self.button_parameters.clicked.connect(self.view.controller.edit_decoder_parameters)
-        self.toolbar.addWidget(self.button_parameters)
+        self.button_clear = QToolButton()
+        self.button_clear.setToolTip("Clear decoder")
+        self.button_clear.setIcon(ViewUtils.get_icon('delete'))
+        self.button_clear.setEnabled(False)
+        self.button_clear.clicked.connect(self.clear_decoder)
+        self.toolbar.addWidget(self.button_clear)
 
         label = QLabel("Decoder")
         label.setObjectName("header")
@@ -77,13 +80,6 @@ class DecoderView(QWidget):
 
         self.setLayout(self.layout)
 
-        self.label_symbol_values = None
-        self.text_edit_symbol_values = None
-        self.label_sequence = None
-        self.text_edit_sequence = None
-        self.label_parameters = None
-        self.table_parameters = None
-
     def add_decoder(self):
         """
         Add a new decoder.
@@ -94,16 +90,35 @@ class DecoderView(QWidget):
         if ok:
             self.view.controller.add_decoder(decoder_type)
 
+    def clear_decoder(self):
+        """
+        Clear decoder data.
+        """
+        if ViewUtils.message_box_warning(self.style(), "Clear decoder data?", "Are you sure you clear all decoder data?", "All data that has not been exported yet, cannot be recovered."):
+            self.view.controller.decoder_clear()
+
     def decoder_added(self, decoder_info):
         """
         Do stuff when a decoder is added.
         :param decoder_info: Information about the newly added decoder.
         """
         parameter_values = decoder_info['parameter_values']
+        self.has_parameters = True if parameter_values else False
         self.label_subtitle.setText(decoder_info['type'])
 
-        if parameter_values:
+        if self.has_parameters:
+            self.widget_label_parameters = QWidget()
+            self.layout_label_parameters = QHBoxLayout()
             self.label_parameters = QLabel("Parameter values")
+            self.button_parameters = QToolButton()
+            self.button_parameters.setIcon(ViewUtils.get_icon('tune'))
+            self.button_parameters.setToolTip("Edit parameters")
+            self.button_parameters.setEnabled(True)
+            self.button_parameters.clicked.connect(self.view.controller.edit_encoder_parameters)
+            self.layout_label_parameters.addWidget(self.label_parameters)
+            self.layout_label_parameters.addWidget(self.button_parameters)
+            self.widget_label_parameters.setLayout(self.layout_label_parameters)
+
             self.table_parameters = QTableWidget()
             # Set non-editable
             self.table_parameters.setEditTriggers(QAbstractItemView.NoEditTriggers)
@@ -123,7 +138,6 @@ class DecoderView(QWidget):
                 value = parameter_values[description]
                 self.table_parameters.setItem(i, 0, QTableWidgetItem(str(description)))
                 self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
-            self.button_parameters.setEnabled(True)
 
         self.label_sequence = QLabel("Sequence")
         self.text_edit_sequence = QPlainTextEdit()
@@ -133,8 +147,18 @@ class DecoderView(QWidget):
         self.text_edit_symbol_values = QPlainTextEdit()
         self.text_edit_symbol_values.setReadOnly(True)
 
-        if parameter_values:
-            self.layout.addWidget(self.label_parameters)
+        self.widget_status = QWidget()
+        self.layout_status = QHBoxLayout()
+        self.label_image = QLabel()
+        self.label_status = QLabel("Status: Ready")
+        self.label_image.setPixmap(ViewUtils.get_pixmap('not_started'))
+        self.layout_status.addStretch(1)
+        self.layout_status.addWidget(self.label_status)
+        self.layout_status.addWidget(self.label_image)
+        self.widget_status.setLayout(self.layout_status)
+
+        if self.has_parameters:
+            self.layout.addWidget(self.widget_label_parameters)
             self.layout.addWidget(self.table_parameters)
 
         self.layout.addWidget(self.label_sequence)
@@ -143,10 +167,16 @@ class DecoderView(QWidget):
         self.layout.addWidget(self.label_symbol_values)
         self.layout.addWidget(self.text_edit_symbol_values)
 
+        self.layout.addWidget(self.widget_status)
+
         self.button_add_decoder.setEnabled(False)
         self.button_remove_decoder.setEnabled(True)
         self.button_start_decoder.setEnabled(True)
         self.button_stop_decoder.setEnabled(False)
+
+    def decoder_clear(self):
+        self.text_edit_symbol_values.setPlainText("")
+        self.text_edit_sequence.setPlainText("")
 
     def decoder_removed(self):
         """
@@ -158,34 +188,39 @@ class DecoderView(QWidget):
         self.label_sequence.deleteLater()
         self.text_edit_symbol_values.deleteLater()
         self.text_edit_sequence.deleteLater()
-        if self.label_parameters:
-            self.label_parameters.deleteLater()
-            self.label_parameters = None
+        if self.has_parameters:
+            self.widget_label_parameters.deleteLater()
             self.table_parameters.deleteLater()
-            self.table_parameters = None
+
+        self.label_status.deleteLater()
+        self.label_image.deleteLater()
 
         self.button_add_decoder.setEnabled(True)
         self.button_remove_decoder.setEnabled(False)
         self.button_start_decoder.setEnabled(False)
         self.button_stop_decoder.setEnabled(False)
-        self.button_parameters.setEnabled(False)
 
     def decoder_started(self):
         """
         Do stuff when the decoder is started.
         """
+        self.label_status.setText("Status: Running")
+        self.label_image.setPixmap(ViewUtils.get_pixmap('pending'))
         self.button_add_decoder.setEnabled(False)
         self.button_remove_decoder.setEnabled(False)
         self.button_start_decoder.setEnabled(False)
         self.button_stop_decoder.setEnabled(True)
+        self.button_clear.setEnabled(True)
 
     def decoder_stopped(self):
         """
         Do stuff when the decoder is stopped.
         """
+        self.label_status.setText("Status: Stopped")
+        self.label_image.setPixmap(ViewUtils.get_pixmap('stop_circle'))
         self.button_add_decoder.setEnabled(False)
         self.button_remove_decoder.setEnabled(True)
-        self.button_start_decoder.setEnabled(False)
+        self.button_start_decoder.setEnabled(True)
         self.button_stop_decoder.setEnabled(False)
 
     def parameters_edited(self, parameter_values):

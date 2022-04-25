@@ -13,7 +13,7 @@ class PlotSettingsDialog(QDialog):
         self.plot_view = plot_view
 
         self.setWindowTitle("Plot Settings")
-        self.setWindowIcon(ViewUtils.get_icon('settings'))
+        self.setWindowIcon(ViewUtils.get_icon('stacked_line_chart'))
         self.setModal(False)
 
         self.tabs = QTabWidget()
@@ -38,11 +38,6 @@ class PlotSettingsDialog(QDialog):
         self.combobox_show_grid.activated.connect(self.plot_view.show_grid)
         self.layout_general.addRow(QLabel("Show grid"), self.combobox_show_grid)
 
-        self.spinbox_step_size = QSpinBox()
-        self.spinbox_step_size.setRange(1, 100)
-        self.spinbox_step_size.valueChanged.connect(self.plot_view.set_step_size)
-        self.layout_general.addRow(QLabel("Step size"), self.spinbox_step_size)
-
         self.widget_general.setLayout(self.layout_general)
         self.tabs.addTab(self.widget_general, "General")
 
@@ -56,6 +51,11 @@ class PlotSettingsDialog(QDialog):
         self.spinbox_datalines_width.setRange(1, 100)
         self.spinbox_datalines_width.valueChanged.connect(self.plot_view.set_datalines_width)
         self.layout_datalines.addRow(QLabel("Datalines width"), self.spinbox_datalines_width)
+
+        self.spinbox_step_size = QSpinBox()
+        self.spinbox_step_size.setRange(1, 100)
+        self.spinbox_step_size.valueChanged.connect(self.plot_view.set_step_size)
+        self.layout_datalines.addRow(QLabel("Step size"), self.spinbox_step_size)
 
         self.checkboxes_datalines_widget = QWidget()
         self.checkboxes_datalines_layout = QVBoxLayout()

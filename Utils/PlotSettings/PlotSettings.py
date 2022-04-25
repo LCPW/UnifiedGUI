@@ -146,6 +146,31 @@ class PlotSettings:
         else:
             settings['symbol_values_size'] = 20
 
+        if 'x_range_decimals' in list(plot_settings.keys()):
+            settings['x_range_decimals'] = plot_settings['x_range_decimals']
+        else:
+            settings['x_range_decimals'] = 1
+
+        if 'x_range_min' in list(plot_settings.keys()):
+            settings['x_range_min'] = plot_settings['x_range_min']
+        else:
+            settings['x_range_min'] = 10**(-1 * settings['x_range_decimals'])
+
+        if 'x_range_max' in list(plot_settings.keys()):
+            settings['x_range_max'] = plot_settings['x_range_max']
+        else:
+            settings['x_range_max'] = 100
+
+        if 'x_range_active' in list(plot_settings.keys()):
+            settings['x_range_active'] = plot_settings['x_range_active']
+        else:
+            settings['x_range_active'] = True
+
+        if 'x_range_value' in list(plot_settings.keys()):
+            settings['x_range_value'] = plot_settings['x_range_value']
+        else:
+            settings['x_range_value'] = 10
+
         self.settings = settings
 
     def save(self):

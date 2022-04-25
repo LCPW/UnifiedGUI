@@ -1,18 +1,11 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
-import pyqtgraph as pg
 
 from Views import PlotWidgetView, PlotSettingsDialog
 from Utils.PlotSettings import PlotSettings
 from Utils import ViewUtils
 
-X_RANGE = {
-    'decimals': 4,
-    'min': 1e-4,
-    'max': 100,
-    'initial': 5
-}
 
 SYMBOLS = {
     'Circle': 'o',
@@ -53,20 +46,24 @@ class PlotView(QWidget):
         self.button_range = QToolButton()
         self.button_range.setToolTip("Auto (no limit)")
         self.button_range.setIcon(ViewUtils.get_icon('all_inclusive'))
-        self.button_range.setEnabled(True)
+        self.button_range.setEnabled(False)
         self.button_range.clicked.connect(lambda: self.set_x_range('button'))
         self.slider_range = QSlider(Qt.Horizontal)
-        self.slider_range.setRange(max(X_RANGE['min'], 1), X_RANGE['max'])
-        self.slider_range.setValue(X_RANGE['initial'])
+        self.slider_range.setEnabled(False)
+        self.slider_range.sizeHint = QSize(0.3*ViewUtils.window_width(), self.slider_range.height())
+        self.slider_range.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
+        self.slider_range.setRange(1, 100)
+        self.slider_range.setValue(10)
         self.slider_range.sliderMoved.connect(lambda: self.set_x_range('slider'))
         self.spinbox_range = QDoubleSpinBox()
-        self.spinbox_range.setDecimals(X_RANGE['decimals'])
-        self.spinbox_range.setRange(X_RANGE['min'], X_RANGE['max'])
-        self.spinbox_range.setValue(X_RANGE['initial'])
+        self.spinbox_range.setEnabled(False)
+        self.spinbox_range.setDecimals(1)
+        self.spinbox_range.setRange(0.1, 100)
+        self.spinbox_range.setValue(10)
         self.spinbox_range.setSingleStep(1.0)
         self.spinbox_range.valueChanged.connect(lambda: self.set_x_range('spinbox'))
         # Actually set the x range
-        self.plot_widget.plotItem.setLimits(maxXRange=X_RANGE['initial'])
+        self.plot_widget.plotItem.setLimits(maxXRange=10)
 
         self.toolbar.addWidget(self.label_range)
         self.toolbar.addWidget(self.button_range)
@@ -80,8 +77,8 @@ class PlotView(QWidget):
 
         # Plot settings button
         self.button_settings = QToolButton()
-        self.button_settings.setToolTip("Settings")
-        self.button_settings.setIcon(ViewUtils.get_icon('settings'))
+        self.button_settings.setToolTip("Plot settings")
+        self.button_settings.setIcon(ViewUtils.get_icon('stacked_line_chart'))
         self.button_settings.setEnabled(False)
         self.button_settings.clicked.connect(self.show_settings)
         self.toolbar.addWidget(self.button_settings)
@@ -119,11 +116,18 @@ class PlotView(QWidget):
         :param decoder_info: Information about decoder.
         """
         self.settings_object = PlotSettings.PlotSettings(decoder_info)
+        self.init_x_range()
         self.show_grid(self.settings['show_grid'])
         self.add_datalines(decoder_info['receivers'])
         self.add_landmarks(decoder_info['landmarks'])
         self.plot_settings_dialog.decoder_added()
         self.button_settings.setEnabled(True)
+
+    def decoder_clear(self):
+        """
+        Clears elements from the plot.
+        """
+        self.plot_widget.clear_()
 
     def decoder_removed(self):
         """
@@ -134,6 +138,22 @@ class PlotView(QWidget):
         self.plot_widget.reset_plot()
         self.plot_settings_dialog.decoder_removed()
         self.button_settings.setEnabled(False)
+
+    def init_x_range(self):
+        """
+        Initializes the settings for the x-range above the plot accordingly.
+        """
+        self.slider_range.setRange(max(self.settings['x_range_min'], 1), self.settings['x_range_max'])
+        self.slider_range.setValue(self.settings['x_range_value'])
+        self.spinbox_range.setDecimals(self.settings['x_range_decimals'])
+        self.spinbox_range.setRange(self.settings['x_range_min'], self.settings['x_range_max'])
+        self.spinbox_range.setValue(self.settings['x_range_value'])
+        # Actually set the x range
+        self.plot_widget.plotItem.setLimits(maxXRange=self.settings['x_range_value'])
+        self.slider_range.setEnabled(True)
+        self.spinbox_range.setEnabled(True)
+        if self.settings['x_range_active']:
+            self.button_range.setEnabled(True)
 
     def load_default_settings(self):
         """
@@ -283,15 +303,20 @@ class PlotView(QWidget):
         """
         if widget == 'button':
             self.plot_widget.plotItem.setLimits(maxXRange=None)
+            self.settings['x_range_active'] = False
             self.button_range.setEnabled(False)
         elif widget == 'slider':
             x_range = self.slider_range.value()
             self.plot_widget.plotItem.setLimits(maxXRange=x_range)
+            self.settings['x_range_value'] = x_range
+            self.settings['x_range_active'] = True
             self.spinbox_range.setValue(x_range)
             self.button_range.setEnabled(True)
         elif widget == 'spinbox':
             x_range = self.spinbox_range.value()
             self.plot_widget.plotItem.setLimits(maxXRange=x_range)
+            self.settings['x_range_value'] = x_range
+            self.settings['x_range_active'] = True
             self.slider_range.setValue(x_range)
             self.button_range.setEnabled(True)
 

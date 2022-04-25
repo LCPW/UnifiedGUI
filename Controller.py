@@ -99,6 +99,14 @@ class Controller:
         """
         self.running = False
 
+    def decoder_clear(self):
+        """
+        Clears decoder.
+        This is called when the user presses on the Clear button.
+        """
+        self.view.decoder_clear()
+        self.model.decoder.clear()
+
     def edit_decoder_parameters(self):
         """
         Let the user edit the decoder parameters by executing a dialog.
@@ -229,6 +237,7 @@ class Controller:
         """
         Starts the decoder.
         """
+        self.decoder_clear()
         self.model.start_decoder()
         self.view.decoder_view.decoder_started()
 

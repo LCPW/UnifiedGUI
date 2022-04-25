@@ -37,6 +37,13 @@ class TablesView(QWidget):
             self.tables.append(table)
             self.tabs.addTab(self.tables[receiver_index], str(name))
 
+    def decoder_clear(self):
+        """
+        Clears tables.
+        """
+        for table in self.tables:
+            table.setRowCount(0)
+
     def decoder_removed(self):
         """
         Do stuff when the decoder is removed.

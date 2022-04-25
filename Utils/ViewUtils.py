@@ -30,6 +30,32 @@ def get_parameter_values(parameters, current_values=None):
     return parameter_dialog.exec(), parameter_dialog.values
 
 
+def get_pixmap(name, scale=(24, 24)):
+    """
+    Produces a QPixmap.
+    :param name: Icon name (without filename extension).
+    :param scale: Desired size in pixels, default is 24x24.
+    :return: A new QPixmap.
+    """
+    return QPixmap(os.path.join('.', 'Views', 'Icons', name) + '.png').scaled(scale[0], scale[1])
+
+
+def window_height():
+    """
+    Returns the screen height.
+    :return: The screen height.
+    """
+    return QApplication.primaryScreen().size().height()
+
+
+def window_width():
+    """
+    Returns the screen width.
+    :return: The screen width.
+    """
+    return QApplication.primaryScreen().size().width()
+
+
 def line_h():
     """
     Produces a horizontal line.
@@ -101,5 +127,3 @@ def message_box_warning(style, title, text, informative_text=None):
         return True
     else:
         return False
-
-

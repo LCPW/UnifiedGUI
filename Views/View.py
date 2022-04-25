@@ -93,6 +93,13 @@ class View(QMainWindow):
         self.decoder_view.decoder_added(decoder_info)
         self.update_window_title()
 
+    def decoder_clear(self):
+        """
+        Clears stuff from decoder view and data view.
+        """
+        self.data_view.decoder_clear()
+        self.decoder_view.decoder_clear()
+
     def decoder_removed(self):
         """
         Do stuff when a decoder is removed.

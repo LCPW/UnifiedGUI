@@ -62,6 +62,19 @@ class PlotWidgetView(pg.PlotWidget):
             self.landmarks.append(landmark_)
             self.legend.addItem(landmark_, landmark_.name())
 
+    def clear_(self):
+        """
+        Clears all data lines and landmark, removes all text items (symbol values) and vertical lines (symbol intervals).
+        """
+        for i in range(len(self.data_lines)):
+            for j in range(len(self.data_lines[i])):
+                self.data_lines[i][j].clear()
+        for i in range(len(self.landmarks)):
+            self.landmarks[i].clear()
+        self.clear_symbol_intervals()
+        self.clear_symbol_values()
+        self.repaint_plot()
+
     def clear_dataline(self, receiver_index, sensor_index):
         """
         Clears a given dataline.
@@ -86,7 +99,6 @@ class PlotWidgetView(pg.PlotWidget):
         for i in self.vertical_lines:
             self.removeItem(i)
         self.vertical_lines = []
-        self.repaint_plot()
 
     def clear_symbol_values(self):
         """
@@ -95,7 +107,6 @@ class PlotWidgetView(pg.PlotWidget):
         for text_item in self.text_items:
             self.removeItem(text_item)
         self.text_items = []
-        self.repaint_plot()
 
     def repaint_plot(self):
         """
@@ -113,17 +124,14 @@ class PlotWidgetView(pg.PlotWidget):
         Clears the complete plot and resets variables.
         This function should be called before the starting of a decoder.
         """
+        self.clear_()
         for i in range(len(self.data_lines)):
             for j in range(len(self.data_lines[i])):
                 self.legend.removeItem(self.data_lines[i][j])
-                self.data_lines[i][j].clear()
         self.data_lines = []
         for i in range(len(self.landmarks)):
             self.legend.removeItem(self.landmarks[i])
-            self.landmarks[i].clear()
         self.landmarks = []
-        self.clear_symbol_intervals()
-        self.clear_symbol_values()
         self.repaint_plot()
 
     def set_landmark_pen(self, landmark_index):
