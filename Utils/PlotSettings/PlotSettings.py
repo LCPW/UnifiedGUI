@@ -21,6 +21,8 @@ class PlotSettings:
         Initializes the plot settings.
         :param decoder_info: Information about decoder.
         """
+        if not os.path.isdir(SETTINGS_PATH):
+            os.mkdir(SETTINGS_PATH)
 
         self.path = os.path.join(SETTINGS_PATH, 'plot_settings_' + decoder_info['type'] + '.json')
 
@@ -39,8 +41,30 @@ class PlotSettings:
         'Default settings' button in the plot settings dialog.
         :param decoder_info: Information about decoder.
         """
-        receiver_info, landmark_info, plot_settings = decoder_info['receivers'], decoder_info['landmarks'], decoder_info['plot_settings']
+        receiver_info, additional_datalines_info, landmark_info, plot_settings = decoder_info['receivers'], decoder_info['additional_datalines'], decoder_info['landmarks'], decoder_info['plot_settings']
         settings = {}
+        self.current_color = 0
+
+        if 'additional_datalines_active' in list(plot_settings.keys()):
+            settings['additional_datalines_active'] = plot_settings['additional_datalines_active']
+        else:
+            settings['additional_datalines_active'] = [True] * additional_datalines_info['num']
+
+        if 'additional_datalines_color' in list(plot_settings.keys()):
+            settings['additional_datalines_color'] = plot_settings['additional_datalines_color']
+        else:
+            settings['additional_datalines_color'] = [pg.intColor(self.current_color).name()] * additional_datalines_info['num']
+            self.current_color += 1
+
+        if 'additional_datalines_style' in list(plot_settings.keys()):
+            settings['additional_datalines_style'] = plot_settings['additional_datalines_style']
+        else:
+            settings['additional_datalines_style'] = ['DashLine'] * additional_datalines_info['num']
+
+        if 'additional_datalines_width' in list(plot_settings.keys()):
+            settings['additional_datalines_width'] = plot_settings['additional_datalines_width']
+        else:
+            settings['additional_datalines_width'] = 1
 
         if 'datalines_active' in list(plot_settings.keys()):
             settings['datalines_active'] = plot_settings['datalines_active']
@@ -54,13 +78,12 @@ class PlotSettings:
             settings['datalines_color'] = plot_settings['datalines_color']
         else:
             settings['datalines_color'] = []
-            current_color = 0
             for receiver_index in range(receiver_info['num']):
                 sensor_names = receiver_info['sensor_names'][receiver_index]
                 colors_ = []
                 for sensor in sensor_names:
-                    colors_.append(pg.intColor(current_color).name())
-                    current_color += 1
+                    colors_.append(pg.intColor(self.current_color).name())
+                    self.current_color += 1
                 settings['datalines_color'].append(colors_)
 
         if 'datalines_style' in list(plot_settings.keys()):

@@ -10,6 +10,7 @@ class ExampleDecoder2(DecoderInterface):
         self.receiver_types = ["ExampleReceiver2"] * 3
 
         # Optional
+        self.additional_datalines_names = ["Mean"]
         self.receiver_names = ["Alpha", "Beta", "Gamma"]
         self.landmark_names = ['Landmark1', 'Landmark2']
 
@@ -32,20 +33,12 @@ class ExampleDecoder2(DecoderInterface):
 
         super().setup()
 
-    def calculate_symbol_intervals(self):
-        if not self.symbol_intervals:
-            self.symbol_intervals = [time.time()]
-        else:
-            t = time.time()
-            if t - self.symbol_intervals[-1] > 1:
-                self.symbol_intervals.append(t)
-
-    def calculate_symbol_values(self):
-        x = len(self.symbol_intervals) - 1
-        r = random.random()
-        for i in range(len(self.symbol_values), x):
-            y = 0 if r < 0.5 else 1
-            self.symbol_values.append(y)
+    def calculate_additional_datalines(self):
+        for i in range(self.num_additional_datalines):
+            length = self.lengths[0]
+            timestamps = self.timestamps[0]
+            y = [self.received[0][i, 0] + 2 for i in range(self.lengths[0])]
+            self.additional_datalines[i] = {'length': length, 'timestamps': timestamps, 'values': y}
 
     def calculate_landmarks(self):
         x = [0.5 * (self.symbol_intervals[a] + self.symbol_intervals[a+1]) for a in range(max(0, len(self.symbol_intervals) - 1))]
@@ -62,6 +55,21 @@ class ExampleDecoder2(DecoderInterface):
                 c = c * 2 + bit
             c += 65
             self.sequence += chr(c)
+
+    def calculate_symbol_intervals(self):
+        if not self.symbol_intervals:
+            self.symbol_intervals = [time.time()]
+        else:
+            t = time.time()
+            if t - self.symbol_intervals[-1] > 1:
+                self.symbol_intervals.append(t)
+
+    def calculate_symbol_values(self):
+        x = len(self.symbol_intervals) - 1
+        r = random.random()
+        for i in range(len(self.symbol_values), x):
+            y = 0 if r < 0.5 else 1
+            self.symbol_values.append(y)
 
 
 def get_parameters():

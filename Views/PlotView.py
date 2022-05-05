@@ -50,7 +50,7 @@ class PlotView(QWidget):
         self.button_range.clicked.connect(lambda: self.set_x_range('button'))
         self.slider_range = QSlider(Qt.Horizontal)
         self.slider_range.setEnabled(False)
-        self.slider_range.sizeHint = QSize(0.3*ViewUtils.window_width(), self.slider_range.height())
+        self.slider_range.sizeHint = QSize(int(round(0.3*ViewUtils.window_width())), int(round(self.slider_range.height())))
         self.slider_range.setSizePolicy(QSizePolicy.Maximum, QSizePolicy.Maximum)
         self.slider_range.setRange(1, 100)
         self.slider_range.setValue(10)
@@ -83,13 +83,28 @@ class PlotView(QWidget):
         self.button_settings.clicked.connect(self.show_settings)
         self.toolbar.addWidget(self.button_settings)
 
+        # Scrollbar
+        self.scrollbar = QScrollBar(Qt.Horizontal)
+        self.scrollbar.sliderMoved.connect(self.update_x_range)
+       # self.scrollbar.valueChanged.connect(self.update_scroll)
+
         layout.addWidget(self.toolbar)
         layout.addWidget(self.plot_widget)
+        layout.addWidget(self.scrollbar)
         self.setLayout(layout)
 
     @property
     def settings(self):
         return self.settings_object.settings
+
+    def add_additional_datalines(self, additional_datalines_info):
+        """
+        Adds new additional datalines.
+        This function is usually executed when a new decoder has been added.
+        :param additional_datalines_info: Information about the new datalines.
+        """
+        self.plot_widget.add_additional_datalines(additional_datalines_info)
+        self.plot_settings_dialog.add_additional_datalines(additional_datalines_info)
 
     def add_datalines(self, receiver_info):
         """
@@ -119,6 +134,7 @@ class PlotView(QWidget):
         self.init_x_range()
         self.show_grid(self.settings['show_grid'])
         self.add_datalines(decoder_info['receivers'])
+        self.add_additional_datalines(decoder_info['additional_datalines'])
         self.add_landmarks(decoder_info['landmarks'])
         self.plot_settings_dialog.decoder_added()
         self.button_settings.setEnabled(True)
@@ -144,7 +160,7 @@ class PlotView(QWidget):
         Initializes the settings for the x-range above the plot accordingly.
         """
         self.slider_range.setRange(max(self.settings['x_range_min'], 1), self.settings['x_range_max'])
-        self.slider_range.setValue(self.settings['x_range_value'])
+        self.slider_range.setValue(int(round(self.settings['x_range_value'])))
         self.spinbox_range.setDecimals(self.settings['x_range_decimals'])
         self.spinbox_range.setRange(self.settings['x_range_min'], self.settings['x_range_max'])
         self.spinbox_range.setValue(self.settings['x_range_value'])
@@ -169,6 +185,36 @@ class PlotView(QWidget):
         self.plot_settings_dialog.decoder_added()
         self.plot_settings_dialog.show()
         self.plot_widget.settings_updated()
+
+    def set_additional_dataline_color(self, dataline_index):
+        """
+        Sets the color for a given additional dataline.
+        :param dataline_index: Index of the additional dataline.
+        """
+        initial_color = QColor(self.settings['additional_datalines_color'][dataline_index])
+        color = QColorDialog.getColor(initial_color)
+        # Is False if the user pressed Cancel
+        if color.isValid():
+            self.settings['additional_datalines_color'][dataline_index] = color.name()
+            self.plot_widget.set_additional_dataline_pen(dataline_index)
+            self.plot_settings_dialog.buttons_additional_datalines_color[dataline_index].setStyleSheet("background-color: " + color.name())
+
+    def set_additional_dataline_style(self, dataline_index, combobox):
+        """
+        Sets the line style for a given dataline (Qt.SolidLine, etc.).
+        :param dataline_index: Index of the additional dataline.
+        :param combobox: Combobox containing the style item.
+        """
+        self.settings['additional_datalines_style'][dataline_index] = combobox.currentText()
+        self.plot_widget.set_additional_dataline_pen(dataline_index)
+
+    def set_additional_datalines_width(self, width):
+        """
+        Sets the width for all additional datalines.
+        :param width: New width of the additional datalines.
+        """
+        self.settings['additional_datalines_width'] = width
+        self.plot_widget.set_additional_dataline_pens()
 
     def set_color(self, receiver_index, sensor_index):
         """
@@ -301,10 +347,12 @@ class PlotView(QWidget):
         Example: X range = 5 means that only the last 5 seconds are shown before the plot moves to the right.
         :param widget: The widget responsible for the X range change.
         """
+        auto_scroll_enabled = self.plot_widget.getViewBox().getState()['autoRange'][0]
         if widget == 'button':
             self.plot_widget.plotItem.setLimits(maxXRange=None)
             self.settings['x_range_active'] = False
             self.button_range.setEnabled(False)
+            self.plot_widget.enableAutoRange()
         elif widget == 'slider':
             x_range = self.slider_range.value()
             self.plot_widget.plotItem.setLimits(maxXRange=x_range)
@@ -317,8 +365,9 @@ class PlotView(QWidget):
             self.plot_widget.plotItem.setLimits(maxXRange=x_range)
             self.settings['x_range_value'] = x_range
             self.settings['x_range_active'] = True
-            self.slider_range.setValue(x_range)
+            self.slider_range.setValue(int(round(x_range)))
             self.button_range.setEnabled(True)
+        self.update_x_range(auto_scroll_enabled)
 
     def show_grid(self, index):
         """
@@ -342,10 +391,48 @@ class PlotView(QWidget):
         """
         Shows the settings menu and puts it into focus.
         """
-        self.plot_settings_dialog.resize(0.25*QApplication.primaryScreen().size().width(),
-                                         0.25*QApplication.primaryScreen().size().height())
         self.plot_settings_dialog.show()
         self.plot_settings_dialog.activateWindow()
+
+    def toggle_all_additional_datalines(self, state):
+        """
+        Shows/hides all additional datalines.
+        :param state: 0 -> Hide all; 2 -> Show all
+        """
+        if state == 0:
+            self.plot_settings_dialog.set_all_additional_datalines_checkboxes(False)
+            new_state = False
+        else:
+            state = 2
+            self.plot_settings_dialog.checkbox_all_additional_datalines.setCheckState(Qt.CheckState(state))
+            self.plot_settings_dialog.set_all_additional_datalines_checkboxes(True)
+            new_state = True
+
+        for dataline_index in range(len(self.settings['additional_datalines_active'])):
+            self.settings['additional_datalines_active'][dataline_index] = new_state
+            # True -> False
+            if not new_state:
+                self.plot_widget.clear_additional_dataline(dataline_index)
+        self.plot_widget.update_legend()
+
+    def toggle_additional_dataline(self, dataline_index, checkbox):
+        """
+        Shows/hides a single additional dataline.
+        :param dataline_index: Index of the additional datalines.
+        :param checkbox: Checkbox object.
+        """
+        state = checkbox.checkState()
+        self.settings['additional_datalines_active'][dataline_index] = state
+        # Deactivated
+        if not state:
+            self.plot_widget.clear_additional_dataline(dataline_index)
+
+        # If necessary, update the checkbox
+        all_, any_ = all(self.settings['additional_datalines_active']), any(self.settings['additional_datalines_active'])
+        state = 2 if all_ else (1 if any_ else 0)
+        self.plot_settings_dialog.checkbox_all_additional_datalines.setCheckState(Qt.CheckState(state))
+
+        self.plot_widget.update_legend()
 
     def toggle_all_landmarks(self, state):
         """
@@ -453,4 +540,30 @@ class PlotView(QWidget):
         Updates this widget with new information from the decoder.
         :param decoded: Decoder value updates.
         """
+        self.update_scroll_bar(decoded)
         self.plot_widget.update_(decoded)
+
+    def update_scroll_bar(self, decoded):
+        """
+        Updates the length of the scrollbar accordingly.
+        :param decoded: Decoder value updates.
+        """
+        min_timestamp, max_timestamp = decoded['min_timestamp'], decoded['max_timestamp']
+        if self.settings['x_range_active']:
+            interval = max_timestamp - min_timestamp - self.settings['x_range_value']
+            self.scrollbar.setRange(0, interval * 1000)
+        else:
+            self.scrollbar.setRange(0, 0)
+
+    def update_x_range(self, auto_scroll_enabled=False):
+        """
+        Updates the X range of the plot.
+        This function is called whenever the user moves the scrollbar or modifies the X range.
+        :param auto_scroll_enabled: Whether auto scroll should resume after the updating of the X range.
+        """
+        val = self.scrollbar.value() / 1000
+        min_timestamp = self.data_view.view.controller.get_decoded()['min_timestamp']
+        left_ = min_timestamp + val
+        self.plot_widget.setXRange(left_, left_ + self.settings['x_range_value'])
+        if auto_scroll_enabled:
+            self.plot_widget.enableAutoRange()

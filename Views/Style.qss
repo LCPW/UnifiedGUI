@@ -4,13 +4,11 @@ QLabel#header {
     font-weight: bold;
 }
 
-QLabel#menu_header {
+QLabel#subheader {
     font-family: MS Shell DLg2;
     font-size: 12px;
     font-weight: bold;
 }
-
-
 
 //QSplitter::handle:horizontal {
     //height: 1px;

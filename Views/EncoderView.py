@@ -15,6 +15,8 @@ class EncoderView(QWidget):
 
         self.view = view
 
+        self.resize(225, self.height())
+
         self.layout = QVBoxLayout()
 
         self.toolbar = QToolBar()
@@ -76,6 +78,7 @@ class EncoderView(QWidget):
             self.widget_label_parameters = QWidget()
             self.layout_label_parameters = QHBoxLayout()
             self.label_parameters = QLabel("Parameter values")
+            self.label_parameters.setObjectName('subheader')
             self.button_parameters = QToolButton()
             self.button_parameters.setEnabled(True)
             self.button_parameters.setIcon(ViewUtils.get_icon('tune'))
@@ -109,6 +112,7 @@ class EncoderView(QWidget):
         widget_sequence_layout = QHBoxLayout()
 
         self.label_sequence = QLabel("Sequence")
+        self.label_sequence.setObjectName('subheader')
         self.text_edit_sequence = QTextEdit()
         self.button_load_sequence = QToolButton()
         self.button_load_sequence.setIcon(ViewUtils.get_icon('file_open'))
@@ -136,6 +140,7 @@ class EncoderView(QWidget):
         self.widget_encode.setLayout(widget_encode_layout)
 
         self.label_symbol_values = QLabel("Symbol values")
+        self.label_symbol_values.setObjectName('subheader')
         self.text_edit_symbol_values = QTextEdit()
 
         self.widget_transmission = QWidget()
@@ -213,9 +218,10 @@ class EncoderView(QWidget):
         Loads a sequence from a file and puts it in the sequence text edit.
         """
         filename, _ = QFileDialog.getOpenFileName(self, 'Open File', './Sequences/', 'Text Files (*.txt)')
-        with open(filename, 'r') as file:
-            sequence = file.read()
-            self.text_edit_sequence.setText(sequence)
+        if not filename == "":
+            with open(filename, 'r') as file:
+                sequence = file.read()
+                self.text_edit_sequence.setText(sequence)
 
     def parameters_edited(self, parameter_values):
         """

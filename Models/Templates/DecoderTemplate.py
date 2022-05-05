@@ -1,7 +1,5 @@
 from Models.Interfaces.DecoderInterface import DecoderInterface
 
-PARAMETERS = None
-
 
 class ExampleDecoder(DecoderInterface):
     def __init__(self, parameter_values):

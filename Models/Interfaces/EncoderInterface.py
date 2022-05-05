@@ -69,15 +69,20 @@ class EncoderInterface:
         pass
 
     def run_transmit_symbol_values(self, symbol_values):
+        """
+        Transmits a list of symbol values.
+        :param symbol_values: List of symbol values.
+        """
         self.info['transmitting'] = True
         for sequence_index in range(len(symbol_values)):
             if self.transmission_canceled:
                 self.info['transmission_progress'] = 0
                 self.transmission_canceled = False
                 break
+            time_before = time.time()
             self.transmit_single_symbol_value(symbol_values[sequence_index])
-            # Calculating time might be more accurate then sleep
-            time.sleep(self.sleep_time)
+            # More accurate
+            time.sleep(self.sleep_time - (time_before - time.time()))
             self.info['transmission_progress'] = int(np.round(((sequence_index + 1) / len(symbol_values)) * 100))
         self.info['transmitting'] = False
 

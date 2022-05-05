@@ -2,8 +2,10 @@ from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 import pyqtgraph as pg
+from pyqtgraph.GraphicsScene import exportDialog
 from datetime import datetime
 import numpy as np
+import time
 
 
 class PlotWidgetView(pg.PlotWidget):
@@ -19,33 +21,48 @@ class PlotWidgetView(pg.PlotWidget):
         self.setLabel('left', "Value")
         self.setLabel('bottom', "Time")
 
-        self.setMouseEnabled(x=True, y=False)
+        #self.setMouseEnabled(x=True, y=False)
+        self.setMouseEnabled(x=False, y=False)
 
         # Legend
         self.legend = pg.LegendItem()
         self.legend.setParentItem(self.getPlotItem())
 
-        self.data_lines = []
+        self.additional_datalines = []
+        self.datalines = []
         self.landmarks = []
         self.text_items = []
         self.vertical_lines = []
 
+    def add_additional_datalines(self, dataline_info):
+        """
+        Add additional datalines to the plot.
+        :param dataline_info: Info about additional datalines (num + names).
+        """
+        for dataline_index in range(dataline_info['num']):
+            pen = pg.mkPen(color=QColor(self.plot_view.settings['additional_datalines_color'][dataline_index]),
+                           style=getattr(Qt, self.plot_view.settings['additional_datalines_style'][dataline_index]),
+                           width=self.plot_view.settings['additional_datalines_width'])
+            data_line = self.plot([], [], name=dataline_info['names'][dataline_index], pen=pen)
+            self.additional_datalines.append(data_line)
+            self.legend.addItem(data_line, data_line.name())
+
     def add_datalines(self, receiver_info):
         """
         Adds new datalines to the plot.
-        :param receiver_info: Info about receivers (receiver name + sensor desciptions).
+        :param receiver_info: Info about receivers (num + receiver name + sensor desciptions).
         """
         for receiver_index in range(receiver_info['num']):
             name, sensor_names = receiver_info['names'][receiver_index], receiver_info['sensor_names'][receiver_index]
-            data_lines_ = []
+            datalines_ = []
             for sensor_index in range(len(sensor_names)):
                 pen = pg.mkPen(color=QColor(self.plot_view.settings['datalines_color'][receiver_index][sensor_index]),
                                style=getattr(Qt, self.plot_view.settings['datalines_style'][receiver_index][sensor_index]),
                                width=self.plot_view.settings['datalines_width'])
                 data_line = self.plot([], [], name=name + ": " + sensor_names[sensor_index], pen=pen)
-                data_lines_.append(data_line)
+                datalines_.append(data_line)
                 self.legend.addItem(data_line, data_line.name())
-            self.data_lines.append(data_lines_)
+            self.datalines.append(datalines_)
 
     def add_landmarks(self, landmark_info):
         """
@@ -66,13 +83,23 @@ class PlotWidgetView(pg.PlotWidget):
         """
         Clears all data lines and landmark, removes all text items (symbol values) and vertical lines (symbol intervals).
         """
-        for i in range(len(self.data_lines)):
-            for j in range(len(self.data_lines[i])):
-                self.data_lines[i][j].clear()
+        for i in range(len(self.datalines)):
+            for j in range(len(self.datalines[i])):
+                self.datalines[i][j].clear()
+        for i in range(len(self.additional_datalines)):
+            self.additional_datalines[i].clear()
         for i in range(len(self.landmarks)):
             self.landmarks[i].clear()
         self.clear_symbol_intervals()
         self.clear_symbol_values()
+        self.repaint_plot()
+
+    def clear_additional_dataline(self, dataline_index):
+        """
+        Clears a given dataline.
+        :param dataline_index: Index of the additional dataline to be cleared.
+        """
+        self.additional_datalines[dataline_index].clear()
         self.repaint_plot()
 
     def clear_dataline(self, receiver_index, sensor_index):
@@ -81,7 +108,7 @@ class PlotWidgetView(pg.PlotWidget):
         :param receiver_index: Receiver index of the dataline to be cleared.
         :param sensor_index: Sensor index of the dataline to be cleared.
         """
-        self.data_lines[receiver_index][sensor_index].clear()
+        self.datalines[receiver_index][sensor_index].clear()
         self.repaint_plot()
 
     def clear_landmark(self, landmark_index):
@@ -108,6 +135,16 @@ class PlotWidgetView(pg.PlotWidget):
             self.removeItem(text_item)
         self.text_items = []
 
+    def decoder_started(self):
+        self.enableAutoRange()
+
+    def export_plot(self):
+        """
+        Opens the export dialog.
+        """
+        self.e = exportDialog.ExportDialog(self.plotItem.scene())
+        self.e.show(self.plotItem)
+
     def repaint_plot(self):
         """
         Repaints the plot.
@@ -125,14 +162,34 @@ class PlotWidgetView(pg.PlotWidget):
         This function should be called before the starting of a decoder.
         """
         self.clear_()
-        for i in range(len(self.data_lines)):
-            for j in range(len(self.data_lines[i])):
-                self.legend.removeItem(self.data_lines[i][j])
-        self.data_lines = []
+        for i in range(len(self.datalines)):
+            for j in range(len(self.datalines[i])):
+                self.legend.removeItem(self.datalines[i][j])
+        self.datalines = []
+        for i in range(len(self.additional_datalines)):
+            self.legend.removeItem(self.additional_datalines[i])
+        self.additional_datalines = []
         for i in range(len(self.landmarks)):
             self.legend.removeItem(self.landmarks[i])
         self.landmarks = []
         self.repaint_plot()
+
+    def set_additional_dataline_pen(self, dataline_index):
+        """
+        Sets a new pen for a given additional dataline based on the settings.
+        :param dataline_index: Index of the additional dataline.
+        """
+        pen = pg.mkPen(color=self.plot_view.settings['additional_datalines_color'][dataline_index],
+                       style=getattr(Qt, self.plot_view.settings['additional_datalines_style'][dataline_index]),
+                       width=self.plot_view.settings['additional_datalines_width'])
+        self.additional_datalines[dataline_index].setPen(pen)
+
+    def set_additional_dataline_pens(self):
+        """
+        Updates the pens for all additional datalines.
+        """
+        for dataline_index in range(len(self.additional_datalines)):
+            self.set_additional_dataline_pen(dataline_index)
 
     def set_landmark_pen(self, landmark_index):
         """
@@ -161,14 +218,14 @@ class PlotWidgetView(pg.PlotWidget):
         pen = pg.mkPen(color=self.plot_view.settings['datalines_color'][receiver_index][sensor_index],
                        style=getattr(Qt, self.plot_view.settings['datalines_style'][receiver_index][sensor_index]),
                        width=self.plot_view.settings['datalines_width'])
-        self.data_lines[receiver_index][sensor_index].setPen(pen)
+        self.datalines[receiver_index][sensor_index].setPen(pen)
 
     def set_dataline_pens(self):
         """
         Updates the pens for all datalines.
         """
-        for receiver_index in range(len(self.data_lines)):
-            for sensor_index in range(len(self.data_lines[receiver_index])):
+        for receiver_index in range(len(self.datalines)):
+            for sensor_index in range(len(self.datalines[receiver_index])):
                 self.set_dataline_pen(receiver_index, sensor_index)
 
     def set_symbol_intervals_pen(self):
@@ -202,11 +259,36 @@ class PlotWidgetView(pg.PlotWidget):
         Updates this widget with new information from the decoder.
         :param decoded: Decoder value updates.
         """
-        received, landmarks, symbol_intervals, symbol_values, sequence = decoded['received'], decoded['landmarks'], decoded['symbol_intervals'], decoded['symbol_values'], decoded['sequence']
+        if self.getViewBox().getState()['autoRange'][0]:
+            decoded = self.plot_view.data_view.view.controller.get_decoded()
+            diff = decoded['max_timestamp'] - decoded['min_timestamp']
+            pos = int(round(1000 * (diff)))
+            self.plot_view.scrollbar.setSliderPosition(pos)
+
+        received = decoded['received']
+        additional_datalines = decoded['additional_datalines']
+        landmarks = decoded['landmarks']
+        symbol_intervals = decoded['symbol_intervals']
+        symbol_values = decoded['symbol_values']
         self.update_datalines(received)
+        self.update_additional_datalines(additional_datalines)
         self.update_landmarks(landmarks)
         self.update_symbol_intervals(symbol_intervals)
         self.update_symbol_values(received, symbol_intervals, symbol_values)
+
+    def update_additional_datalines(self, additional_datalines):
+        """
+        Updates the additional datalines with new values from the decoder.
+        :param additional_datalines: List of additional datalines.
+        """
+        for data_line_index in range(len(additional_datalines)):
+            data_line = additional_datalines[data_line_index]
+            if data_line is not None and self.plot_view.settings['additional_datalines_active'][data_line_index]:
+                length = data_line['length']
+                if length > 0:
+                    timestamps = data_line['timestamps'][:length:self.plot_view.settings['step_size']]
+                    values = data_line['values'][:length:self.plot_view.settings['step_size']]
+                    self.additional_datalines[data_line_index].setData(timestamps, values)
 
     def update_datalines(self, received):
         """
@@ -221,7 +303,7 @@ class PlotWidgetView(pg.PlotWidget):
                         length = lengths[receiver_index]
                         x = timestamps[receiver_index][:length:self.plot_view.settings['step_size']]
                         y = values[receiver_index][:length:self.plot_view.settings['step_size'], sensor_index]
-                        self.data_lines[receiver_index][sensor_index].setData(x, y)
+                        self.datalines[receiver_index][sensor_index].setData(x, y)
 
     def update_landmarks(self, landmarks):
         """
@@ -232,7 +314,6 @@ class PlotWidgetView(pg.PlotWidget):
             if landmarks[landmark_index] is not None and self.plot_view.settings['landmarks_active'][landmark_index]:
                 x, y = landmarks[landmark_index]['x'], landmarks[landmark_index]['y']
                 self.landmarks[landmark_index].setData(x, y)
-        self.last_landmarks = landmarks
 
     def update_legend(self):
         """
@@ -240,13 +321,16 @@ class PlotWidgetView(pg.PlotWidget):
         This is usually necessary after a dataline or landmark set has been activated/deactivated.
         """
         self.legend.clear()
-        for receiver_index in range(len(self.data_lines)):
-            for sensor_index in range(len(self.data_lines[receiver_index])):
+        for receiver_index in range(len(self.datalines)):
+            for sensor_index in range(len(self.datalines[receiver_index])):
                 if self.plot_view.settings['datalines_active'][receiver_index][sensor_index]:
-                    self.legend.addItem(self.data_lines[receiver_index][sensor_index], self.data_lines[receiver_index][sensor_index].name())
+                    self.legend.addItem(self.datalines[receiver_index][sensor_index], self.datalines[receiver_index][sensor_index].name())
         for landmark_index in range(len(self.landmarks)):
             if self.plot_view.settings['landmarks_active'][landmark_index]:
                 self.legend.addItem(self.landmarks[landmark_index], self.landmarks[landmark_index].name())
+        for dataline_index in range(len(self.additional_datalines)):
+            if self.plot_view.settings['additional_datalines_active'][dataline_index]:
+                self.legend.addItem(self.additional_datalines[dataline_index], self.additional_datalines[dataline_index].name())
 
     def update_symbol_intervals(self, symbol_intervals):
         """
@@ -255,6 +339,7 @@ class PlotWidgetView(pg.PlotWidget):
         """
         if self.plot_view.settings['symbol_intervals']:
             for timestamp in symbol_intervals[len(self.vertical_lines):]:
+                #print("1")
                 pen = pg.mkPen(color=self.plot_view.settings['symbol_intervals_color'],
                                width=self.plot_view.settings['symbol_intervals_width'])
                 vertical = pg.InfiniteLine(pos=timestamp, angle=90, movable=False, pen=pen)

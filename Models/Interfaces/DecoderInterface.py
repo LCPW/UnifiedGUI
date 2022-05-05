@@ -1,6 +1,7 @@
 import importlib
 import threading
 import numpy as np
+import time
 
 from Utils import Logging
 from Utils.Settings import SettingsStore
@@ -23,11 +24,16 @@ class DecoderInterface:
         self.parameter_values = parameter_values
 
         self.active = False
+        self.additional_datalines = []
+        self.additional_datalines_names = None
         self.decoded = None
         self.landmarks = []
         self.landmark_names = None
         self.landmark_symbols = None
         self.lengths = []
+        self.min_timestamp = time.time()
+        self.max_timestamp = time.time()
+        self.num_additional_datalines = 0
         self.num_landmarks = 0
         self.num_receivers = 0
         self.plot_settings = {}
@@ -56,11 +62,20 @@ class DecoderInterface:
         else:
             self.num_landmarks = len(self.landmark_names)
 
+        if self.additional_datalines_names is None:
+            self.additional_datalines_names = []
+        else:
+            self.num_additional_datalines = len(self.additional_datalines_names)
+
         self.info = {
             'type': self.__class__.__name__,
             'landmarks': {
                 'num': self.num_landmarks,
                 'names': self.landmark_names,
+            },
+            'additional_datalines': {
+                'num': self.num_additional_datalines,
+                'names': self.additional_datalines_names
             },
             'plot_settings': self.plot_settings,
             'receivers': {
@@ -81,8 +96,8 @@ class DecoderInterface:
             self.lengths.append(0)
             self.info['receivers']['sensor_names'].append(self.receivers[receiver_index].sensor_names)
 
-        for landmark_index in range(self.num_landmarks):
-            self.landmarks.append(None)
+        self.additional_datalines = [None] * self.num_additional_datalines
+        self.landmarks = [None] * self.num_landmarks
 
     def append(self, receiver_index, timestamp, values):
         """
@@ -103,6 +118,27 @@ class DecoderInterface:
 
             self.timestamps[receiver_index][self.lengths[receiver_index]] = timestamp
             self.received[receiver_index][self.lengths[receiver_index]] = values
+
+        min_timestamp = None
+        max_timestamp = None
+        for i in range(len(self.timestamps)):
+            if self.lengths[i] > 0:
+                min_tmp = np.min(self.timestamps[i][:self.lengths[i]])
+                max_tmp = np.max(self.timestamps[i][:self.lengths[i]])
+                if min_timestamp is None or min_tmp < min_timestamp:
+                    min_timestamp = min_tmp
+                if max_timestamp is None or max_tmp > max_timestamp:
+                    max_timestamp = max_tmp
+
+        self.min_timestamp = min_timestamp if min_timestamp is not None else time.time()
+        self.max_timestamp = max_timestamp if max_timestamp is not None else time.time()
+
+    def calculate_additional_datalines(self):
+        """
+        Calculates additional datalines and stores them in additional datalines.
+        Must be a list of dictionaries, where each dictionary must contain ???
+        """
+        Logging.info("calculate_additional_datalines is not implemented in your selected decoder.", repeat=False)
 
     def calculate_landmarks(self):
         """
@@ -161,6 +197,7 @@ class DecoderInterface:
         This is called when the user presses the clear button for the decoder.
         """
         # Clear received
+        self.additional_datalines = [None] * self.num_additional_datalines
         self.lengths = [0] * self.num_receivers
         self.received = [None] * self.num_receivers
         self.timestamps = [None] * self.num_receivers
@@ -178,6 +215,7 @@ class DecoderInterface:
         It consists of the following steps:
             - Empty receiver buffers.
             - Optionally apply filter.
+            - Optionally calculate additional datalines (derivatives, etc.).
             - Optionally calculate landmarks (edges, peaks, etc.).
             - Optionally calculate symbol intervals.
             - Optionally assign value to each symbol interval.
@@ -185,6 +223,7 @@ class DecoderInterface:
             - If the debug flag is set, perform some error checks.
         """
         self.empty_receiver_buffers()
+        self.calculate_additional_datalines()
         self.calculate_landmarks()
         self.calculate_symbol_intervals()
         self.calculate_symbol_values()
@@ -205,6 +244,18 @@ class DecoderInterface:
                 self.append(receiver_index, timestamp, values)
                 self.lengths[receiver_index] += 1
 
+    def export_sequence(self, filename):
+        if not filename == "":
+            with open(filename, 'w') as file:
+                file.write(self.sequence)
+
+    def export_symbol_values(self, filename):
+        if not filename == "":
+            with open(filename, 'w') as file:
+                symbol_values_str = str(self.symbol_values)
+                symbol_values_str = symbol_values_str.replace("[", "").replace("]", "").replace("'", "").replace(" ", "")
+                file.write(symbol_values_str)
+
     def get_decoded(self):
         """
         Returns current decoder values.
@@ -216,7 +267,10 @@ class DecoderInterface:
                 'timestamps': self.timestamps,
                 'values': self.received
             },
+            'additional_datalines': self.additional_datalines,
             'landmarks': self.landmarks,
+            'min_timestamp': self.min_timestamp,
+            'max_timestamp': self.max_timestamp,
             'symbol_intervals': self.symbol_intervals,
             'symbol_values': self.symbol_values,
             'sequence': self.sequence

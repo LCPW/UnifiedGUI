@@ -1,6 +1,8 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 from PyQt5.QtCore import *
+import time
+import os
 
 from Utils import ViewUtils
 
@@ -26,7 +28,7 @@ class DecoderView(QWidget):
 
         self.view = view
 
-        self.resize(200, self.height())
+        self.resize(225, self.height())
 
         self.layout = QVBoxLayout()
 
@@ -110,6 +112,7 @@ class DecoderView(QWidget):
             self.widget_label_parameters = QWidget()
             self.layout_label_parameters = QHBoxLayout()
             self.label_parameters = QLabel("Parameter values")
+            self.label_parameters.setObjectName('subheader')
             self.button_parameters = QToolButton()
             self.button_parameters.setIcon(ViewUtils.get_icon('tune'))
             self.button_parameters.setToolTip("Edit parameters")
@@ -139,11 +142,38 @@ class DecoderView(QWidget):
                 self.table_parameters.setItem(i, 0, QTableWidgetItem(str(description)))
                 self.table_parameters.setItem(i, 1, QTableWidgetItem(str(value)))
 
+        self.widget_sequence = QWidget()
+        self.layout_sequence = QHBoxLayout()
+
         self.label_sequence = QLabel("Sequence")
+        self.label_sequence.setObjectName('subheader')
         self.text_edit_sequence = QPlainTextEdit()
         self.text_edit_sequence.setReadOnly(True)
 
+        self.button_export_sequence = QToolButton()
+        self.button_export_sequence.setIcon(ViewUtils.get_icon('export'))
+        self.button_export_sequence.setToolTip("Export sequence")
+        self.button_export_sequence.clicked.connect(self.export_sequence)
+
+        self.layout_sequence.addWidget(self.label_sequence)
+        self.layout_sequence.addWidget(self.button_export_sequence)
+        self.widget_sequence.setLayout(self.layout_sequence)
+
+        self.widget_symbol_values = QWidget()
+        self.layout_symbol_values = QHBoxLayout()
+
         self.label_symbol_values = QLabel("Symbol values")
+        self.label_symbol_values.setObjectName('subheader')
+
+        self.button_export_symbol_values = QToolButton()
+        self.button_export_symbol_values.setIcon(ViewUtils.get_icon('export'))
+        self.button_export_symbol_values.setToolTip("Export symbol values")
+        self.button_export_symbol_values.clicked.connect(self.export_symbol_values)
+
+        self.layout_symbol_values.addWidget(self.label_symbol_values)
+        self.layout_symbol_values.addWidget(self.button_export_symbol_values)
+        self.widget_symbol_values.setLayout(self.layout_symbol_values)
+
         self.text_edit_symbol_values = QPlainTextEdit()
         self.text_edit_symbol_values.setReadOnly(True)
 
@@ -161,10 +191,10 @@ class DecoderView(QWidget):
             self.layout.addWidget(self.widget_label_parameters)
             self.layout.addWidget(self.table_parameters)
 
-        self.layout.addWidget(self.label_sequence)
+        self.layout.addWidget(self.widget_sequence)
         self.layout.addWidget(self.text_edit_sequence)
 
-        self.layout.addWidget(self.label_symbol_values)
+        self.layout.addWidget(self.widget_symbol_values)
         self.layout.addWidget(self.text_edit_symbol_values)
 
         self.layout.addWidget(self.widget_status)
@@ -184,10 +214,11 @@ class DecoderView(QWidget):
         """
         self.label_subtitle.setText("No decoder selected.")
 
-        self.label_symbol_values.deleteLater()
-        self.label_sequence.deleteLater()
-        self.text_edit_symbol_values.deleteLater()
+        self.widget_sequence.deleteLater()
         self.text_edit_sequence.deleteLater()
+        self.widget_symbol_values.deleteLater()
+        self.text_edit_symbol_values.deleteLater()
+
         if self.has_parameters:
             self.widget_label_parameters.deleteLater()
             self.table_parameters.deleteLater()
@@ -222,6 +253,22 @@ class DecoderView(QWidget):
         self.button_remove_decoder.setEnabled(True)
         self.button_start_decoder.setEnabled(True)
         self.button_stop_decoder.setEnabled(False)
+
+    def export_sequence(self):
+        """
+        Exports sequence to file.
+        """
+        directory = os.path.join('.', 'Sequences', "SEQ_" + self.label_subtitle.text() + "_" + time.strftime("%Y_%m_%d-%H_%M_%S"))
+        name, _ = QFileDialog.getSaveFileName(self, 'Save symbol values', directory, "Text files (*.txt);;CSV files (*.csv)")
+        self.view.controller.export_sequence(name)
+
+    def export_symbol_values(self):
+        """
+        Exports symbol values to file.
+        """
+        directory = os.path.join('.', 'Sequences', "SV_" + self.label_subtitle.text() + "_" + time.strftime("%Y_%m_%d-%H_%M_%S"))
+        name, _ = QFileDialog.getSaveFileName(self, 'Save symbol values', directory, "Text files (*.txt);;CSV files (*.csv)")
+        self.view.controller.export_symbol_values(name)
 
     def parameters_edited(self, parameter_values):
         """

@@ -15,6 +15,8 @@ class PlotSettingsDialog(QDialog):
         self.setWindowTitle("Plot Settings")
         self.setWindowIcon(ViewUtils.get_icon('stacked_line_chart'))
         self.setModal(False)
+        #self.resize(int(round(0.3 * ViewUtils.window_width())), int(round(0.3 * ViewUtils.window_height())))
+        self.resize(600, 300)
 
         self.tabs = QTabWidget()
         self.layout = QVBoxLayout()
@@ -23,6 +25,9 @@ class PlotSettingsDialog(QDialog):
         self.checkboxes_active = []
         self.buttons_color = []
         self.comboboxes_style = []
+        self.checkboxes_additional_datalines_active = []
+        self.buttons_additional_datalines_color = []
+        self.comboboxes_additional_datalines_style = []
         self.checkboxes_landmarks = []
         self.comboboxes_landmarks_symbol = []
         self.buttons_landmarks_color = []
@@ -65,6 +70,30 @@ class PlotSettingsDialog(QDialog):
         self.widget_datalines.setLayout(self.layout_datalines)
         self.tabs.addTab(self.widget_datalines, "Datalines")
 
+        # Additional datalines
+        self.widget_additional_datalines = QWidget()
+        self.layout_additional_datalines = QFormLayout()
+        self.layout_additional_datalines.setFieldGrowthPolicy(QFormLayout.FieldsStayAtSizeHint)
+
+        # Show additional datalines
+        self.checkbox_all_additional_datalines = QCheckBox()
+        self.checkbox_all_additional_datalines.setTristate(True)
+        self.checkbox_all_additional_datalines.clicked.connect(self.plot_view.toggle_all_additional_datalines)
+        self.layout_additional_datalines.addRow(QLabel("Show add. datalines"), self.checkbox_all_additional_datalines)
+
+        # Additional datalines width
+        self.spinbox_additional_datalines_width = QSpinBox()
+        self.spinbox_additional_datalines_width.setRange(1, 100)
+        self.spinbox_additional_datalines_width.valueChanged.connect(self.plot_view.set_additional_datalines_width)
+        self.layout_additional_datalines.addRow(QLabel("Add. datalines width"), self.spinbox_additional_datalines_width)
+
+        self.checkboxes_additional_datalines_widget = QWidget()
+        self.checkboxes_additional_datalines_layout = QHBoxLayout()
+        self.checkboxes_additional_datalines_widget.setLayout(self.checkboxes_additional_datalines_layout)
+
+        self.widget_additional_datalines.setLayout(self.layout_additional_datalines)
+        self.tabs.addTab(self.widget_additional_datalines, "Add. datalines")
+
         # Landmarks header
         self.widget_landmarks = QWidget()
         self.layout_landmarks = QFormLayout()
@@ -85,7 +114,6 @@ class PlotSettingsDialog(QDialog):
         self.checkboxes_landmarks_widget = QWidget()
         self.checkboxes_landmarks_layout = QHBoxLayout()
         self.checkboxes_landmarks_widget.setLayout(self.checkboxes_landmarks_layout)
-        self.layout_landmarks.addRow(QLabel("Individual"), self.checkboxes_landmarks_widget)
 
         self.widget_landmarks.setLayout(self.layout_landmarks)
         self.tabs.addTab(self.widget_landmarks, "Landmarks")
@@ -162,6 +190,55 @@ class PlotSettingsDialog(QDialog):
 
         self.layout.addWidget(self.tabs)
         self.setLayout(self.layout)
+
+    def add_additional_datalines(self, additional_datalines_info):
+        def generate_lambda_checkbox(i, o):
+            return lambda: self.plot_view.toggle_additional_dataline(i, o)
+
+        def generate_lambda_button(i):
+            return lambda: self.plot_view.set_additional_dataline_color(i)
+
+        def generate_lambda_combobox(i, o):
+            return lambda: self.plot_view.set_additional_dataline_style(i, o)
+
+        all_, any_ = all(self.plot_view.settings['additional_datalines_active']), any(self.plot_view.settings['additional_datalines_active'])
+        state = 2 if all_ else (1 if any_ else 0)
+        self.checkbox_all_additional_datalines.setCheckState(Qt.CheckState(state))
+
+        num, names = additional_datalines_info['num'], additional_datalines_info['names']
+        for dataline_index in range(num):
+            w = QWidget()
+            w_layout = QVBoxLayout()
+
+            # Checkbox for toggling datalines
+            checkbox = QCheckBox(names[dataline_index])
+            checkbox.setChecked(self.plot_view.settings['additional_datalines_active'][dataline_index])
+            checkbox.clicked.connect(generate_lambda_checkbox(dataline_index, checkbox))
+            self.checkboxes_additional_datalines_active.append(checkbox)
+
+            # Button for selecting color of the datalines
+            button_color = QPushButton()
+            button_color.setStyleSheet(
+                "background-color: " + self.plot_view.settings['additional_datalines_color'][dataline_index])
+            button_color.clicked.connect(generate_lambda_button(dataline_index))
+            self.buttons_additional_datalines_color.append(button_color)
+
+            # Combobox for selecting style of the datalines
+            combobox = QComboBox()
+            combobox.addItems(["SolidLine", "DashLine", "DotLine", "DashDotLine", "DashDotDotLine"])
+            combobox.setCurrentText(self.plot_view.settings['additional_datalines_style'][dataline_index])
+            combobox.activated.connect(generate_lambda_combobox(dataline_index, combobox))
+            self.comboboxes_additional_datalines_style.append(combobox)
+
+            w_layout.addWidget(checkbox)
+            w_layout.addWidget(button_color)
+            w_layout.addWidget(combobox)
+
+            w.setLayout(w_layout)
+            self.checkboxes_additional_datalines_layout.addWidget(w)
+        self.checkboxes_additional_datalines_layout.addStretch(1)
+        if num > 0:
+            self.layout_additional_datalines.addRow(QLabel("Individual"), self.checkboxes_additional_datalines_widget)
 
     def add_datalines(self, receiver_info):
         """
@@ -284,17 +361,33 @@ class PlotSettingsDialog(QDialog):
             widget.setLayout(layout)
             self.checkboxes_landmarks_layout.addWidget(widget)
         self.checkboxes_landmarks_layout.addStretch(1)
+        if num_landmarks > 0:
+            self.layout_landmarks.addRow(QLabel("Individual"), self.checkboxes_landmarks_widget)
 
     def decoder_added(self):
         """
         Edit settings dialog entries accordingly when a decoder is added.
         """
+        # General
         self.combobox_show_grid.setCurrentText(self.plot_view.settings['show_grid'])
+
+        # Datalines
         self.spinbox_step_size.setValue(self.plot_view.settings['step_size'])
         self.spinbox_datalines_width.setValue(self.plot_view.settings['datalines_width'])
+
+        # Additional datalines
+        self.spinbox_additional_datalines_width.setValue(self.plot_view.settings['additional_datalines_width'])
+
+        # Landmarks
         self.spinbox_landmarks_size.setValue(self.plot_view.settings['landmarks_size'])
+
+        # Symbol intervals
+        self.checkbox_symbol_intervals.setChecked(self.plot_view.settings['symbol_intervals'])
         self.spinbox_symbol_intervals_width.setValue(self.plot_view.settings['symbol_intervals_width'])
         self.button_symbol_intervals_color.setStyleSheet("background-color: " + self.plot_view.settings['symbol_intervals_color'])
+
+        # Symbol values
+        self.checkbox_symbol_values.setChecked(self.plot_view.settings['symbol_values'])
         self.combobox_symbol_values_position.setCurrentText(self.plot_view.settings['symbol_values_position'])
         self.spinbox_symbol_values_size.setValue(self.plot_view.settings['symbol_values_size'])
         self.spinbox_symbol_values_fixed_height.setValue(self.plot_view.settings['symbol_values_fixed_height'])
@@ -323,6 +416,14 @@ class PlotSettingsDialog(QDialog):
             self.checkboxes_landmarks_layout.removeWidget(self.checkboxes_landmarks_layout.itemAt(i).widget())
 
         self.hide()
+
+    def set_all_additional_datalines_checkboxes(self, state):
+        """
+        Sets alls additional datalines checkboxes to a given state.
+        :param state: New state of the additional datalines checkboxes.
+        """
+        for dataline_index in range(len(self.checkboxes_additional_datalines_active)):
+            self.checkboxes_additional_datalines_active[dataline_index].setChecked(state)
 
     def set_all_landmark_checkboxes(self, state):
         """

@@ -3,6 +3,7 @@ import sys
 import threading
 import time
 import logging
+import os
 
 from Models import Model
 from Views import View
@@ -138,6 +139,12 @@ class Controller:
     def encode_with_check(self, sequence):
         return self.model.encoder.encode_with_check(sequence)
 
+    def export_sequence(self, filename):
+        self.model.decoder.export_sequence(filename)
+
+    def export_symbol_values(self, filename):
+        self.model.decoder.export_symbol_values(filename)
+
     def get_available_decoders(self):
         """
         Get a list of available decoders.
@@ -221,7 +228,7 @@ class Controller:
         """
         Performs some cleanup before actually stopping UnifiedGUI.
         """
-        self.thread_gui.join()
+        self.view.timer.stop()
         # Save settings
         try:
             self.view.data_view.tab_plot.settings_object.save()
@@ -233,13 +240,18 @@ class Controller:
         logging.raiseExceptions = False
         logging.shutdown()
 
+        #self.view.close_all_windows()
+
+        # os._exit() needed instead of sys.exit() to kill all threads
+        os._exit(0)
+
     def start_decoder(self):
         """
         Starts the decoder.
         """
         self.decoder_clear()
         self.model.start_decoder()
-        self.view.decoder_view.decoder_started()
+        self.view.decoder_started()
 
     def stop_decoder(self):
         """

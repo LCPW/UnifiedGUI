@@ -6,7 +6,7 @@ import numpy as np
 import time
 
 import Utils.ViewUtils
-from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, LogView
+from Views import EncoderView, DecoderView, DataView, MenuBarView, ToolbarView, StatusBarView, LogView, SettingsDialog
 
 
 class View(QMainWindow):
@@ -72,6 +72,14 @@ class View(QMainWindow):
         self.last_time = time.time()
         self.last_fps = []
 
+    def close_all_windows(self):
+        """
+        Closes all windows that might still be open.
+        """
+        #self.data_view.tab_plot.plot_settings_dialog.close()
+        #self.menu_bar.settings_dialog.close()
+        pass
+
     def closeEvent(self, close_event: QCloseEvent):
         """
         Re-defines the close event by asking the user for confirmation before actually closing.
@@ -79,7 +87,6 @@ class View(QMainWindow):
         """
         if Utils.ViewUtils.message_box_question(self.style(), "Exit?", "Are you sure you want to exit?"):
             self.controller.close()
-            self.data_view.tab_plot.plot_settings_dialog.close()
             close_event.accept()
         else:
             close_event.ignore()
@@ -99,6 +106,13 @@ class View(QMainWindow):
         """
         self.data_view.decoder_clear()
         self.decoder_view.decoder_clear()
+
+    def decoder_started(self):
+        """
+        Do stuff when the decoder is started.
+        """
+        self.decoder_view.decoder_started()
+        self.data_view.tab_plot.plot_widget.decoder_started()
 
     def decoder_removed(self):
         """

@@ -1,8 +1,10 @@
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+from PyQt5 import QtWidgets, QtCore, QtGui, Qt
 import subprocess
 import os
 
+from Views import SettingsDialog
 from Utils import ViewUtils
 
 
@@ -12,6 +14,9 @@ class MenuBarView(QMenuBar):
         super(MenuBarView, self).__init__()
 
         menu_file = self.addMenu("File")
+        self.settings_dialog = SettingsDialog.SettingsDialog(self)
+        menu_file.addAction(ViewUtils.get_icon('export'), "Export", self.export)
+        menu_file.addAction(ViewUtils.get_icon('settings'), "Settings", self.show_settings)
         menu_file.addAction("Exit", self.view.close)
 
         menu_log = self.addMenu("Log")
@@ -21,24 +26,25 @@ class MenuBarView(QMenuBar):
         self.action_log_toggle.setChecked(True)
         menu_log.addAction(self.action_log_toggle)
 
-        menu_settings = self.addMenu("Settings")
+        # menu_settings = self.addMenu("Settings")
 
         menu_help = self.addMenu("Help")
-        action_help = QAction(text="Open Documentation (PDF)", parent=self, icon=ViewUtils.get_icon('pdf'))
-        action_help.triggered.connect(self.show_documentation)
-        action_help_release_notes = QAction(text="Open Release Notes (PDF)", parent=self, icon=ViewUtils.get_icon('pdf'))
-        action_help_release_notes.triggered.connect(self.show_release_notes)
-        menu_help.addAction(action_help)
-        menu_help.addAction(action_help_release_notes)
+        menu_help.addAction(ViewUtils.get_icon('pdf'), "Open Documentation (PDF)", self.show_documentation)
+        menu_help.addAction(ViewUtils.get_icon('pdf'), "Open Release Notes (PDF)", self.show_release_notes)
 
     @staticmethod
     def show_documentation():
         path = os.path.join('.', 'Docs', 'UnifiedGUI.pdf')
-        p = subprocess.Popen([path], shell=True)
-        #if p.returncode != 0:
-            #Logging.error("Failed to load documentation pdf. Manually open the document (./Docs/UnifiedGUI.pdf)")
+        subprocess.Popen([path], shell=True)
 
     @staticmethod
     def show_release_notes():
         path = os.path.join('.', 'Docs', 'UnifiedGUI_ReleaseNotes.pdf')
-        p = subprocess.Popen([path], shell=True)
+        subprocess.Popen([path], shell=True)
+
+    def show_settings(self):
+        self.settings_dialog.show()
+        self.settings_dialog.activateWindow()
+
+    def export(self):
+        self.view.data_view.tab_plot.plot_widget.export_plot()

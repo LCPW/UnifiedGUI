@@ -13,7 +13,7 @@ class LogTextEdit(QPlainTextEdit, logging.Handler):
 
     def sizeHint(self):
         width, height = QApplication.primaryScreen().size().width(), QApplication.primaryScreen().size().height()
-        return QSize(width, 0.1 * height)
+        return QSize(int(round(width)), int(round(0.1 * height)))
 
     def emit(self, record):
         msg = self.format(record)
