@@ -1,6 +1,7 @@
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
+import numpy as np
 
 from Views import PlotWidgetView, PlotSettingsDialog
 from Utils.PlotSettings import PlotSettings
@@ -550,7 +551,7 @@ class PlotView(QWidget):
         """
         min_timestamp, max_timestamp = decoded['min_timestamp'], decoded['max_timestamp']
         if self.settings['x_range_active']:
-            interval = max_timestamp - min_timestamp - self.settings['x_range_value']
+            interval = int(np.ceil(max_timestamp - min_timestamp - self.settings['x_range_value']))
             self.scrollbar.setRange(0, interval * 1000)
         else:
             self.scrollbar.setRange(0, 0)
