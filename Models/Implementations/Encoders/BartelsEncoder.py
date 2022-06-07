@@ -88,24 +88,6 @@ class BartelsEncoder(EncoderInterface):
                 self.bartels.smp.readline().decode("ascii")
                 time.sleep(0.1)
 
-        ############# AUTOMATICALLY 4-ASK #####################
-        elif self.modulation == "4-ASK":
-
-            a = []
-            a.append(symbol_value)
-            if symbol_value != " -":
-                self.transmitters[0].value = int(symbol_value)
-                a = + int(symbol_value)
-                self.bartels.smp.write(b"P" + str.encode(str(self.channel)) +
-                                       b"V" + str.encode(str(int(symbol_value) * self.voltage)) +
-                                       b"b\r\n")
-                self.bartels.smp.readline().decode("ascii")
-            else:
-                self.bartels.smp.write(b"P" + str.encode(str(self.channel)) +
-                                       b"V0" +  # str.encode(str(int(symbol_value[i]) * self.voltage)) +
-                                       b"b\r\n")
-                self.bartels.smp.readline().decode("ascii")
-                time.sleep(1)
 
 def get_parameters():
     parameters = [
@@ -126,7 +108,7 @@ def get_parameters():
         {
             'description': "Port",
             'dtype': 'string',
-            'default': "COM6",
+            'default': "COM",
             'max_length': 5,
         },
 

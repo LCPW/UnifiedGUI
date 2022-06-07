@@ -2,7 +2,6 @@ import time
 import serial.tools.list_ports
 
 from Models.Interfaces.TransmitterInterface import TransmitterInterface
-
 from Utils import Queue
 
 
