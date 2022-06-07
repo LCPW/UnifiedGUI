@@ -6,7 +6,7 @@ class ExampleDecoder(DecoderInterface):
         super().__init__(parameter_values)
 
         # Implement: Define receivers list
-        self.receiver_types = None
+        self.receiver_types = ["ExampleReceiver"]
 
         super().setup()
 
