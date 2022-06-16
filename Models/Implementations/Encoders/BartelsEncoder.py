@@ -18,19 +18,17 @@ class BartelsEncoder(EncoderInterface):
         self.modulation = parameter_values['Modulation']
         self.sleep_time = parameter_values['Sleep time [s]']
         self.symbolinterval = parameter_values['Symbolinterval[ms]']/1000
+        self.timezero = time.time()
+        self.symbolint = 0
         self.timersymbol = 0
         self.timer = 0
         self.nextsymbol = 0.1
         self.timestart = 10
-        self.timezero = time.time()
-        self.korrektur = 0
-        self.symbolint = 0
         super().setup()
 
     def encode(self, sequence):
-        symbol_values = []
-
-        numascii = [ord(i) for i in sequence]
+        symbol_values = []                                                      # Create list for Symbols
+        numascii = [ord(i) for i in sequence]                                   # Change Sequence in Unicode
 
         # if self.translation == "word":
         #
@@ -54,9 +52,9 @@ class BartelsEncoder(EncoderInterface):
 
         if self.modulation == "2-ASK":
 
-            binarylist = [format(i, "07b") for i in numascii]
+            binarylist = [format(i, "07b") for i in numascii]                   # Change Unicode in Bitsequence (7Bits)
 
-            for x in range(len(binarylist)):
+            for x in range(len(binarylist)):                                    # Change Bit Bitsequence in single Bits
                 binaryindex = [int(a) for a in str(binarylist[x])]
                 for i in range(len(binaryindex)):
                     symbol_values.append(str(binaryindex[i]))
@@ -67,10 +65,10 @@ class BartelsEncoder(EncoderInterface):
 
         if self.modulation == "4-ASK":
 
-            binarylist = [format(i, "08b") for i in numascii]
+            binarylist = [format(i, "08b") for i in numascii]                   # Change Unicode in Bitsequence (8Bits)
             ask4list = []
 
-            for x in range(len(binarylist)):
+            for x in range(len(binarylist)):                                    # Change Bitsequence in 2Bits
                 binaryindex = [int(a) for a in str(binarylist[x])]
                 for i in range(len(binaryindex)):
                     ask4list.append(str(binaryindex[i]))
@@ -84,7 +82,6 @@ class BartelsEncoder(EncoderInterface):
 
     def parameters_edited(self):
 
-        #self.translation = self.parameter_values['Translation']
         self.channel = self.parameter_values['Channel']
         self.frequency = self.parameter_values['Frequency [Hz]']
         self.voltage = self.parameter_values['Voltage [V]']
@@ -94,9 +91,11 @@ class BartelsEncoder(EncoderInterface):
         self.symbolinterval = self.parameter_values['Symbolinterval[ms]']/1000
 
     def transmit_single_symbol_value(self, symbol_value):
-        #start = str(time.time() - self.timezero)
 
-        ################## MANUALLY ######################
+        # smp.write: Change voltage or frequency of micropump
+        # smp.readline: Read smp.write and wait for next smp.write
+
+        ################## MANUALLY #####################             # only for testing
         if self.modulation == "manually":
             self.bartels.smp.write(
                 b"P" + str.encode(str(self.channel)) + b"V" + str.encode(str(self.voltage)) + b"\r\n")
@@ -104,28 +103,27 @@ class BartelsEncoder(EncoderInterface):
             self.bartels.smp.write(b"F" + str.encode(str(self.frequency)) + b"\r\n")
             print(self.bartels.smp.readline().decode("ascii"))
 
-        ############### AUTOMATICALLY 2-ASK ####################
+        ############### 2-ASK ####################
         if self.modulation == "2-ASK":
 
-            if symbol_value != " -":
-                while (time.time()-self.timezero) < self.nextsymbol:
+            if symbol_value != " -":                                        # If the Symbol 0 or 1 then ...
+                while (time.time()-self.timezero) < self.nextsymbol:        # ... system time waits until nextsymbol
                     ""
 
                 print(str(self.timer) + ". gesendet: " + str(symbol_value) + "  " + str(time.time() - self.timezero))
-                self.bartels.smp.write(b"P" + str.encode(str(self.channel)) +
-                                       b"V" + str.encode(str(int(symbol_value) * self.voltage)) +
-                                       b"\r\n")
+                # print system time + Symbol / only for testing
+                self.bartels.smp.write(b"P" + str.encode(str(self.channel)) +   # Change voltage
+                                       b"V" + str.encode(str(int(symbol_value) * self.voltage)) + b"\r\n")
                 self.bartels.smp.readline().decode("ascii")
-                self.bartels.smp.write(b"F" + str.encode(str(self.frequency)) + b"\r\n")
+                self.bartels.smp.write(b"F" + str.encode(str(self.frequency)) + b"\r\n") # Change frequency
                 self.bartels.smp.readline().decode("ascii")
 
-                #self.transmitters[0].value = int(symbol_value)
-                self.nextsymbol = round(self.nextsymbol + self.symbolinterval, 2)
-                self.timer = (self.timer + 1) % 7
+                self.nextsymbol = round(self.nextsymbol + self.symbolinterval, 2)   # Determine nextsymbol + interval
+                self.timer = (self.timer + 1) % 7                              # Define symbol number / only for testing
 
-            else:
+            else:                                                             # If the Symbol "-" ...
 
-                while (time.time() - self.timezero) <= (self.nextsymbol):
+                while (time.time() - self.timezero) <= (self.nextsymbol):     # analog to Code above
                     ""
 
                 print("-. ges: " + str(symbol_value) + " " + str(time.time() - self.timezero) + " " + str(self.nextsymbol))
@@ -133,13 +131,16 @@ class BartelsEncoder(EncoderInterface):
                 self.bartels.smp.readline().decode("ascii")
                 self.bartels.smp.write(b"F0\r\n")
                 self.bartels.smp.readline().decode("ascii")
-                self.nextsymbol = round(self.nextsymbol + self.symbolinterval + self.sleep_time-1, 2) #1-ssy*7 bei 100ms
-                print(" \r\n")
+                if self.symbolinterval == 0.1:                                 # wait till every 1 sec
+                    self.nextsymbol = round(self.nextsymbol + 1 - self.symbolinterval * 7 + self.sleep_time-1, 2)
+                else:
+                    self.nextsymbol = round(self.nextsymbol + self.symbolinterval + self.sleep_time-1, 2)
+                print(" \r\n") # only for testing
 
-        ############### AUTOMATICALLY 4-ASK ####################
+        ############### 4-ASK ####################                              # see Code 2-ASK
         if self.modulation == "4-ASK":
 
-            if symbol_value != " -":
+            if symbol_value != " -":                                            # Change voltage (2Bits)
                 self.transmitters[0].value = int(symbol_value)
 
                 if symbol_value == " 00":
@@ -176,10 +177,6 @@ class BartelsEncoder(EncoderInterface):
                 print(" \r\n")
 
 
-        #self.korrektur = time.time() - self.timezero - float(start)
-        #print(str(self.korrektur))
-
-
 def get_parameters():
     parameters = [
         # {
@@ -199,7 +196,7 @@ def get_parameters():
         {
             'description': "Port",
             'dtype': 'string',
-            'default': "COM5",
+            'default': "COM15",
             'max_length': 5,
         },
 
