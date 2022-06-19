@@ -21,10 +21,11 @@ class BartelsTransmitter(TransmitterInterface):
         self.smp.readline().decode("ascii")
 
     def transmit_step(self):
-
+        pass
 
     def micropump(self, channel, voltage, frequency):
         self.smp.write(b"P" + str.encode(str(channel)) + b"V" + str.encode(str(voltage)) + b"\r\n")
         self.smp.readline().decode("ascii")
         self.smp.write(b"F" + str.encode(str(frequency)) + b"\r\n")
         self.smp.readline().decode("ascii")
+        #return print("Channel: " + str(channel) + " Voltage: " + str(voltage) + " Frequency: " + str(frequency))
