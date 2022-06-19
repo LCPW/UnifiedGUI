@@ -1,20 +1,19 @@
-import sys
 import time
 import serial.tools.list_ports
 
 from Models.Interfaces.TransmitterInterface import TransmitterInterface
 
-from Utils import Queue
+timezero = time.time()
 
 
 class BartelsTransmitter(TransmitterInterface):
-    smp = serial.Serial()
 
-    def __init__(self, initial_value):
+    def __init__(self, port):
         super().__init__()
-        self.value = initial_value
-        self.smp.port = "COM15"
-        if self.smp.is_open == False:
+        self.smp = serial.Serial()
+        self.value = 0
+        self.smp.port = str(port)
+        if not self.smp.is_open:
             self.smp.open()
         self.smp.write(b"QUADDRIVER\r\n")
         self.smp.readline().decode("ascii")
@@ -22,5 +21,10 @@ class BartelsTransmitter(TransmitterInterface):
         self.smp.readline().decode("ascii")
 
     def transmit_step(self):
-        timestamp = time.time()
-        Queue.queue.put((self.value, timestamp))
+
+
+    def micropump(self, channel, voltage, frequency):
+        self.smp.write(b"P" + str.encode(str(channel)) + b"V" + str.encode(str(voltage)) + b"\r\n")
+        self.smp.readline().decode("ascii")
+        self.smp.write(b"F" + str.encode(str(frequency)) + b"\r\n")
+        self.smp.readline().decode("ascii")
