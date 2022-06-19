@@ -82,7 +82,11 @@ class EncoderInterface:
             time_before = time.time()
             self.transmit_single_symbol_value(symbol_values[sequence_index])
             # More accurate
-            time.sleep(self.sleep_time - (time_before - time.time()))
+            sleep_time = self.sleep_time - (time.time() - time_before)
+            if sleep_time < 0:
+                Logging.warning("transmit_single_symbol_value lasted longer than sleep time. This may lead to timing errors.", repeat=True)
+            else:
+                time.sleep(sleep_time)
             self.info['transmission_progress'] = int(np.round(((sequence_index + 1) / len(symbol_values)) * 100))
         self.info['transmitting'] = False
 
