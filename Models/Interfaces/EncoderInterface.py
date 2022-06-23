@@ -73,21 +73,41 @@ class EncoderInterface:
         Transmits a list of symbol values.
         :param symbol_values: List of symbol values.
         """
+        # Uniform sleep times
+        if isinstance(self.sleep_time, float) or isinstance(self.sleep_time, int):
+            transmission_time_offsets = [self.sleep_time] * len(symbol_values)
+        # Non-uniform sleep times
+        elif isinstance(self.sleep_time, list):
+            if len(self.sleep_time) > len(symbol_values):
+                transmission_time_offsets = self.sleep_time[:len(symbol_values)]
+            elif len(self.sleep_time) < len(symbol_values):
+                q, r = divmod(len(symbol_values), len(self.sleep_time))
+                transmission_time_offsets = q * self.sleep_time + self.sleep_time[:r]
+            else:
+                transmission_time_offsets = self.sleep_time
+        # Sleep time not well defined
+        else:
+            Logging.warning("sleep_time is neither a float nor a list, check your implementation.")
+            transmission_time_offsets = [1.0] * len(symbol_values)
+
+        transmission_times_offsets_acc = [sum(transmission_time_offsets[:y]) for y in range(1, len(transmission_time_offsets) + 1)]
+        start_time = time.time()
+        transmission_times = [x + start_time for x in transmission_times_offsets_acc]
         self.info['transmitting'] = True
         for sequence_index in range(len(symbol_values)):
             if self.transmission_canceled:
                 self.info['transmission_progress'] = 0
                 self.transmission_canceled = False
                 break
-            time_before = time.time()
+
             self.transmit_single_symbol_value(symbol_values[sequence_index])
-            # More accurate
-            sleep_time = self.sleep_time - (time.time() - time_before)
-            if sleep_time < 0:
-                Logging.warning("transmit_single_symbol_value lasted longer than sleep time. This may lead to timing errors.", repeat=True)
-            else:
-                time.sleep(sleep_time)
             self.info['transmission_progress'] = int(np.round(((sequence_index + 1) / len(symbol_values)) * 100))
+            if self.sleep_time != 0:
+                if time.time() > transmission_times[sequence_index]:
+                    Logging.warning("Transmission of symbol took longer than the given sleep time, this may lead to timing errors.", repeat=True)
+                else:
+                    while time.time() < transmission_times[sequence_index]:
+                        pass
         self.info['transmitting'] = False
 
     def transmit_single_symbol_value(self, symbol_value):
