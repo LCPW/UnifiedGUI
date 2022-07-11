@@ -48,7 +48,8 @@ class BartelsEncoder(EncoderInterface):
             symbol_values.append("-")
 
         self.timezero = time.time()                                             # Restart system time
-        self.nextsymbol = 0                                                     # Restart slots for sending
+        self.nextsymbol = 1                                                     # Restart slots for sending
+        self.bartels.micropump_set_frequency(self.frequency)
         return symbol_values
 
     def parameters_edited(self):
@@ -62,24 +63,22 @@ class BartelsEncoder(EncoderInterface):
         self.symbolinterval = self.parameter_values['Symbolinterval[ms]'] / 1000
 
     def transmit_single_symbol_value(self, symbol_value):
+
         while (time.time() - self.timezero) < self.nextsymbol:                  # ... system time waits until nextsymbol
             pass
 
-        # MANUALLY #                                                            # only for testing
-        if self.modulation == "manually":
-            self.bartels.micropump(self.channel, self.voltage, self.frequency)  # set voltage and frequency of micropump
-
-        # 2-ASK #
         if symbol_value != " -":                                                # If the Symbol 0 or 1 then ...
 
             if self.modulation == "2-ASK":
+                a = time.time() - self.timezero
                 print(str(self.timer) + ". gesendet: " + str(symbol_value) + "  " + str(time.time() - self.timezero))
                 # print system time + Symbol / only for testing
-                self.bartels.micropump(self.channel, int(symbol_value) * self.voltage, self.frequency)
-                self.nextsymbol = round(self.nextsymbol + self.symbolinterval, 1)  # Determine nextsymbol + interval
-                self.timer = (self.timer + 1) % 7                              # Define symbol number / only for testing
+                self.bartels.micropump_set_voltage(self.channel, int(symbol_value) * self.voltage)
+                # print(str(self.timer)+". Differenz: " + str(symbol_value) + "  " + str(time.time() - self.timezero - a))
+                self.nextsymbol = self.nextsymbol + self.symbolinterval      # Determine nextsymbol + interval
+                self.timer = (self.timer + 1) % 7                            # Define symbol number / only for testing
 
-            if self.modulation == "4-ASK":
+            elif self.modulation == "4-ASK":
 
                 if symbol_value == " 00":
                     self.voltage = 25
@@ -90,20 +89,26 @@ class BartelsEncoder(EncoderInterface):
                 if symbol_value == " 11":
                     self.voltage = 250
 
+                # MANUALLY #                                                            # only for testing
+            elif self.modulation == "manually":
+
                 print(str(self.timer) + ". gesendet: " + str(symbol_value) + "  " + str(time.time() - self.timezero))
-                self.bartels.micropump(self.channel, self.voltage, self.frequency)
-                self.nextsymbol = round(self.nextsymbol + self.symbolinterval, 1)
+                self.bartels.micropump_set_voltage(self.channel, self.voltage)
+                self.nextsymbol = self.nextsymbol + self.symbolinterval
                 self.timer = (self.timer + 1) % 4
 
         else:  # If the Symbol "-" ...
 
-            self.bartels.micropump(self.channel, 0, 50)
+            self.bartels.micropump_set_voltage(self.channel, 0)
 
             if self.symbolinterval == 0.1:
-                self.nextsymbol = round(self.nextsymbol + 1 - self.symbolinterval * 7 + self.sleep_time - 1, 0)
+                self.nextsymbol = self.nextsymbol + 1 - self.symbolinterval * 7 + self.sleep_time - 1
+                print(" \r\n")  # only for testing
             else:
-                self.nextsymbol = round(self.nextsymbol + self.symbolinterval + self.sleep_time - 1, 1)
-            print(" \r\n")  # only for testing
+                self.nextsymbol = self.nextsymbol + self.symbolinterval + self.sleep_time - 1
+                print(" \r\n")  # only for testing
+
+        self.nextsymbol = round(self.nextsymbol, 3)
 
 
 def get_parameters():
@@ -150,7 +155,7 @@ def get_parameters():
         {
             'description': "Sleep time [s]",
             'decimals': 1,
-            'dtype': 'float',
+            'dtype': 'int',
             'min': 1,
             'max': 100,
             'default': 1,
@@ -160,9 +165,9 @@ def get_parameters():
             'description': "Symbolinterval[ms]",
             'decimals': 0,
             'dtype': 'float',
-            'min': 100,
+            'min': 50,
             'max': 1000,
-            'default': 100,
+            'default': 50,
         }
 
     ]
