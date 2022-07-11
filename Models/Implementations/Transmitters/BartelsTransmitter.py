@@ -15,7 +15,7 @@ class BartelsTransmitter(TransmitterInterface):
         self.smp.port = str(port)
         if not self.smp.is_open:
             self.smp.open()
-        self.smp.write(b"QUADDRIVER\r\n")
+        self.smp.write(b"SELECTQUADDRIVER\r\n")
         self.smp.readline().decode("ascii")
         self.smp.write(b"POFF\r\n")
         self.smp.readline().decode("ascii")
@@ -23,7 +23,15 @@ class BartelsTransmitter(TransmitterInterface):
     def transmit_step(self):
         pass
 
-    def micropump(self, channel, voltage, frequency):
+    def micropump_set_voltage(self, channel, voltage):
+        self.smp.write(b"P" + str.encode(str(channel)) + b"V" + str.encode(str(voltage)) + b"\r\n")
+        self.smp.readline().decode("ascii")
+
+    def micropump_set_frequency(self, frequency):
+        self.smp.write(b"F" + str.encode(str(frequency)) + b"\r\n")
+        self.smp.readline().decode("ascii")
+
+    def micropump_set_parameters(self, channel, voltage, frequency):
         self.smp.write(b"P" + str.encode(str(channel)) + b"V" + str.encode(str(voltage)) + b"\r\n")
         self.smp.readline().decode("ascii")
         self.smp.write(b"F" + str.encode(str(frequency)) + b"\r\n")
