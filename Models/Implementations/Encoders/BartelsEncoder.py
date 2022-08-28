@@ -9,127 +9,95 @@ class BartelsEncoder(EncoderInterface):
     def __init__(self, parameters, parameter_values):
         super().__init__(parameters, parameter_values)
         self.port = parameter_values['port']
-        self.bartels = BartelsTransmitter(self.port)
-        self.transmitters = [self.bartels]
-        self.allowed_sequence_values = [chr(i) for i in range(0, 128)]
-        self.voltage = parameter_values['voltage [V]']  # Set micro_pump voltage
-        self.frequency = parameter_values['frequency [Hz]']  # Set micro_pump frequency
-        self.channel = parameter_values['channel']  # Set Channel 1-4
-        self.modulation = parameter_values['modulation']  # 2-ASK (0,1) / 4-ASK (00,01,10,11)
-        self.injection_duration = parameter_values['injection duration [ms]']
-        # self.sleep_time = parameter_values['character interval [s]']          # Waiting time until next Injection
-        self.symbol_interval = parameter_values['symbol interval [ms]']  # Waiting time between Symbols
-        self.startTime = time.time()  # Get current system time
-        self.binaryOrder = 0  # Only for testing (symbol  number)
-        self.next_injection = 0  # Set slots for sending next Injection
-        self.modulation_index = 6
-        self.time_slot = 0
-        self.symbol_distance = 0
-        self.parameters_edited()
+        self.bartels = BartelsTransmitter(self.port)                                # get port from PC
+        self.transmitters = [self.bartels]                                          # set port
+        self.voltage = parameter_values['voltage [V]']                              # set micropump voltage
+        self.frequency = parameter_values['frequency [Hz]']                         # set micropump frequency
+        self.channel = parameter_values['channel']                                  # set channel
+        self.modulation_index = self.parameter_values['modulation index']           # set modulation index
+        self.modulation = parameter_values['modulation']                            # set modulation CSK, TSK, PSK
+        self.injection_duration = parameter_values['injection duration [ms]']       # set injection duration
+        self.symbol_interval = parameter_values['symbol interval [ms]']             # set waiting time between Symbols
+        self.startTime = time.time()                                                # get current system time
+        self.base_time = self.parameter_values['base time (b) [ms]']                # set slots for sending
+        self.extra_time = self.parameter_values['extra time per symbol (e) [ms]']   # set extra time (TSK)
+        self.next_interval = 0                                                      # set for injection duration
+        self.parameters_edited()                                                    # update settings
         super().setup()
 
         """
-        Initialisierung der Mikropumpe
-        Aufgaben: 
-        - Automatische Suche und Einstellung des richtigen Geräts (port)
-        - Übernahme der Anfangsparameter von Spannung, Frequenz, Kanal, Modulation, Symbolinterval
-        - Ermittelt aktuelle Systemlaufzeit für die Genauigkeit
+           
+        Initialization of the micropump
+
+        - set right port
+        - set start parameters
+        - update set parameters
+        - determine current runtime
         """
 
     def encode(self, sequence):
 
-        symbol_values = []  # Create list for symbols
-        list4csk = []  # Create list for 4-CSK
-        list8csk = []  # Create list for 8-CSK
-        sequence_in_decimal = [ord(i) for i in sequence]  # Change sequence in decimal (ascii)
-        decimal_in_8bit = [format(i, "08b") for i in sequence_in_decimal]  # Change decimal in 8bit sequence
-        """
-           Informationskodierung in das Binärsystem.
-           Aufgaben: 
-           - Erstellung jeweilige Binärliste für 4-CSK und 8-CSK
-           - Umwandlung von Zeichen in Dezimalzahlen (ascii)
-           - Umwandlung von Dezimalzahlen in Binärsequenz (ascii)
-           Bsp: A --> 65 --> 01000001 bzw. 
-        """
+        symbol_values = []                                                  # create list for symbols
+        list4csk = []                                                       # create list for 4-CSK
+        list8csk = []                                                       # create list for 8-CSK
+        sequence_in_decimal = [ord(i) for i in sequence]                    # change sequence in decimal (ascii)
+        decimal_in_8bit = [format(i, "08b") for i in sequence_in_decimal]   # change decimal in 8bit sequence
 
         for x in range(len(decimal_in_8bit)):
-            binary8index = [int(a) for a in str(decimal_in_8bit[x])]  # Change 8bit sequence in single Bits
+            binary8index = [int(a) for a in str(decimal_in_8bit[x])]        # change 8bit sequence in single Bits
 
             for i in range(len(binary8index)):
-                if self.modulation_index == "2":  # 1Bit --> 1Symbol
+                if self.modulation_index == "2":                            # 1Bit --> 1Symbol
                     if i % 8 == 0:
                         continue
                     symbol_values.append(str(binary8index[i]))
 
-                elif self.modulation_index == "4":  # 2Bit --> 1Symbol
+                elif self.modulation_index == "4":                          # 2Bit --> 1Symbol
                     list4csk.append(str(binary8index[i]))
                     if i % 2 == 1:
                         symbol_values.append(str((list4csk[i - 1]) + (list4csk[i])))
 
-                elif self.modulation_index == "8":  # 3Bit --> 1Symbol
+                elif self.modulation_index == "8":                          # 3Bit --> 1Symbol
                     list8csk.append(str(binary8index[i]))
                     if i % 3 == 1 and i > 1:
                         symbol_values.append(str((list8csk[i - 2]) + (list8csk[i - 1]) + (list8csk[i])))
 
-                elif self.modulation == "FSK" or self.modulation == "PSK":
-                    symbol_values.clear()
-                    symbol_values.append(sequence)
+            if self.modulation == "TSK" or self.modulation == "PSK":
+                symbol_values.clear()
+                symbol_values.append(sequence)
 
             list4csk.clear()
             list8csk.clear()
-            # symbol_values.append("-") #Wenn du nach jedem Zeichen ein "-" willst, dann einfach das # entfernen
+            # symbol_values.append("-")                                     # set "-" after each Symbol
         if sequence == "":
             symbol_values = 0
 
         symbol_values.append("-")
 
-        if sequence[0] == "#":
+        if sequence[0] == "#":                                              # "#" for individual codes
             symbol_values.clear()
-            symbol_values = self.individual_encode(sequence, symbol_values)
+            symbol_values = individual_encode(sequence, symbol_values)      # individual codes (see function)
 
-        self.next_injection = 1  # Restart slots for sending
-        self.bartels.micropump_set_frequency(self.frequency)
-        self.startTime = time.time()  # Restart system time
-        print(symbol_values)
+        self.next_interval = 1                                              # restart slots for sending
+        self.bartels.micropump_set_frequency(self.frequency)                # set frequency
+        self.startTime = time.time()                                        # update start time
         return symbol_values
 
     """
-    Modulation der Kodierung.
-    Aufgaben: 
-    - Zusammenfassung von Binärsequenz in Symbole nach jeweiliger Modulation
-    Bsp: OOK:    01000001    --> 0,1,0,0,0,0,0,1
-         4-CSK:  01000001    --> 01,00,00,01
-         8-CSK:  000001      --> 000,001 (weniger Zeichen kodierbar)
 
-    Vorbereitung Transmit
-    Aufgaben: 
-    - Setzt Zeit für erste Injektion
-    - Stellt Frequenz ein
-    - Übernimmt aktuelle Systemzeit
+    Coding of the information
+    
+    - encoding depending on modulation and modulation index
+    - convert letters to numbers (CSK)
+        - convert numbers to binary system 
+    - no conversion (PSK, TSK)
+    - set first injection time (at 1 sec)
+    - set frequency
+    - update start time to current runtime
+    - encoding individual codes
     """
 
-    def individual_encode(self, sequence, symbol_values):
-        if sequence[1] == "i":
-            for i in range(int(sequence[2:])):
-                symbol_values.append(1)
-                i += 1
-            symbol_values.append("-")
-        if sequence[1] == "a":
-            for i in range(2, len(sequence)):
-                symbol_values.append(sequence[i])
-        if sequence[1:] == "on" or sequence[1:] == "ON":
-            symbol_values.append("on")
-        if sequence[1:] == "off" or sequence[1:] == "OFF":
-            symbol_values.append("off")
-        return symbol_values
-
-    """
-       Individuelle Kodierung.
-       Aufgaben: 
-        - Vorgefertige Kodierungsschemen
-    """
-
-    def parameters_edited(self):
+    def parameters_edited(self):                                            # update parameters
         self.channel = self.parameter_values['channel']
         self.frequency = self.parameter_values['frequency [Hz]']
         self.voltage = self.parameter_values['voltage [V]']
@@ -137,86 +105,82 @@ class BartelsEncoder(EncoderInterface):
         self.modulation = self.parameter_values['modulation']
         self.symbol_interval = self.parameter_values['symbol interval [ms]']
         self.injection_duration = self.parameter_values['injection duration [ms]']
-        # self.time_slot = self.parameter_values['time slot [ms]']
-        # self.symbol_distance = self.parameter_values['symbol distance [ms]']
+        self.base_time = self.parameter_values['base time (b) [ms]']
+        self.extra_time = self.parameter_values['extra time per symbol (e) [ms]']
         self.modulation_index = self.parameter_values['modulation index']
 
-        if self.injection_duration + 25 >= self.symbol_interval:
+        if self.injection_duration + 25 >= self.symbol_interval:     # limit injection duration to symbol interval -25ms
             self.injection_duration = self.symbol_interval - 25
             self.parameter_values['injection duration [ms]'] = self.injection_duration
-        if self.modulation == "CSK" and int(self.modulation_index) > 8:
+        if self.modulation == "CSK" and int(self.modulation_index) > 8:  # limit modulation index to 8 for CSK
             self.parameter_values['modulation index'] = "8"
             self.modulation_index = "8"
 
         """
-        Aktualisierung Parameter    
-        Aufgaben: 
-        - Prüft Parameter während der Laufzeit
-        - Aktualisiert Parameter für die nächsten Übetragungen (außer Frequenz)
+        
+        Update parameters   
+          
+        - check parameters during running time
+        - update parameters during running time
+        - limit injection duration (symbol interval - 25ms)
+        - limit modulation index to 8
         """
 
     def transmit_single_symbol_value(self, symbol_value):
 
         symbol_value = str(symbol_value).strip()
 
-        if not symbol_value == "-":  # If the Symbol 0 or 1 then ...
+        if not symbol_value == "-":
 
             if symbol_value == "on" or symbol_value == "off":
                 self.bartels.onoff(self.channel, self.voltage, self.frequency, symbol_value)
 
             elif self.modulation == "CSK":
                 if self.modulation_index == "2":
-                    while (time.time() - self.startTime) < self.next_injection:  # system time waits until next_symbol
+                    while (time.time() - self.startTime) < self.next_interval:  # wait until next injection time
                         pass
-                    timing = time.time() - self.startTime  # - self.next_injection
-                    print(str(self.binaryOrder) + ". sent: " + str(symbol_value) + "  " + str(timing))  # Testing
-                    self.bartels.micropump_set_voltage_duration(self.channel, int(symbol_value) * self.voltage, 10)
-                                                               # int(symbol_value) * self.injection_duration)
-                    # print("duration: " + str(symbol_value) + "  " + str(time.time() - self.startTime - timing))
-                    self.binaryOrder = (self.binaryOrder + 1) % 7  # Testing
+                    self.bartels.micropump_set_voltage_duration(self.channel, int(symbol_value) * self.voltage,
+                                                                int(symbol_value) * self.injection_duration)
 
                 elif self.modulation_index == "4":
-                    if self.symbol_interval < 250:
+                    if self.symbol_interval < 250:      # limit symbol intervall to >= 250
                         self.symbol_interval = 250
                         self.parameter_values['symbol interval [ms]'] = 250
-                    self.bartels.modulation_4CSK(self.channel, symbol_value, self.startTime, self.next_injection)
+                    self.bartels.modulation_4CSK(self.channel, symbol_value, self.startTime, self.next_interval)
 
                 elif self.modulation_index == "8":
-                    if self.symbol_interval < 500:
+                    if self.symbol_interval < 500:      # limit symbol intervall to >= 500
                         self.symbol_interval = 500
                         self.parameter_values['symbol interval [ms]'] = 500
-                    self.bartels.modulation_8CSK(self.channel, symbol_value, self.startTime, self.next_injection)
-                self.next_injection = round(self.next_injection + self.symbol_interval / 1000, 3)
+                    self.bartels.modulation_8CSK(self.channel, symbol_value, self.startTime, self.next_interval)
 
-            elif self.modulation == "FSK":
-                self.bartels.modulation_FSK(self.channel, symbol_value, self.startTime, self.next_injection)
-                # next_timeslot = self.time_slot/1000 + int(symbol_value) * self.symbol_distance
-                next_timeslot = 0.500 + int(symbol_value) * 0.000
-                self.next_injection = round(self.next_injection + next_timeslot, 3)
-                print("next timeslot: " + str(next_timeslot))
+                self.next_interval = round(self.next_interval + self.symbol_interval / 1000, 3)
+
+            elif self.modulation == "TSK":
+                self.bartels.modulation_TSK(self.channel, symbol_value, self.startTime, self.next_interval,
+                                            self.voltage, self.injection_duration)
+                next_timeslot = self.base_time/1000 + int(symbol_value) * self.extra_time/1000
+                self.next_interval = round(self.next_interval + next_timeslot, 3)
 
             elif self.modulation == "PSK":
-                injection = 0.000
-                print(int(self.modulation_index) - 1)
-                self.bartels.modulation_PSK(self.channel, symbol_value, self.startTime, self.next_injection, injection)
-                next_timeslot = round(0.500 + (int(self.modulation_index)-1) * injection, 3)
-                self.next_injection = round(self.next_injection + next_timeslot, 3)
-                print("next timeslot: " + str(next_timeslot))
+                self.bartels.modulation_PSK(self.channel, symbol_value, self.startTime, self.next_interval,
+                                            self.extra_time / 1000, self.voltage, self.injection_duration)
+                next_timeslot = round(self.base_time/1000 + (int(self.modulation_index)-1) * self.extra_time/1000, 3)
+                self.next_interval = round(self.next_interval + next_timeslot, 3)
 
-        else:  # Symbol = "-"
+        else:  # symbol = "-"
             self.bartels.micropump_set_voltage_duration(self.channel, 0, 0)
-            self.next_injection = round(self.next_injection + self.symbol_interval / 1000, 3)
+            if self.modulation == "CSK":
+                self.next_interval = round(self.next_interval + self.symbol_interval / 1000, 3)
 
-        """"
-        Übermittlung der Daten
-        Aufgaben: 
-        - Prüft Modulationsart
-        - Stellt je nach Modulationsart entsprechende Spannung ein
-        - Setzt Spannungen je nach Symbolintervall. (Bsp. Änderung jede 100ms)
-        Bsp:
-        4-CSK:  Vorherige Kodierung: B --> 01000001 --> 01,00,00,10 
-                Spannungen: 100V,  0V,  0V, 150V
         """
+        
+        Transmit data
+         
+        - check modulation index and transmit accordingly
+        - set injection times
+        """
+
 
 def get_parameters():
     parameters = [
@@ -238,14 +202,14 @@ def get_parameters():
             'description': "modulation index",
             'dtype': 'item',
             'default': "2",
-            'items': ["2", "4", "8", "16", "32", "64", "128"],
+            'items': ["2", "4", "8", "16", "32", "64", "128", "256", "512", "1024"]
         },
 
         {
             'description': "modulation",
             'dtype': 'item',
             'default': "CSK",
-            'items': ["CSK", "FSK", "PSK"],
+            'items': ["CSK", "PSK", "TSK"],
         },
 
         {
@@ -272,33 +236,71 @@ def get_parameters():
             'dtype': 'float',
             'min': 25,
             'max': 10000,
-            'default': 100,
-        }
-        ,
+            'default': 500,
+        },
+
         {
             'description': "injection duration [ms]",
             'dtype': 'int',
             'decimals': 0,
             'min': 10,
             'max': 10000,
+            'default': 100
+        },
+
+        {
+            'description': "base time (b) [ms]",
+            'dtype': 'int',
+            'decimals': 0,
+            'min': 1,
+            'max': 10000,
+            'default': 500,
+        },
+
+        {
+            'description': "extra time per symbol (e) [ms]",
+            'dtype': 'int',
+            'decimals': 0,
+            'min': 1,
+            'max': 10000,
             'default': 10,
         },
-        # {
-        #     'description': "time slot [ms]",
-        #     'dtype': 'int',
-        #     'decimals': 0,
-        #     'min': 1,
-        #     'max': 10000,
-        #     'default': 50,
-        # },
-        # {
-        #     'description': "symbol distance [ms]",
-        #     'dtype': 'int',
-        #     'decimals': 0,
-        #     'min': 1,
-        #     'max': 10000,
-        #     'default': 50,
-        # },
     ]
     return parameters
 
+
+"""
+
+Parameter setting
+
+- limit parameters
+- set default values
+"""
+
+
+def individual_encode(sequence, symbol_values):
+    if sequence[1] == "i":
+        for i in range(int(sequence[2:])):
+            symbol_values.append(1)
+            i += 1
+        symbol_values.append("-")
+    if sequence[1] == "a":
+        for i in range(2, len(sequence)):
+            symbol_values.append(sequence[i])
+        symbol_values.append("-")
+    if sequence[1:] == "on" or sequence[1:] == "ON":
+        symbol_values.append("on")
+    if sequence[1:] == "off" or sequence[1:] == "OFF":
+        symbol_values.append("off")
+    return symbol_values
+
+
+"""
+
+Individual encoding
+
+- #on = micropump on (reference: voltage and frequency)
+- #off =  micropump off
+- #i + number = place "1" according to the number
+- #a + data =  separate data and place "," after each symbol
+"""
