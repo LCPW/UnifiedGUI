@@ -12,6 +12,11 @@ from Models.Interfaces.TransmitterInterface import TransmitterInterface
 class BartelsTransmitter(TransmitterInterface):
 
     def __init__(self, port):
+        """
+        Initialization of the Transmitter
+        - select Highdriver
+        - switch channels off
+        """
         super().__init__()
         self.smp = serial.Serial()
         self.value = 0
@@ -22,119 +27,116 @@ class BartelsTransmitter(TransmitterInterface):
         self.smp.readline().decode("ascii")
         self.smp.write(b"POFF\r\n")
         self.smp.readline().decode("ascii")
-        self.smp.write(b"P1V10\r\n")
-        self.smp.readline().decode("ascii")
         self.portList = []
 
     def transmit_step(self):
         pass
 
     def micropump_set_voltage(self, channel, voltage):
+        """
+        set micropump voltage
+            parameters:
+            channel (int): 1-4
+            voltage (int): 0-250
+        """
         self.smp.write(b"P" + str.encode(str(channel)) + b"V" + str.encode(str(voltage)) + b"\r\n")
         self.smp.readline().decode("ascii")
-    """
-    set micropump voltage
-        
-        parameters:
-        channel (int): 1-4
-        voltage (int): 0-250
-    """
 
     def micropump_set_voltage_duration(self, channel, voltage, duration_ms):
+        """
+        set micropump frequency
+            parameters:
+            channel (int):  1-4
+            voltage (int):  0-250
+            duration (int): 0-10000
+        """
         self.smp.write(b"P" + str.encode(str(channel)) + b"V" + str.encode(str(voltage)) + b"\r\n")
         self.smp.readline().decode("ascii")
         start_zero = time.time()
         while (time.time() - start_zero) < (duration_ms/1000):  # ... system time waits until nextsymbol
             pass
         self.smp.write(b"P" + str.encode(str(channel)) + b"V0b\r\n")
-    """
-    set micropump frequency
-
-        parameters:
-        channel (int):  1-4
-        voltage (int):  0-250
-        duration (int): 0-10000
-    """
 
     def micropump_set_frequency(self, frequency):
+        """
+        set micropump voltage + duration
+            parameters:
+            frequency (int):  0-850
+        """
         self.smp.write(b"F" + str.encode(str(frequency)) + b"\r\n")
-    """
-    set micropump voltage + duration
-
-        parameters:
-        frequency (int):  0-850
-    """
 
     def micropump_set_parameters(self, channel, voltage, frequency):
+        """
+        set micropump voltage + frequency
+            parameters:
+            channel (int):      1-4
+            voltage (int):      0-250
+            frequency (int):    0-850
+        """
         self.smp.write(b"P" + str.encode(str(channel)) + b"V" + str.encode(str(voltage)) + b"\r\n")
         self.smp.readline().decode("ascii")
         self.smp.write(b"F" + str.encode(str(frequency)) + b"\r\n")
         self.smp.readline().decode("ascii")
-    """
-    set micropump voltage + frequency
-
-        parameters:
-        channel (int):      1-4
-        voltage (int):      0-250
-        frequency (int):    0-850
-    """
 
     def onoff(self, channel, voltage, frequency, symbol_value):
+        """
+        set micropump on or off
+            parameters:
+            channel (int):      1-4
+            voltage (int):      0-250
+            frequency (int):    0-850
+            symbol_value (str): on, off
+        """
         if symbol_value == "on":
             self.micropump_set_parameters(channel, voltage, frequency)
         elif symbol_value == "off":
             self.micropump_set_voltage(channel, 0)
-    """
-    set micropump on or off
-
-        parameters:
-        channel (int):      1-4
-        voltage (int):      0-250
-        frequency (int):    0-850
-        symbol_value (str): on, off
-    """
 
     def modulation_TSK(self, channel, symbol_value, start_time, next_injection_time, voltage, duration):
-
+        """
+        place injections with TSK modulation.
+            parameters:
+            channel (int):              1-4
+            symbol_value (float):       0-1023
+            start_time (float):         start time when decoding
+            next_injection_time (int):  injection time = b + e * Symbol
+            voltage (int):              0-250
+            duration (int):             0-10000
+            b = basetime
+            e = extratime
+        """
         while (time.time() - start_time) < next_injection_time:
             pass  # wait until next injection time
         self.micropump_set_voltage_duration(channel, voltage, duration)
-    """
-    place injections with TSK modulation.
-
-        parameters:
-        channel (int):              1-4
-        symbol_value (float):       0-1023
-        start_time (float):         start time when decoding
-        next_injection_time (int):  injection time = b + e * Symbol
-        voltage (int):              0-250
-        duration (int):             0-10000  
-        b = basetime
-        e = extratime
-    """
 
     def modulation_PSK(self, channel, symbol_value, start_time, symbol_interval, injection_time, voltage, duration):
+        """
+        place injections with PSK modulation.
+            parameters:
+            channel (int):              1-4
+            symbol_value (float):       0-1023
+            start_time (float):         start time when decoding
+            symbol interval (int):      rolling interval time = b + e * (M-1)
+            injection_time (int):       injection time = symbol interval + e * Symbol
+            voltage (int):              0-250
+            duration (int):             0-10000
+            b = basetime
+            e = extratime
+            M = modulationindex
+        """
         while (time.time() - start_time) < symbol_interval + int(symbol_value) * injection_time:
             pass  # wait until next injection time
         self.micropump_set_voltage_duration(channel, voltage, duration)
-    """
-    place injections with PSK modulation.
-
-        parameters:
-        channel (int):              1-4
-        symbol_value (float):       0-1023
-        start_time (float):         start time when decoding
-        symbol interval (int):      rolling interval time = b + e * (M-1)
-        injection_time (int):       injection time = symbol interval + e * Symbol
-        voltage (int):              0-250
-        duration (int):             0-10000  
-        b = basetime
-        e = extratime
-        M = modulationindex
-    """
 
     def modulation_4CSK(self, channel, symbol_value, start_time, next_injection_time):
-
+        """
+        place injections with 4CSK modulation and predefined injection quantity
+            parameters:
+            channel (int):              1-4
+            symbol_value (str):         00,01,10,11 or 0-3
+            start_time (float):         start time when decoding
+            next_injection_time (int):  injection time (rolling)
+        """
         while (time.time() - start_time) < next_injection_time:
             pass  # wait until next injection time
 
@@ -147,18 +149,15 @@ class BartelsTransmitter(TransmitterInterface):
         elif symbol_value == "11" or symbol_value == "3":  # 20µl
             self.micropump_set_voltage_duration(channel, 250, 200)
 
-    """
-    place injections with 4CSK modulation and predefined injection quantity
-
-        parameters:
-        channel (int):              1-4
-        symbol_value (str):         00,01,10,11 or 0-3
-        start_time (float):         start time when decoding
-        next_injection_time (int):  injection time (rolling)
-    """
-
     def modulation_8CSK(self, channel, symbol_value, start_time, next_injection_time):
-
+        """
+       place injections with 8CSK modulation and predefined injection quantity
+           parameters:
+           channel (int):              1-8
+           symbol_value (str):         000,001,010,011,100,101,110,111 or 0-7
+           start_time (float):         start time when decoding
+           next_injection_time (int):  injection time (rolling)
+        """
         while (time.time() - start_time) < next_injection_time:  # wait until next injection time
             pass
 
@@ -186,17 +185,12 @@ class BartelsTransmitter(TransmitterInterface):
         elif symbol_value == "111" or symbol_value == "7":  # 35µl
             self.micropump_set_voltage_duration(channel, 250, 350)
 
-    """
-       place injections with 8CSK modulation and predefined injection quantity
-
-           parameters:
-           channel (int):              1-8
-           symbol_value (str):         000,001,010,011,100,101,110,111 or 0-7
-           start_time (float):         start time when decoding
-           next_injection_time (int):  injection time (rolling)
-    """
 
 def micropump_find_ports():
+    """
+        search port from computer
+        return (str): "COM" + port
+    """
     portlist = []
     findpump = serial.Serial()
 
@@ -222,10 +216,3 @@ def micropump_find_ports():
                     print("Port: " + str(findpump.port) + " is checked")
         portlist.clear()
     return "COM"
-
-
-"""
-    search port from computer
-    return (str): "COM" + port
-
-"""

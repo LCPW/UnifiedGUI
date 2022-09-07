@@ -11,8 +11,14 @@ from Models.Implementations.Transmitters.BartelsTransmitter import BartelsTransm
 
 
 class BartelsEncoder(EncoderInterface):
-
     def __init__(self, parameters, parameter_values):
+        """
+        Initialization of the micropump
+        - set right port
+        - set start parameters
+        - update set parameters
+        - determine current runtime
+        """
         super().__init__(parameters, parameter_values)
         self.port = parameter_values['port']
         self.bartels = BartelsTransmitter(self.port)                                # get port from PC
@@ -31,18 +37,18 @@ class BartelsEncoder(EncoderInterface):
         self.parameters_edited()                                                    # update settings
         super().setup()
 
-        """
-           
-        Initialization of the micropump
-
-        - set right port
-        - set start parameters
-        - update set parameters
-        - determine current runtime
-        """
-
     def encode(self, sequence):
-
+        """
+        Coding of the information
+        - encoding depending on modulation and modulation index
+        - convert letters to numbers (CSK)
+            - convert numbers to binary system
+        - no conversion (PSK, TSK)
+        - set first injection time (at 1 sec)
+        - set frequency
+        - update start time to current runtime
+        - encoding individual codes
+        """
         symbol_values = []                                                  # create list for symbols
         list4csk = []                                                       # create list for 4-CSK
         list8csk = []                                                       # create list for 8-CSK
@@ -89,21 +95,14 @@ class BartelsEncoder(EncoderInterface):
         self.startTime = time.time()                                        # update start time
         return symbol_values
 
-    """
-
-    Coding of the information
-    
-    - encoding depending on modulation and modulation index
-    - convert letters to numbers (CSK)
-        - convert numbers to binary system 
-    - no conversion (PSK, TSK)
-    - set first injection time (at 1 sec)
-    - set frequency
-    - update start time to current runtime
-    - encoding individual codes
-    """
-
     def parameters_edited(self):                                            # update parameters
+        """
+        Update parameters
+        - check parameters during running time
+        - update parameters during running time
+        - limit injection duration (symbol interval - 25ms)
+        - limit modulation index to 8
+        """
         self.channel = self.parameter_values['channel']
         self.frequency = self.parameter_values['frequency [Hz]']
         self.voltage = self.parameter_values['voltage [V]']
@@ -122,18 +121,12 @@ class BartelsEncoder(EncoderInterface):
             self.parameter_values['modulation index'] = "8"
             self.modulation_index = "8"
 
-        """
-        
-        Update parameters   
-          
-        - check parameters during running time
-        - update parameters during running time
-        - limit injection duration (symbol interval - 25ms)
-        - limit modulation index to 8
-        """
-
     def transmit_single_symbol_value(self, symbol_value):
-
+        """
+        Transmit data
+        - check modulation index and transmit accordingly
+        - set injection times
+        """
         symbol_value = str(symbol_value).strip()
 
         if not symbol_value == "-":
@@ -179,16 +172,13 @@ class BartelsEncoder(EncoderInterface):
             if self.modulation == "CSK":
                 self.next_interval = round(self.next_interval + self.symbol_interval / 1000, 3)
 
-        """
-        
-        Transmit data
-         
-        - check modulation index and transmit accordingly
-        - set injection times
-        """
-
 
 def get_parameters():
+    """
+    Parameter setting
+    - limit parameters
+    - set default values
+    """
     parameters = [
         {
             'description': "port",
@@ -275,16 +265,14 @@ def get_parameters():
     return parameters
 
 
-"""
-
-Parameter setting
-
-- limit parameters
-- set default values
-"""
-
-
 def individual_encode(sequence, symbol_values):
+    """
+    Individual encoding
+    - #on = micropump on (reference: voltage and frequency)
+    - #off =  micropump off
+    - #i + number = place "1" according to the number
+    - #a + data =  separate data and place "," after each symbol
+    """
     if sequence[1] == "i":
         for i in range(int(sequence[2:])):
             symbol_values.append(1)
@@ -299,14 +287,3 @@ def individual_encode(sequence, symbol_values):
     if sequence[1:] == "off" or sequence[1:] == "OFF":
         symbol_values.append("off")
     return symbol_values
-
-
-"""
-
-Individual encoding
-
-- #on = micropump on (reference: voltage and frequency)
-- #off =  micropump off
-- #i + number = place "1" according to the number
-- #a + data =  separate data and place "," after each symbol
-"""
