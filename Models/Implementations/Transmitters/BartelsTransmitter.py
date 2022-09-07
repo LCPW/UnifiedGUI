@@ -1,3 +1,8 @@
+"""
+Author: Steve Kungu
+E-mail: steve.kungu@fau.de
+"""
+
 import time
 import serial.tools.list_ports
 

@@ -1,3 +1,9 @@
+"""
+Author: Steve Kungu
+E-mail: steve.kungu@fau.de
+"""
+
+
 import time
 
 from Models.Interfaces.EncoderInterface import EncoderInterface
