@@ -15,7 +15,8 @@ class MenuBarView(QMenuBar):
 
         menu_file = self.addMenu("File")
         self.settings_dialog = SettingsDialog.SettingsDialog(self)
-        menu_file.addAction(ViewUtils.get_icon('export'), "Export", self.export)
+        menu_file.addAction(ViewUtils.get_icon('export'), "Export (Native)", self.export)
+        menu_file.addAction(ViewUtils.get_icon('export'), "Export (Custom)", self.export_custom)
         menu_file.addAction(ViewUtils.get_icon('settings'), "Settings", self.show_settings)
         menu_file.addAction("Exit", self.view.close)
 
@@ -48,3 +49,6 @@ class MenuBarView(QMenuBar):
 
     def export(self):
         self.view.data_view.tab_plot.plot_widget.export_plot()
+
+    def export_custom(self):
+        self.view.controller.export_custom()

@@ -1,3 +1,8 @@
+"""
+Author:
+E-mail:
+"""
+
 from Models.Interfaces.EncoderInterface import EncoderInterface
 
 

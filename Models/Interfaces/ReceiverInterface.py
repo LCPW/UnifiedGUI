@@ -15,9 +15,11 @@ class ReceiverInterface:
         Initializes the receiver.
         """
         self.buffer = []
+        self.drop_first_measurements = 0
         self.num_sensors = None
         self.running = False
         self.sensor_names = None
+        self.sleep_time = 0.001
 
     def setup(self):
         """
@@ -35,9 +37,9 @@ class ReceiverInterface:
         """
         Runs an infinite loop of calling listen_step to check for new measurement values.
         """
-        while True:
+        while self.running:
             self.listen_step()
-            time.sleep(SettingsStore.settings['RECEIVER_LISTEN_SLEEP_TIME'])
+            time.sleep(self.sleep_time)
 
     def listen_step(self):
         """
@@ -71,6 +73,10 @@ class ReceiverInterface:
         if not (isinstance(values, list) or isinstance(values, tuple)):
             Logging.warning("Values are not a tuple or list, check your implementation of append_values.", repeat=False)
             values = [values]
+
+        if self.drop_first_measurements > 0:
+            self.drop_first_measurements -= 1
+            return
 
         if timestamp is None:
             timestamp = time.time()

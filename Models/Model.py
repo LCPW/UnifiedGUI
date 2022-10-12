@@ -151,6 +151,7 @@ class Model:
         """
         Removes the decoder.
         """
+        self.decoder.decoder_removed()
         self.decoder = None
 
     def start_decoder(self):

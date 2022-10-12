@@ -7,6 +7,8 @@ from datetime import datetime
 import numpy as np
 import time
 
+from Utils.Settings import SettingsStore
+
 
 class PlotWidgetView(pg.PlotWidget):
     def __init__(self, plot_view):
@@ -34,6 +36,10 @@ class PlotWidgetView(pg.PlotWidget):
         self.text_items = []
         self.vertical_lines = []
 
+    @property
+    def autoscroll(self):
+        return self.getViewBox().getState()['autoRange'][0]
+
     def add_additional_datalines(self, dataline_info):
         """
         Add additional datalines to the plot.
@@ -45,7 +51,8 @@ class PlotWidgetView(pg.PlotWidget):
                            width=self.plot_view.settings['additional_datalines_width'])
             data_line = self.plot([], [], name=dataline_info['names'][dataline_index], pen=pen)
             self.additional_datalines.append(data_line)
-            self.legend.addItem(data_line, data_line.name())
+            if self.plot_view.settings['additional_datalines_active'][dataline_index]:
+                self.legend.addItem(data_line, data_line.name())
 
     def add_datalines(self, receiver_info):
         """
@@ -61,7 +68,8 @@ class PlotWidgetView(pg.PlotWidget):
                                width=self.plot_view.settings['datalines_width'])
                 data_line = self.plot([], [], name=name + ": " + sensor_names[sensor_index], pen=pen)
                 datalines_.append(data_line)
-                self.legend.addItem(data_line, data_line.name())
+                if self.plot_view.settings['datalines_active'][receiver_index][sensor_index]:
+                    self.legend.addItem(data_line, data_line.name())
             self.datalines.append(datalines_)
 
     def add_landmarks(self, landmark_info):
@@ -77,7 +85,8 @@ class PlotWidgetView(pg.PlotWidget):
                                   symbolBrush=self.plot_view.settings['landmarks_color'][landmark_index],
                                   symbolSize=self.plot_view.settings['landmarks_size'])
             self.landmarks.append(landmark_)
-            self.legend.addItem(landmark_, landmark_.name())
+            if self.plot_view.settings['landmarks_active'][landmark_index]:
+                self.legend.addItem(landmark_, landmark_.name())
 
     def clear_(self):
         """
@@ -136,6 +145,9 @@ class PlotWidgetView(pg.PlotWidget):
         self.text_items = []
 
     def decoder_started(self):
+        """
+        Do stuff when decoder is (re-)started.
+        """
         self.enableAutoRange()
 
     def export_plot(self):
@@ -259,10 +271,9 @@ class PlotWidgetView(pg.PlotWidget):
         Updates this widget with new information from the decoder.
         :param decoded: Decoder value updates.
         """
-        if self.getViewBox().getState()['autoRange'][0]:
-            decoded = self.plot_view.data_view.view.controller.get_decoded()
-            diff = decoded['max_timestamp'] - decoded['min_timestamp']
-            pos = int(round(1000 * (diff)))
+        if self.autoscroll:
+            diff = decoded['max_timestamp'] - decoded['min_timestamp'] - self.plot_view.settings['x_range_value']
+            pos = int(round(SettingsStore.settings['SCROLLBAR_GRANULARITY'] * diff))
             self.plot_view.scrollbar.setSliderPosition(pos)
 
         received = decoded['received']
@@ -388,3 +399,25 @@ class PlotWidgetView(pg.PlotWidget):
                 text.setFont(QFont('MS Shell Dlg 2', self.plot_view.settings['symbol_values_size']))
                 self.addItem(text)
                 self.text_items.append(text)
+
+    def update_x_range(self, scrollbar_value, enable_autoscroll):
+        """
+        Updates the X range of the plot.
+        This function is called whenever the user moves the scrollbar or modifies the X range.
+        :param scrollbar_value: Current value of the scrollbar.
+        :param enable_autoscroll: Whether autoscroll should be resumed after updating the X range.
+        """
+        decoded = self.plot_view.data_view.view.controller.get_decoded()
+        # Decoded may be None if there is no decoder yet or the decoder is not initialized yet
+        if decoded is None:
+            return
+        # Disable the x range (which might still be active because of autoscroll)
+        self.plotItem.setLimits(maxXRange=None, xMin=None)
+        val = scrollbar_value / SettingsStore.settings['SCROLLBAR_GRANULARITY']
+        min_timestamp = decoded['min_timestamp']
+        left_ = min_timestamp + val
+        self.setXRange(left_, left_ + self.plot_view.settings['x_range_value'])
+        if enable_autoscroll:
+            self.enableAutoRange()
+        else:
+            self.disableAutoRange()

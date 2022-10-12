@@ -11,7 +11,7 @@ class TransmitterInterface:
     the amount of background flow in the case of fluids.
     """
     def __init__(self):
-        pass
+        self.sleep_time = 0.01
 
     def transmit(self):
         """
@@ -19,7 +19,7 @@ class TransmitterInterface:
         """
         while True:
             self.transmit_step()
-            time.sleep(SettingsStore.settings['TRANSMISSION_SLEEP_TIME_SECONDS'])
+            time.sleep(self.sleep_time)
 
     def transmit_step(self):
         """

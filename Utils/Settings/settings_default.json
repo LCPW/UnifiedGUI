@@ -1,6 +1,6 @@
 {
     "DECODER_ARRAY_LENGTH": 10000,
     "FRAMES_PER_SECOND": 100,
-    "RECEIVER_LISTEN_SLEEP_TIME": 0.001,
-    "TRANSMISSION_SLEEP_TIME_SECONDS": 0.01
+    "SCROLLBAR_GRANULARITY_COMMENT": "Indicates the number of values on the scrollbar per second, e.g., a value of 1000 means that the scrollbar represents milliseconds. This also influences the size of the handler.",
+    "SCROLLBAR_GRANULARITY": 100
 }

@@ -27,6 +27,7 @@ class DecoderInterface:
         self.additional_datalines = []
         self.additional_datalines_names = None
         self.decoded = None
+        self.info = None
         self.landmarks = []
         self.landmark_names = None
         self.landmark_symbols = None
@@ -214,7 +215,7 @@ class DecoderInterface:
         Main functionality of the decoder that is executed in every step of the main program loop as long as the decode is active.
         It consists of the following steps:
             - Empty receiver buffers.
-            - Optionally apply filter.
+            - Optionally apply pre-processing.
             - Optionally calculate additional datalines (derivatives, etc.).
             - Optionally calculate landmarks (edges, peaks, etc.).
             - Optionally calculate symbol intervals.
@@ -223,6 +224,7 @@ class DecoderInterface:
             - If the debug flag is set, perform some error checks.
         """
         self.empty_receiver_buffers()
+        self.pre_processing()
         self.calculate_additional_datalines()
         self.calculate_landmarks()
         self.calculate_symbol_intervals()
@@ -231,6 +233,20 @@ class DecoderInterface:
 
         if __debug__:
             self.check()
+
+    def decoder_removed(self):
+        """
+        Do stuff when decoder is removed.
+        Can be implemented in the decoder implementation.
+        """
+        pass
+
+    def decoder_stopped(self):
+        """
+        Do stuff when decoder is stopped.
+        Can be implemented in the decoder implementation.
+        """
+        pass
 
     def empty_receiver_buffers(self):
         """
@@ -243,6 +259,9 @@ class DecoderInterface:
                 timestamp, values = measurement['timestamp'], measurement['values']
                 self.append(receiver_index, timestamp, values)
                 self.lengths[receiver_index] += 1
+
+    def export_custom(self):
+        Logging.info("Custom export is not defined in your selected decoder.", repeat=True)
 
     def export_sequence(self, filename):
         if not filename == "":
@@ -284,6 +303,12 @@ class DecoderInterface:
         """
         pass
 
+    def pre_processing(self):
+        """
+        Pre-process input from receivers, e.g., apply filters.
+        """
+        Logging.info("pre_processing is not implemented in your selected decoder.", repeat=False)
+
     def start(self):
         """
         Starts the decoder.
@@ -302,3 +327,4 @@ class DecoderInterface:
         self.active = False
         for receiver in self.receivers:
             receiver.running = False
+        self.decoder_stopped()

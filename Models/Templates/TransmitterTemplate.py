@@ -1,3 +1,8 @@
+"""
+Author:
+E-mail:
+"""
+
 from Models.Interfaces.TransmitterInterface import TransmitterInterface
 
 

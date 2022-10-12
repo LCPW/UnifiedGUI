@@ -1,9 +1,14 @@
+"""
+Author:
+E-mail:
+"""
+
 from Models.Interfaces.ReceiverInterface import ReceiverInterface
 
 
 class ExampleReceiver(ReceiverInterface):
-    def __init__(self, description):
-        super().__init__(description)
+    def __init__(self):
+        super().__init__()
 
         # Implement: Define number of sensors
         self.num_sensors = None

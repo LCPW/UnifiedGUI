@@ -139,6 +139,9 @@ class Controller:
     def encode_with_check(self, sequence):
         return self.model.encoder.encode_with_check(sequence)
 
+    def export_custom(self):
+        self.model.decoder.export_custom()
+
     def export_sequence(self, filename):
         self.model.decoder.export_sequence(filename)
 

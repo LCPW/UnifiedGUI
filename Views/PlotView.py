@@ -5,6 +5,7 @@ import numpy as np
 
 from Views import PlotWidgetView, PlotSettingsDialog
 from Utils.PlotSettings import PlotSettings
+from Utils.Settings import SettingsStore
 from Utils import ViewUtils
 
 
@@ -63,8 +64,6 @@ class PlotView(QWidget):
         self.spinbox_range.setValue(10)
         self.spinbox_range.setSingleStep(1.0)
         self.spinbox_range.valueChanged.connect(lambda: self.set_x_range('spinbox'))
-        # Actually set the x range
-        self.plot_widget.plotItem.setLimits(maxXRange=10)
 
         self.toolbar.addWidget(self.label_range)
         self.toolbar.addWidget(self.button_range)
@@ -86,8 +85,7 @@ class PlotView(QWidget):
 
         # Scrollbar
         self.scrollbar = QScrollBar(Qt.Horizontal)
-        self.scrollbar.sliderMoved.connect(self.update_x_range)
-       # self.scrollbar.valueChanged.connect(self.update_scroll)
+        self.scrollbar.sliderMoved.connect(self.scrollbar_moved)
 
         layout.addWidget(self.toolbar)
         layout.addWidget(self.plot_widget)
@@ -348,12 +346,11 @@ class PlotView(QWidget):
         Example: X range = 5 means that only the last 5 seconds are shown before the plot moves to the right.
         :param widget: The widget responsible for the X range change.
         """
-        auto_scroll_enabled = self.plot_widget.getViewBox().getState()['autoRange'][0]
+        auto_scroll_enabled = self.plot_widget.autoscroll
         if widget == 'button':
-            self.plot_widget.plotItem.setLimits(maxXRange=None)
+            self.plot_widget.plotItem.setLimits(maxXRange=None, xMin=None)
             self.settings['x_range_active'] = False
             self.button_range.setEnabled(False)
-            self.plot_widget.enableAutoRange()
         elif widget == 'slider':
             x_range = self.slider_range.value()
             self.plot_widget.plotItem.setLimits(maxXRange=x_range)
@@ -544,27 +541,37 @@ class PlotView(QWidget):
         self.update_scroll_bar(decoded)
         self.plot_widget.update_(decoded)
 
+        # If autoscroll is enabled, set the X range accordingly
+        if self.plot_widget.autoscroll:
+            x_range = self.settings['x_range_value']
+            self.plot_widget.plotItem.setLimits(maxXRange=x_range, xMin=decoded['max_timestamp'] - x_range)
+
     def update_scroll_bar(self, decoded):
         """
         Updates the length of the scrollbar accordingly.
+        The value of the scrollbar always indicates the left value of the current range.
         :param decoded: Decoder value updates.
         """
         min_timestamp, max_timestamp = decoded['min_timestamp'], decoded['max_timestamp']
         if self.settings['x_range_active']:
-            interval = int(np.ceil(max_timestamp - min_timestamp - self.settings['x_range_value']))
-            self.scrollbar.setRange(0, interval * 1000)
+            interval = max_timestamp - min_timestamp - self.settings['x_range_value']
+            # Clip negative values
+            interval = interval if interval > 0 else 0
+            self.scrollbar.setRange(0, int(interval * SettingsStore.settings['SCROLLBAR_GRANULARITY']))
         else:
             self.scrollbar.setRange(0, 0)
 
-    def update_x_range(self, auto_scroll_enabled=False):
+    def update_x_range(self, enable_autoscroll=False):
         """
         Updates the X range of the plot.
-        This function is called whenever the user moves the scrollbar or modifies the X range.
-        :param auto_scroll_enabled: Whether auto scroll should resume after the updating of the X range.
+        This function is called whenever the user modifies the X range.
+        :param enable_autoscroll: Whether autoscroll should resume after the x-range has been updated.
         """
-        val = self.scrollbar.value() / 1000
-        min_timestamp = self.data_view.view.controller.get_decoded()['min_timestamp']
-        left_ = min_timestamp + val
-        self.plot_widget.setXRange(left_, left_ + self.settings['x_range_value'])
-        if auto_scroll_enabled:
-            self.plot_widget.enableAutoRange()
+        scrollbar_value = self.scrollbar.value()
+        self.plot_widget.update_x_range(scrollbar_value, enable_autoscroll)
+
+    def scrollbar_moved(self):
+        """
+        This function is called whenever the user moves the scrollbar.
+        """
+        self.update_x_range(enable_autoscroll=False)
