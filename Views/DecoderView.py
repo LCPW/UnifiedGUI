@@ -117,7 +117,7 @@ class DecoderView(QWidget):
             self.button_parameters.setIcon(ViewUtils.get_icon('tune'))
             self.button_parameters.setToolTip("Edit parameters")
             self.button_parameters.setEnabled(True)
-            self.button_parameters.clicked.connect(self.view.controller.edit_encoder_parameters)
+            self.button_parameters.clicked.connect(self.view.controller.edit_decoder_parameters)
             self.layout_label_parameters.addWidget(self.label_parameters)
             self.layout_label_parameters.addWidget(self.button_parameters)
             self.widget_label_parameters.setLayout(self.layout_label_parameters)

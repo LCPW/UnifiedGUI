@@ -119,7 +119,7 @@ class Controller:
         # User clicked Ok Button -> Everything is fine, get the values and continue
         if ok:
             self.model.decoder.parameter_values = parameter_values
-            self.model.decoder.parameters_eidted()
+            self.model.decoder.parameters_edited()
             self.view.decoder_view.parameters_edited(parameter_values)
 
     def edit_encoder_parameters(self):
