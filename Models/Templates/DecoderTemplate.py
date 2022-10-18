@@ -11,7 +11,7 @@ class ExampleDecoder(DecoderInterface):
         super().__init__(parameters, parameter_values)
 
         # Implement: Define receivers list
-        self.receiver_types = None
+        self.receivers = None
 
         super().setup()
 

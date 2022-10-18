@@ -1,13 +1,15 @@
-from Models.Interfaces.DecoderInterface import DecoderInterface
 import random
 import time
+
+from Models.Interfaces.DecoderInterface import DecoderInterface
+from Models.Implementations.Receivers.ExampleReceiver2 import ExampleReceiver2
 
 
 class ExampleDecoder2(DecoderInterface):
     def __init__(self, parameters, parameter_values):
         super().__init__(parameters, parameter_values)
         # Mandatory
-        self.receiver_types = ["ExampleReceiver2"] * 3
+        self.receivers = [ExampleReceiver2()] * 3
 
         # Optional
         self.additional_datalines_names = ["Mean"]

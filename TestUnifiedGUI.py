@@ -30,7 +30,12 @@ class TestDecoders(unittest.TestCase):
             if extension == '.py':
                 m = importlib.import_module('.' + name, package='Models.Implementations.Decoders')
                 self.modules.append(m)
-                c = getattr(m, name)(None, None)
+                parameters = m.get_parameters()
+                parameters_values = {}
+                if parameters is not None:
+                    for parameter in parameters:
+                        parameters_values[parameter['description']] = parameter['default']
+                c = getattr(m, name)(parameters, parameters_values)
                 self.classes.append(c)
 
     def test_parameters(self):
@@ -81,15 +86,9 @@ class TestDecoders(unittest.TestCase):
         for i in range(len(self.classes)):
             c = self.classes[i]
             m = self.modules[i]
-            self.assertIn('receiver_types', dir(c), message("receiver_types not defined.", m))
-            self.assertIsInstance(c.receiver_types, list, message("receiver_types is not a list.", m))
-            self.assertGreater(len(c.receiver_types), 0, message("receiver_types must contain at least one receiver.", m))
-            path = os.path.join('.', 'Models', 'Implementations', 'Receivers')
-            names_extensions = [os.path.splitext(file) for file in os.listdir(path)]
-            names_extensions = list(filter(lambda name_extension: name_extension[1] == '.py', names_extensions))
-            names = [name_extension[0] for name_extension in names_extensions]
-            for receiver in c.receiver_types:
-                self.assertIn(receiver, names, message("Specified receiver not found.", m))
+            self.assertIn('receivers', dir(c), message("receivers not defined.", m))
+            self.assertIsInstance(c.receivers, list, message("receivers is not a list.", m))
+            self.assertGreater(len(c.receivers), 0, message("receivers must contain at least one receiver.", m))
 
 
 class TestEncoders(unittest.TestCase):

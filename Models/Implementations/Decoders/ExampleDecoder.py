@@ -1,13 +1,14 @@
 import numpy as np
 
 from Models.Interfaces.DecoderInterface import DecoderInterface
+from Models.Implementations.Receivers.ExampleReceiver import ExampleReceiver
 
 
 class ExampleDecoder(DecoderInterface):
     def __init__(self, parameters, parameter_values):
         super().__init__(parameters, parameter_values)
 
-        self.receiver_types = ["ExampleReceiver"]
+        self.receivers = [ExampleReceiver()]
 
         super().setup()
 

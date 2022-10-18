@@ -10,10 +10,12 @@ class ReceiverInterface:
     measured values as a  foating point value. For example, a receiver can be a
     color sensor, where the multiple sensors are the measured colors.
     """
-    def __init__(self):
+    def __init__(self, decoder=None):
         """
         Initializes the receiver.
         """
+        self.decoder = decoder
+
         self.buffer = []
         self.drop_first_measurements = 0
         self.num_sensors = None

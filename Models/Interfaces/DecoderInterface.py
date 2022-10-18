@@ -41,7 +41,6 @@ class DecoderInterface:
         self.received = []
         self.receivers = []
         self.receiver_names = None
-        self.receiver_types = None
         self.sequence = ""
         self.symbol_intervals = []
         self.symbol_values = []
@@ -52,11 +51,11 @@ class DecoderInterface:
         Performs some further initialization.
         This method is called at the end of the initialization of the conrete decoder implementation.
         """
-        self.num_receivers = len(self.receiver_types)
+        self.num_receivers = len(self.receivers)
 
         if self.receiver_names is None:
             Logging.info("No receiver names provided, automatically generating them.")
-            self.receiver_names = [str(self.receiver_types[i]) + str(i + 1) for i in range(self.num_receivers)]
+            self.receiver_names = [str(self.receivers[i].__class__.__name__) + str(i + 1) for i in range(self.num_receivers)]
 
         if self.landmark_names is None:
             self.landmark_names = []
@@ -87,11 +86,6 @@ class DecoderInterface:
         }
 
         for receiver_index in range(self.num_receivers):
-            # Dynamically import the module of the implementation
-            module = importlib.import_module('.' + self.receiver_types[receiver_index], package='Models.Implementations.Receivers')
-            # Create an instance of the class in the said module (e.g. ExampleReceiver.ExampleReceiver())
-            receiver = getattr(module, self.receiver_types[receiver_index])()
-            self.receivers.append(receiver)
             self.timestamps.append(None)
             self.received.append(None)
             self.lengths.append(0)
