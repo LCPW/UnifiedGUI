@@ -59,7 +59,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         mux_config_bits = '1100001000001' + deglitch_filter_bits
         # Enable/disable Rp override for sensor current drive
         use_drive_current = False if all(i == -1 for i in drive_currents) else True
-        # Use reference frequency from CLKIN pin
+        # Use reference frequency from CLKIN pin (6th bit)
         config_bits = '000' + ('1' if use_drive_current else '0') + ('1' if low_power_activation_mode else '0') + '01000000000'
         if use_drive_current:
             for s in range(self.num_sensors):
@@ -70,9 +70,6 @@ class LDC1614EVMReceiver(ReceiverInterface):
         write_reg(self.serial_port, MUX_CONFIG, binary_to_hex(mux_config_bits))
         for s in range(self.num_sensors):
             write_reg(self.serial_port, SETTLE_COUNT[s], binary_to_hex(bin(settle_counts[s])[2:]))
-        # Use interal oscillator as reference frequency
-        #config_bits = config_bits[:6] + '0' + config_bits[7:]
-        #write_reg(self.serial_port, CONFIG, binary_to_hex(config_bits))
 
     def listen_step(self):
         values = []
