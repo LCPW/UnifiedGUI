@@ -72,12 +72,17 @@ class LDC1614EVMReceiver(ReceiverInterface):
             write_reg(self.serial_port, SETTLE_COUNT[s], binary_to_hex(bin(settle_counts[s])[2:]))
 
     def listen_step(self):
-        values = []
-        for i in range(self.num_sensors):
-            frequency = self.get_frequency(i)
-            values.append(frequency)
-
-        self.append_values(values)
+        """
+        Check if data ready flag is set (all channels have an unread conversion) and then read new values.
+        """
+        status = hex_to_binary(read_reg(self.serial_port, STATUS))
+        data_ready = status[9]
+        if data_ready == '1':
+            values = []
+            for i in range(self.num_sensors):
+                frequency = self.get_frequency(i)
+                values.append(frequency)
+            self.append_values(values)
 
     def get_frequency(self, channel):
         """
@@ -86,12 +91,8 @@ class LDC1614EVMReceiver(ReceiverInterface):
         :return: Frequency (Hz).
         """
         # Read least and most significant bytes register (2 each)
-        data_lsb = read_reg(self.serial_port, DATA_LSB[channel])
-        data_msb = read_reg(self.serial_port, DATA_MSB[channel])
-
-        # Convert to binary, drop the leading b' and fill up with leading zeros if necessary
-        data_lsb = (bin(int(data_lsb, 16))[2:]).zfill(16)
-        data_msb = (bin(int(data_msb, 16))[2:]).zfill(16)
+        data_lsb = hex_to_binary(read_reg(self.serial_port, DATA_LSB[channel]))
+        data_msb = hex_to_binary(read_reg(self.serial_port, DATA_MSB[channel]))
 
         # Drop the leading 4 bits of the MSB because these are error bits and not part of the actual data
         error_bits = data_msb[:4]
@@ -183,6 +184,7 @@ def binary_to_hex(binary):
 def hex_to_binary(hex_string):
     """
     Converts hex number to binary (16-bit).
+    Convert to binary, drop the leading b' and fill up with leading zeros if necessary
     :param hex_string: Hex string.
     :return: Binary string.
     """
