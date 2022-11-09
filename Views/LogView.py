@@ -18,6 +18,8 @@ class LogTextEdit(QPlainTextEdit, logging.Handler):
     def emit(self, record):
         msg = self.format(record)
         self.appendPlainText(msg)
+        sb = self.verticalScrollBar()
+        sb.setValue(sb.maximum())
 
 
 class LogView(QDockWidget):

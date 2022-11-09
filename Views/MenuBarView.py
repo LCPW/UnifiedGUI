@@ -51,4 +51,5 @@ class MenuBarView(QMenuBar):
         self.view.data_view.tab_plot.plot_widget.export_plot()
 
     def export_custom(self):
-        self.view.controller.export_custom()
+        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+        self.view.controller.export_custom(directory)

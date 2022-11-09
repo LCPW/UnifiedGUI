@@ -20,7 +20,7 @@ class SettingsDialog(QDialog):
         self.widget_general = QWidget()
         self.layout_general = QFormLayout()
 
-        self.layout_general.addRow(QLabel("1"), QLabel("2"))
+        # self.layout_general.addRow(QLabel("1"), QLabel("2"))
 
         self.widget_general.setLayout(self.layout_general)
 

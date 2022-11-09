@@ -41,6 +41,8 @@ class ParameterDialog(QDialog):
                 w.setMaxLength(param['max_length'])
                 w.setText(current_values[i] if current_values else param['default'])
             self.widgets.append((w, type_, description))
+            if current_values is not None and 'editable' in list(param.keys()):
+                w.setEnabled(param['editable'])
             layout.addRow(label, w)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)

@@ -2,6 +2,8 @@ import importlib
 import threading
 import numpy as np
 import time
+import os
+import csv
 
 from Utils import Logging
 from Utils.Settings import SettingsStore
@@ -254,15 +256,48 @@ class DecoderInterface:
                 self.append(receiver_index, timestamp, values)
                 self.lengths[receiver_index] += 1
 
-    def export_custom(self):
-        Logging.info("Custom export is not defined in your selected decoder.", repeat=True)
+    def export_custom(self, directory):
+        """
+        Exports received data by creating a new table for every receiver and all additional datalines.
+        :param directory: Directory for .csv files to be stored.
+        """
+        # Export received
+        received = self.decoded['received']
+        lengths, timestamps, values = received['lengths'], received['timestamps'], received['values']
+        for r in range(self.num_receivers):
+            filename = os.path.join(directory, "received" + str(r))
+            with open(filename, 'w', encoding='UTF8', newline='') as f:
+                writer = csv.writer(f)
+                for t in range(lengths[r]):
+                    row = [timestamps[r][t]] + list(values[r][t, :])
+                    writer.writerow(row)
+
+        # Export additional datalines
+        additional_datalines = self.decoded['additional_datalines']
+        for a in range(len(additional_datalines)):
+            filename = os.path.join(directory, "additional_dataline" + str(a))
+            dataline = additional_datalines[a]
+            length, timestamps, values = dataline['length'], dataline['timestamps'], dataline['values']
+            with open(filename, 'w', encoding='UTF8', newline='') as f:
+                writer = csv.writer(f)
+                for i in length:
+                    row = [timestamps[i], values[i]]
+                    writer.writerow(row)
 
     def export_sequence(self, filename):
+        """
+        Export decoded sequence to file.
+        :param filename: Destination path.
+        """
         if not filename == "":
             with open(filename, 'w') as file:
                 file.write(self.sequence)
 
     def export_symbol_values(self, filename):
+        """
+        Export decoded symbol values to file.
+        :param filename: Destination path.
+        """
         if not filename == "":
             with open(filename, 'w') as file:
                 symbol_values_str = str(self.symbol_values)
@@ -289,6 +324,19 @@ class DecoderInterface:
             'sequence': self.sequence
         }
         return self.decoded
+
+    def get_received(self, receiver_index, sensor_index=-1):
+        """
+        Gets receiver values.
+        :param receiver_index: Index of desired receiver.
+        :param sensor_index: Index of desired sensor, set to -1 to get all sensor values.
+        :return: Received values, dimensions (time, sensors) or (time).
+        """
+        received = self.decoded['received']
+        lengths, timestamps, values = received['lengths'], received['timestamps'], received['values']
+        if lengths[0] == 0:
+            return None
+        return values[receiver_index][:lengths[receiver_index], :] if sensor_index == -1 else values[receiver_index][:lengths[receiver_index], sensor_index]
 
     def parameters_edited(self):
         """

@@ -59,9 +59,13 @@ class Controller:
             else:
                 return
 
-        decoder_info = self.model.add_decoder(decoder_type, parameters, parameter_values)
-        decoder_info.update({'parameter_values': parameter_values})
-        self.view.decoder_added(decoder_info)
+        try:
+            decoder_info = self.model.add_decoder(decoder_type, parameters, parameter_values)
+            decoder_info.update({'parameter_values': parameter_values})
+            self.view.decoder_added(decoder_info)
+        except Exception as e:
+            Logging.error(e.args[0])
+            Logging.error("Failed to add decoder. Make sure device is connected and not used by other applications.")
 
     def add_encoder(self, encoder_type):
         """
@@ -82,9 +86,13 @@ class Controller:
             else:
                 return
 
-        encoder_info = self.model.add_encoder(encoder_type, parameters, parameter_values)
-        encoder_info.update({'parameter_values': parameter_values})
-        self.view.encoder_added(encoder_info)
+        try:
+            encoder_info = self.model.add_encoder(encoder_type, parameters, parameter_values)
+            encoder_info.update({'parameter_values': parameter_values})
+            self.view.encoder_added(encoder_info)
+        except Exception as e:
+            Logging.error(e.args[0])
+            Logging.error("Failed to add encoder. Make sure device is connected and not used by other applications.")
 
     def cancel_transmission(self):
         """
@@ -139,8 +147,8 @@ class Controller:
     def encode_with_check(self, sequence):
         return self.model.encoder.encode_with_check(sequence)
 
-    def export_custom(self):
-        self.model.decoder.export_custom()
+    def export_custom(self, directory):
+        self.model.decoder.export_custom(directory)
 
     def export_sequence(self, filename):
         self.model.decoder.export_sequence(filename)
@@ -253,15 +261,23 @@ class Controller:
         Starts the decoder.
         """
         self.decoder_clear()
-        self.model.start_decoder()
-        self.view.decoder_started()
+        try:
+            self.model.start_decoder()
+            self.view.decoder_started()
+        except Exception as e:
+            Logging.error(e.args[0])
+            Logging.error("Failed to start decoder.")
 
     def stop_decoder(self):
         """
         Stops the decoder.
         """
-        self.model.stop_decoder()
-        self.view.decoder_view.decoder_stopped()
+        try:
+            self.model.stop_decoder()
+            self.view.decoder_view.decoder_stopped()
+        except Exception as e:
+            Logging.error(e.args[0])
+            Logging.error("Failed to start decoder.")
 
     def transmit_symbol_values(self, symbol_values):
         """
