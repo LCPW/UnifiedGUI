@@ -12,6 +12,7 @@ class ParameterDialog(QDialog):
 
         self.values = {}
         self.widgets = []
+        self.labels = []
 
         layout = QFormLayout()
         for i in range(len(parameters)):
@@ -43,6 +44,15 @@ class ParameterDialog(QDialog):
             self.widgets.append((w, type_, description))
             if current_values is not None and 'editable' in list(param.keys()):
                 w.setEnabled(param['editable'])
+            if 'conversion_function' in list(param.keys()):
+                label_text = description + " [" + str(param['conversion_function'](w.value())) + "]"
+                label.setText(label_text)
+
+                def lambda_value_changed(index, conversion_function):
+                    return lambda: self.value_changed(index, conversion_function)
+
+                w.valueChanged.connect(lambda_value_changed(i, param['conversion_function']))
+            self.labels.append((description, label))
             layout.addRow(label, w)
 
         buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -65,3 +75,10 @@ class ParameterDialog(QDialog):
                 value = w.text()
             self.values[description] = value
         self.accept()
+
+    def value_changed(self, index, conversion_function):
+        current_value = self.widgets[index][0].value()
+        conversion_result = str(conversion_function(current_value))
+
+        description, label = self.labels[index]
+        label.setText(description + " [" + conversion_result + "]")

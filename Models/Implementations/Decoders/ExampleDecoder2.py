@@ -80,9 +80,10 @@ def get_parameters():
             'description': "Parameter1",
             'decimals': 4,
             'dtype': 'float',
-            'min': 0,
+            'min': 1,
             'max': 100,
             'default': 50,
+            'conversion_function': lambda x: f'{(1/x):.4f}s'
         },
         {
             'description': "Parameter2",
