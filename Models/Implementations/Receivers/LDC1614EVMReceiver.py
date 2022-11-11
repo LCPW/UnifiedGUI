@@ -17,10 +17,10 @@ crc8 = crcmod.predefined.mkCrcFun('crc-8')
 DATA_MSB = ['00', '02', '04', '06']
 DATA_LSB = ['01', '03', '05', '07']
 OFFSET = ['0C', '0D', '0E', '0F']
-CLOCK_DIVIDERS = ['14', '15', '16', '17']
+CLOCK_DIVIDER = ['14', '15', '16', '17']
 SETTLE_COUNT = ['10', '11', '12', '13']
+REFERENCE_COUNT = ['08', '09', '0A', '0B']
 DRIVE_CURRENT = ['1E', '1F', '20', '21']
-CLK_IN_MHZ = 40.0
 
 
 DEVICE_ID = '7F'
@@ -34,10 +34,11 @@ class LDC1614EVMReceiver(ReceiverInterface):
     Decoder for the Texas Instruments LDC1614 Evaluation Module.
     Datasheet: https://www.ti.com/lit/ds/symlink/ldc1612.pdf
     """
-    def __init__(self, num_channels, com_port, deglitch_filter, settle_counts, low_power_activation_mode, drive_currents):
+    def __init__(self, num_channels, clk_in_mhz, com_port, deglitch_filter, settle_counts, reference_counts, low_power_activation_mode, drive_currents):
         super().__init__()
 
         self.num_sensors = num_channels
+        self.clk_in_mhz = clk_in_mhz
         self.sensor_names = ["Sensor CH" + str(i) + " (MHz)" for i in range(self.num_sensors)]
         self.drop_first_measurements = 5
 
@@ -70,6 +71,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         write_reg(self.serial_port, MUX_CONFIG, binary_to_hex(mux_config_bits))
         for s in range(self.num_sensors):
             write_reg(self.serial_port, SETTLE_COUNT[s], binary_to_hex(bin(settle_counts[s])[2:]))
+            write_reg(self.serial_port, REFERENCE_COUNT[s], binary_to_hex(bin(reference_counts[s])[2:]))
 
     def listen_step(self):
         """
@@ -114,7 +116,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         offset = (int(offset, 16))
 
         # Read clock dividers register, convert to bits, drop the leading b' and fill up with leading zeros if necessary
-        clock_dividers = read_reg(self.serial_port, CLOCK_DIVIDERS[channel])
+        clock_dividers = read_reg(self.serial_port, CLOCK_DIVIDER[channel])
         clock_dividers = (bin(int(clock_dividers, 16))[2:]).zfill(16)
 
         # The first 10 bits represent the channel reference divider, the last 4 bits represent the channel input divider
@@ -122,7 +124,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         input_divider = int(clock_dividers[:4], 2)
 
         # Calculate reference frequency and channel offset
-        reference_frequency = CLK_IN_MHZ / reference_divider
+        reference_frequency = self.clk_in_mhz / reference_divider
         channel_offset = (offset / 2 ** 16) * reference_frequency
 
         # Calculate frequency (see page 39 of the data sheet)

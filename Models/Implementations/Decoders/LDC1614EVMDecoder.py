@@ -9,6 +9,7 @@ from Models.Implementations.Receivers.LDC1614EVMReceiver import LDC1614EVMReceiv
 
 
 RECEIVER0_NUM_CHANNELS = 4
+CLK_IN_MHZ = 40.0
 
 
 class LDC1614EVMDecoder(DecoderInterface):
@@ -23,11 +24,12 @@ class LDC1614EVMDecoder(DecoderInterface):
         com_port = parameter_values['COM Port']
         deglitch_filters = parameter_values["Input Deglitch Filter Bandwidth (MHz)"]
         settle_counts = [parameter_values["Settle Count CH" + str(c)] for c in range(RECEIVER0_NUM_CHANNELS)]
+        reference_counts = [parameter_values["Reference Count CH" + str(c)] for c in range(RECEIVER0_NUM_CHANNELS)]
         low_power_activation_mode = parameter_values["Low Power Activation Mode"]
         drive_current = [parameter_values["Drive Current CH" + str(c)] for c in range(RECEIVER0_NUM_CHANNELS)]
 
         # Define receivers list
-        self.receivers = [LDC1614EVMReceiver(RECEIVER0_NUM_CHANNELS, com_port, deglitch_filters, settle_counts, low_power_activation_mode, drive_current)]
+        self.receivers = [LDC1614EVMReceiver(RECEIVER0_NUM_CHANNELS, CLK_IN_MHZ, com_port, deglitch_filters, settle_counts, reference_counts, low_power_activation_mode, drive_current)]
 
         self.additional_datalines_names = ["Sensor CH" + str(i) + " Filtered (MHz)" for i in range(RECEIVER0_NUM_CHANNELS)]
         self.plot_settings = {
@@ -90,7 +92,19 @@ def get_parameters():
             'min': 0,
             'max': 65535,
             'default': 1024,
-            'editable': False
+            'editable': False,
+            'conversion_function': lambda x: "Settling Time: " + str((x*16)/CLK_IN_MHZ) + "us"
+        })
+
+    for c in range(RECEIVER0_NUM_CHANNELS):
+        parameters.append({
+            'description': "Reference Count CH" + str(c),
+            'dtype': 'int',
+            'min': 0,
+            'max': 65535,
+            'default': 65535,
+            'editable': False,
+            'conversion_function': lambda x: "Conversion Time: " + str((x*16 + 4)/CLK_IN_MHZ) + "us"
         })
 
     for c in range(RECEIVER0_NUM_CHANNELS):
@@ -111,5 +125,6 @@ def get_parameters():
             'min': 0.01,
             'max': 100,
             'default': 2.0,
+            'conversion_function': lambda x: str(x*2) + "s"
         })
     return parameters
