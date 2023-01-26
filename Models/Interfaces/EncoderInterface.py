@@ -73,6 +73,14 @@ class EncoderInterface:
         """
         pass
 
+    def shutdown(self):
+        self.cancel_transmission()
+
+        while self.info['transmitting'] == True:
+            time.sleep(LOOP_DELAY_MS)
+
+        for tx in self.transmitters:
+            tx.shutdown()
 
     def run_transmit_symbol_values(self, symbol_values):
         """

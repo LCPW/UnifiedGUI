@@ -47,6 +47,12 @@ class BartelsTransmitter(TransmitterInterface):
         self.smp.write(b"POFF\r\n")
         self.smp.readline().decode("ascii")
 
+    def shutdown(self):
+        self.smp.write(b"POFF\r\n")
+        self.smp.readline().decode("ascii")
+
+        self.smp.close()
+
     def micropump_set_voltage(self, channel, voltage):
         """
         set micropump voltage
