@@ -4,6 +4,7 @@ import time
 
 from Utils import Logging
 
+LOOP_DELAY_MS = 10
 
 class EncoderInterface:
     """
@@ -23,7 +24,7 @@ class EncoderInterface:
             'transmitting': False,
         }
         # Sleep time between individual symbols, should be overridden
-        self.sleep_time = 1
+        self.sleep_time = 1000 #ms
         self.transmission_canceled = False
         self.transmitters = None
 
@@ -31,9 +32,6 @@ class EncoderInterface:
         """
         Performs some further initialization.
         """
-        for transmitter in self.transmitters:
-            thread = threading.Thread(target=transmitter.transmit, daemon=True)
-            thread.start()
 
     def cancel_transmission(self):
         self.transmission_canceled = True
@@ -68,14 +66,25 @@ class EncoderInterface:
         """
         pass
 
+    def prepare_transmission(self, symbol_values):
+        """
+        Allow the encoder to setup any parameters relevant to the actual transmission
+        This may be overriden in your implementation.
+        """
+        pass
+
+
     def run_transmit_symbol_values(self, symbol_values):
         """
         Transmits a list of symbol values.
         :param symbol_values: List of symbol values.
         """
+
+        self.prepare_transmission(symbol_values)
+
         # Uniform sleep times
         if isinstance(self.sleep_time, float) or isinstance(self.sleep_time, int):
-            transmission_time_offsets = [self.sleep_time] * len(symbol_values)
+            transmission_time_offsets = [self.sleep_time] * (len(symbol_values)-1)
         # Non-uniform sleep times
         elif isinstance(self.sleep_time, list):
             if len(self.sleep_time) > len(symbol_values):
@@ -88,13 +97,24 @@ class EncoderInterface:
         # Sleep time not well defined
         else:
             Logging.warning("sleep_time is neither a float nor a list, check your implementation.")
-            transmission_time_offsets = [1.0] * len(symbol_values)
+            transmission_time_offsets = [1000] * len(symbol_values)
 
+        transmission_time_offsets.insert(0, 100) #start with 100ms delay
         transmission_times_offsets_acc = [sum(transmission_time_offsets[:y]) for y in range(1, len(transmission_time_offsets) + 1)]
         start_time = time.time()
-        transmission_times = [x + start_time for x in transmission_times_offsets_acc]
+        transmission_times = [x/1000 + start_time for x in transmission_times_offsets_acc]
+
         self.info['transmitting'] = True
         for sequence_index in range(len(symbol_values)):
+
+            if time.time() > transmission_times[sequence_index]:
+                Logging.warning("Timing error! Transmission time was hit before I was ready.")
+
+            while time.time() < transmission_times[sequence_index]:
+                time.sleep(LOOP_DELAY_MS)
+                if self.transmission_canceled:
+                    break
+
             if self.transmission_canceled:
                 self.info['transmission_progress'] = 0
                 self.transmission_canceled = False
@@ -102,12 +122,7 @@ class EncoderInterface:
 
             self.transmit_single_symbol_value(symbol_values[sequence_index])
             self.info['transmission_progress'] = int(np.round(((sequence_index + 1) / len(symbol_values)) * 100))
-            if self.sleep_time != 0:
-                if time.time() > transmission_times[sequence_index]:
-                    Logging.warning("Transmission of symbol took longer than the given sleep time, this may lead to timing errors.", repeat=True)
-                else:
-                    while time.time() < transmission_times[sequence_index]:
-                        pass
+
         self.info['transmitting'] = False
 
     def transmit_single_symbol_value(self, symbol_value):
