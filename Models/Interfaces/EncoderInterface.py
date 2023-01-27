@@ -73,6 +73,13 @@ class EncoderInterface:
         """
         pass
 
+    def clean_up_transmission(self):
+        """
+        Allow the encoder to spin down any parameters relevant to the actual transmission
+        This may be overriden in your implementation.
+        """
+        pass
+
     def shutdown(self):
         self.cancel_transmission()
 
@@ -131,6 +138,7 @@ class EncoderInterface:
             self.transmit_single_symbol_value(symbol_values[sequence_index])
             self.info['transmission_progress'] = int(np.round(((sequence_index + 1) / len(symbol_values)) * 100))
 
+        self.clean_up_transmission()
         self.info['transmitting'] = False
 
     def transmit_single_symbol_value(self, symbol_value):
