@@ -13,6 +13,7 @@ from Models.Interfaces.TransmitterInterface import TransmitterInterface
 
 class IsmatecTransmitter(TransmitterInterface):
 
+    HARDWARE_ID = "265C:0001"
     BAUDRATE = 9600
     TIMEOUT = 0.1 #s
 

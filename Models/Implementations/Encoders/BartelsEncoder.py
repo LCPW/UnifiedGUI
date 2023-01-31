@@ -168,8 +168,8 @@ class BartelsEncoder(EncoderInterface):
     
         suggested_port = ports[0].name
         for port in sorted(ports):
-            conn = None
-            if BartelsTransmitter.HARDWARE_ID in port.hwid:            
+            if BartelsTransmitter.HARDWARE_ID in port.hwid:
+                conn = None            
                 try:
                     conn = serial.Serial(port=port.name, baudrate=BartelsTransmitter.BAUDRATE, timeout=BartelsTransmitter.TIMEOUT)
                 except serial.serialutil.SerialException:

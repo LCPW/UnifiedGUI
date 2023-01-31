@@ -85,7 +85,7 @@ class IsmatecEncoder(EncoderInterface):
         self.port = self.parameter_values['port']
 
         self.modulation = self.parameter_values['modulation']
-        self.modulation_index = self.parameter_values['modulation index']
+        self.modulation_index = int(self.parameter_values['modulation index'])
 
         self.symbol_interval = self.parameter_values["symbol interval (CSK) [ms]"]
         self.base_time = self.parameter_values["base time (PSK/TSK) [ms]"]
@@ -159,8 +159,6 @@ class IsmatecEncoder(EncoderInterface):
         - check modulation index and transmit accordingly
         - This will be called with correct timing
         """
-        symbol_value = str(symbol_value).strip()
-
         for tx in self.transmitters:
             #For TSK and PSK injection burst is fixed - go ahead
             if self.modulation == "CSK":
@@ -176,7 +174,21 @@ class IsmatecEncoder(EncoderInterface):
     
         suggested_port = ports[0].name
         for port in sorted(ports):
-            # TODO find Reglo ICC port
+            if IsmatecTransmitter.HARDWARE_ID in port.hwid:
+                conn = None            
+                try:
+                    conn = serial.Serial(port=port.name, baudrate=IsmatecTransmitter.BAUDRATE, timeout=IsmatecTransmitter.TIMEOUT)
+                except serial.serialutil.SerialException:
+                    #Port may be in use or wrong
+                    continue
+                
+                conn.write(str.encode("0#\r"))
+                read_id = conn.readline().decode('utf-8').replace("\r\n", "")
+
+                conn.close()
+                if read_id.startswith("REGLO ICC"):
+                    suggested_port = port.name
+                    break
             pass
             
         return ports, suggested_port
