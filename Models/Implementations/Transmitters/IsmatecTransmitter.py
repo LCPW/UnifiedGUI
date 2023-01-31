@@ -63,6 +63,9 @@ class IsmatecTransmitter(TransmitterInterface):
         self.smp.write(ch + b'xf' + flow_rate + b'\r') #Set channel RPM rate (time mode)
 
     def pump_set_time_duration(self, channel, pulse_duration_ms):
+        if pulse_duration_ms == 0:
+            return
+        
         ch = IsmatecTransmitter.to_bytes(channel)
         time = IsmatecTransmitter.to_bytes(f"{pulse_duration_ms/100:08.0f}") #Format time as 00000010 (8 base 10 chars, 1/10 s)
         self.smp.write(ch + b'xT' + time + b'\r') #Set pulse on time

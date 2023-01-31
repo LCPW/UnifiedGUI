@@ -63,6 +63,9 @@ class FraunhoferTransmitter(TransmitterInterface):
         self.smp.write(modeCmd)
 
     def send_burst(self, burst_count):
+        if burst_count == 0:
+            return
+
         burstCmd = 'setBurstCount:' + str(burst_count) + "\n"
         self.smp.write(burstCmd.encode("utf-8"))
 

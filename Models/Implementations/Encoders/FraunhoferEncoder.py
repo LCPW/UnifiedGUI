@@ -32,7 +32,10 @@ class FraunhoferEncoder(EncoderInterface):
     def bits_from_string(sequence):
 
         sequence_in_bytes = [ord(i) for i in sequence]
-        binary_sequence = [(byte >> i) & 1 for i in reversed(range(8)) for byte in sequence_in_bytes]
+        binary_sequence =  []
+        for byte in sequence_in_bytes:
+            for i in reversed(range(8)):
+                binary_sequence.append((byte>>i) & 1)
 
         return binary_sequence
 
@@ -50,24 +53,22 @@ class FraunhoferEncoder(EncoderInterface):
         - encoding individual codes
         """
 
-        is_binary_input = all(val == "1" or val == "0" for val in sequence)
+        is_binary_input = re.search("^[01]*$", sequence)
 
         binary_sequence = []
         if is_binary_input:
             binary_sequence = [int(val) for val in sequence]
         else:
-            binary_sequence = FraunhoferEncoder.bits_from_string(sequence)
+            binary_sequence = BartelsEncoder.bits_from_string(sequence)
 
-
-        modulation_index = int(self.modulation_index)
-        bit_per_symbol = math.log(modulation_index, 2)
+        bit_per_symbol = int(math.log(self.modulation_index, 2))
 
         symbol_count = math.floor(len(binary_sequence)/bit_per_symbol)
         symbol_values = []
         for symbol_index in range(symbol_count):
-            symbol_binary = int("0", bit_per_symbol)
+            symbol_binary = 0
             for b in range(bit_per_symbol):
-                symbol_binary |= binary_sequence[symbol_index + b] << bit_per_symbol-b
+                symbol_binary |= binary_sequence[symbol_index*bit_per_symbol + b] << bit_per_symbol-b-1
             
             symbol_values.append(graycode.gray_code_to_tc(symbol_binary))
 
@@ -93,17 +94,17 @@ class FraunhoferEncoder(EncoderInterface):
         self.extra_time = self.parameter_values['extra time per symbol (e) [ms]']
         
 
-        self.allowed_symbol_values = range(0, int(self.modulation_index))
+        self.allowed_symbol_values = [str(val) for val in range(0, self.modulation_index)]
 
-        if self.modulation == "CSK" and self.burst_per_val*int(self.modulation_index)*(1/self.frequency) > self.symbol_interval:
-            Logging.warn("Nonsensical configuration: Max. burst duration is longer than symbol interval.")
+        if self.modulation == "CSK" and self.injection_duration*(self.modulation_index-1) > self.symbol_interval:
+            Logging.warning("Nonsensical configuration: Max. injection duration is longer than symbol interval.")
         
-        psk_total_length = self.base_time + int(self.modulation_index)*self.extra_time
-        if self.modulation == "PSK" and self.burst_per_val*(1/self.frequency) > psk_total_length:
-            Logging.warn("Nonsensical configuration: Burst duration is longer than symbol interval.")
+        psk_total_length = self.base_time + (self.modulation_index-1)*self.extra_time
+        if self.modulation == "PSK" and self.injection_duration > psk_total_length:
+            Logging.warning("Nonsensical configuration: Injection duration is longer than symbol interval.")
         
-        if self.modulation == "TSK" and self.burst_per_val*(1/self.frequency) > self.base_time:
-            Logging.warn("Nonsensical configuration: Burst duration is longer than TSK minimal duration.")
+        if self.modulation == "TSK" and self.injection_duration > self.base_time:
+            Logging.warning("Nonsensical configuration: Injection duration is longer than TSK minimal duration.")
 
         if self.modulation == "CSK":
             #CSK uses fixed symbol interval
@@ -111,11 +112,12 @@ class FraunhoferEncoder(EncoderInterface):
         #TSK and PSK symbol interval has to be calculated ad-hoc, as value dependant
 
         #Clean up
-        for tx in self.transmitters:
-            try:
-                tx.shutdown()
-            except:
-                pass
+        if self.transmitters is not None:
+            for tx in self.transmitters:
+                try:
+                    tx.shutdown()
+                except:
+                    pass
 
         fraunhofer = FraunhoferTransmitter(self.port)
         fraunhofer.set_frequency(self.frequency)
@@ -128,21 +130,16 @@ class FraunhoferEncoder(EncoderInterface):
         if self.modulation == "TSK":
             #We have to calculate injection delay sequence for TSK
             delay_set = [self.base_time + self.extra_time*value for value in symbol_values[1:]]
-            #end
-            delay_set.append(self.base_time + self.extra_time*self.modulation_index)
             self.sleep_time = delay_set
 
         elif self.modulation == "PSK":
             #We have to calculate injection delay sequence for PSK
-            psk_interval = self.base_time + int(self.modulation_index)*self.extra_time
+            psk_interval = self.base_time + self.modulation_index*self.extra_time
             delay_set = []
             for i in range(1, len(symbol_values)):
                 this_value_time = self.base_time + symbol_values[i]*self.extra_time
                 last_value_wait = psk_interval - (self.base_time + symbol_values[i-1]*self.extra_time)
                 delay_set.append(last_value_wait+this_value_time)
-
-            #end
-            delay_set.append(self.base_time + self.extra_time*self.modulation_index)
 
             self.sleep_time = delay_set
         
@@ -177,7 +174,7 @@ class FraunhoferEncoder(EncoderInterface):
     def available_ports():
         ports = serial.tools.list_ports.comports()
     
-        suggested_port = ""
+        suggested_port = ports[0].name
         for port in sorted(ports):
             """
             conn = None
