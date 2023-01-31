@@ -129,8 +129,6 @@ class BartelsEncoder(EncoderInterface):
         if self.modulation == "TSK":
             #We have to calculate injection delay sequence for TSK
             delay_set = [self.base_time + self.extra_time*value for value in symbol_values[1:]]
-            #end
-            delay_set.append(self.base_time + self.extra_time*self.modulation_index)
             self.sleep_time = delay_set
 
         elif self.modulation == "PSK":
@@ -141,9 +139,6 @@ class BartelsEncoder(EncoderInterface):
                 this_value_time = self.base_time + symbol_values[i]*self.extra_time
                 last_value_wait = psk_interval - (self.base_time + symbol_values[i-1]*self.extra_time)
                 delay_set.append(last_value_wait+this_value_time)
-
-            #end
-            delay_set.append(self.base_time + self.extra_time*self.modulation_index)
 
             self.sleep_time = delay_set
 

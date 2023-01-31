@@ -103,8 +103,8 @@ class EncoderInterface:
         # Non-uniform sleep times
         elif isinstance(self.sleep_time, list):
             if len(self.sleep_time) > len(symbol_values):
-                transmission_time_offsets = self.sleep_time[:len(symbol_values)]
-            elif len(self.sleep_time) < len(symbol_values):
+                transmission_time_offsets = self.sleep_time[:len(symbol_values)-1]
+            elif len(self.sleep_time) < len(symbol_values)-1:
                 q, r = divmod(len(symbol_values), len(self.sleep_time))
                 transmission_time_offsets = q * self.sleep_time + self.sleep_time[:r]
             else:
