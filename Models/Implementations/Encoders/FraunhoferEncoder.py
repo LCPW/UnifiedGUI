@@ -12,9 +12,9 @@ import graycode
 import math
 
 from Models.Interfaces.EncoderInterface import EncoderInterface
-from Models.Implementations.Transmitters.BartelsTransmitter import BartelsTransmitter
+from Models.Implementations.Transmitters.FraunhoferTransmitter import FraunhoferTransmitter
 
-class BartelsEncoder(EncoderInterface):
+class FraunhoferEncoder(EncoderInterface):
     def __init__(self, parameters, parameter_values):
         """
         Initialization of the micropump
@@ -56,7 +56,7 @@ class BartelsEncoder(EncoderInterface):
         if is_binary_input:
             binary_sequence = [int(val) for val in sequence]
         else:
-            binary_sequence = BartelsEncoder.bits_from_string(sequence)
+            binary_sequence = FraunhoferEncoder.bits_from_string(sequence)
 
 
         modulation_index = int(self.modulation_index)
@@ -82,28 +82,28 @@ class BartelsEncoder(EncoderInterface):
         - limit injection duration (symbol interval - 25ms)
         - limit modulation index to 8
         """
-        self.channel = self.parameter_values['channel']
         self.frequency = self.parameter_values['frequency [Hz]']
         self.voltage = self.parameter_values['voltage [V]']
         self.port = self.parameter_values['port']
         self.modulation = self.parameter_values['modulation']
+        self.modulation_index = self.parameter_values['modulation index']
         self.symbol_interval = self.parameter_values['symbol interval [ms]']
-        self.injection_duration = self.parameter_values['injection duration [ms]']
+        self.burst_per_val = self.parameter_values['bursts per value']
         self.base_time = self.parameter_values['base time (b) [ms]']
         self.extra_time = self.parameter_values['extra time per symbol (e) [ms]']
-        self.modulation_index = self.parameter_values['modulation index']
+        
 
         self.allowed_symbol_values = range(0, int(self.modulation_index))
 
-        if self.modulation == "CSK" and self.injection_duration*int(self.modulation_index) > self.symbol_interval:
-            Logging.warn("Nonsensical configuration: Max. injection duration is longer than symbol interval.")
+        if self.modulation == "CSK" and self.burst_per_val*int(self.modulation_index)*(1/self.frequency) > self.symbol_interval:
+            Logging.warn("Nonsensical configuration: Max. burst duration is longer than symbol interval.")
         
         psk_total_length = self.base_time + int(self.modulation_index)*self.extra_time
-        if self.modulation == "PSK" and self.injection_duration > psk_total_length:
-            Logging.warn("Nonsensical configuration: Injection duration is longer than symbol interval.")
+        if self.modulation == "PSK" and self.burst_per_val*(1/self.frequency) > psk_total_length:
+            Logging.warn("Nonsensical configuration: Burst duration is longer than symbol interval.")
         
-        if self.modulation == "TSK" and self.injection_duration > self.base_time:
-            Logging.warn("Nonsensical configuration: Injection duration is longer than TSK minimal duration.")
+        if self.modulation == "TSK" and self.burst_per_val*(1/self.frequency) > self.base_time:
+            Logging.warn("Nonsensical configuration: Burst duration is longer than TSK minimal duration.")
 
         if self.modulation == "CSK":
             #CSK uses fixed symbol interval
@@ -117,9 +117,11 @@ class BartelsEncoder(EncoderInterface):
             except:
                 pass
 
-        bartels = BartelsTransmitter(self.port)
-        bartels.micropump_set_frequency(self.frequency)
-        self.transmitters = [bartels]
+        fraunhofer = FraunhoferTransmitter(self.port)
+        fraunhofer.set_frequency(self.frequency)
+        fraunhofer.set_voltage(self.voltage)
+        fraunhofer.set_burst_mode()
+        self.transmitters = [fraunhofer]
 
 
     def prepare_transmission(self, symbol_values):
@@ -143,9 +145,15 @@ class BartelsEncoder(EncoderInterface):
             delay_set.append(self.base_time + self.extra_time*self.modulation_index)
 
             self.sleep_time = delay_set
+        
+        #Activate pump driver output
+        for tx in self.transmitters:
+            tx.hv_on()
 
     def clean_up_transmission(self):
-        pass
+        #Deactive pump driver output (minimal safety)
+        for tx in self.transmitters:
+            tx.hv_off()
 
     def transmit_single_symbol_value(self, symbol_value):
         """
@@ -155,15 +163,15 @@ class BartelsEncoder(EncoderInterface):
         """
         symbol_value = str(symbol_value).strip()
 
-        injection_duration = self.injection_duration
-        #For TSK and PSK injection burst is fixed - go ahead
+        injection_bursts = self.burst_per_val
+        #For TSK and PSK injection is fixed - go ahead
      
         if self.modulation == "CSK":
-            #Injection burst length depends on symbol value
-            injection_duration = symbol_value*self.injection_duration
+            #Injection burst count depends on symbol value
+            injection_bursts = symbol_value*self.burst_per_val
 
         for tx in self.transmitters:
-                tx.micropump_set_voltage_duration(self.channel, self.voltage, injection_duration)
+                tx.send_burst(injection_bursts)
 
 
     def available_ports():
@@ -171,10 +179,11 @@ class BartelsEncoder(EncoderInterface):
     
         suggested_port = ""
         for port in sorted(ports):
+            """
             conn = None
             if BartelsTransmitter.HARDWARE_ID in port.hwid:            
                 try:
-                    conn = serial.Serial(port=port.name, baudrate=BartelsTransmitter.BAUDRATE, timeout=BartelsTransmitter.TIMEOUT)
+                    conn = serial.Serial(port=port.name, baudrate=FraunhoferTransmitter.BAUDRATE, timeout=FraunhoferTransmitter.TIMEOUT)
                 except serial.serialutil.SerialException:
                     #Port may be in use or wrong
                     continue
@@ -185,6 +194,9 @@ class BartelsEncoder(EncoderInterface):
                 if read_id == BartelsTransmitter.DEVICE_ID:
                     suggested_port = port.name
                     break
+            """
+            pass
+            #TODO: Implement port suggestion
             
         return ports, suggested_port
 
@@ -195,7 +207,7 @@ class BartelsEncoder(EncoderInterface):
         - set default values
         """
 
-        ports, suggested_port = BartelsEncoder.available_ports()
+        ports, suggested_port = FraunhoferEncoder.available_ports()
 
         parameters = [
             {
@@ -203,13 +215,6 @@ class BartelsEncoder(EncoderInterface):
                 'dtype': 'item',
                 'default': suggested_port,
                 'items': [port.name for port in ports],
-            },
-
-            {
-                'description': "channel",
-                'dtype': 'item',
-                'default': "1",
-                'items': ["1", "2", "3", "4"],
             },
 
             {
@@ -230,18 +235,18 @@ class BartelsEncoder(EncoderInterface):
                 'description': "voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 250,
+                'default': 300,
                 'min': 0,
-                'max': 250,
+                'max': 300,
             },
 
             {
                 'description': "frequency [Hz]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 70,
-                'min': 50,
-                'max': 800,
+                'default': 40,
+                'min': 10,
+                'max': 500,
             },
 
             {
@@ -271,12 +276,12 @@ class BartelsEncoder(EncoderInterface):
             },
 
             {
-                'description': "injection duration [ms]",
+                'description': "bursts per value",
                 'dtype': 'int',
                 'decimals': 0,
-                'min': 10,
-                'max': 10000,
-                'default': 100
+                'min': 1,
+                'max': 100,
+                'default': 1
             }
         ]
         return parameters

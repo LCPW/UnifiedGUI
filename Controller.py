@@ -239,6 +239,12 @@ class Controller:
         """
         Performs some cleanup before actually stopping UnifiedGUI.
         """
+
+        try:
+            self.model.encoder.shutdown()
+        except:
+            pass
+
         self.view.timer.stop()
         # Save settings
         try:

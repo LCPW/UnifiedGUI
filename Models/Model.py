@@ -34,7 +34,7 @@ class Model:
         """
         Adds a new encoder.
         :param encoder_type: Encoder type.
-        :param parameters: Inforamtion about parameters.
+        :param parameters: Information about parameters.
         :param parameter_values: User-defined parameter values.
         """
         module = importlib.import_module('.' + encoder_type, package='Models.Implementations.Encoders')

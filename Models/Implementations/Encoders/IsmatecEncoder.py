@@ -1,6 +1,6 @@
 """
-Author: Steve Kungu | Max Bartunik
-E-mail: steve.kungu@fau.de
+Author: Max Bartunik
+E-mail: max.bartunik@fau.de
 """
 
 
@@ -12,17 +12,10 @@ import graycode
 import math
 
 from Models.Interfaces.EncoderInterface import EncoderInterface
-from Models.Implementations.Transmitters.BartelsTransmitter import BartelsTransmitter
+from Models.Implementations.Transmitters.IsmatecTransmitter import IsmatecTransmitter
 
-class BartelsEncoder(EncoderInterface):
+class IsmatecEncoder(EncoderInterface):
     def __init__(self, parameters, parameter_values):
-        """
-        Initialization of the micropump
-        - set right port
-        - set start parameters
-        - update set parameters
-        - determine current runtime
-        """
         super().__init__(parameters, parameter_values)
 
         # update settings
@@ -56,7 +49,7 @@ class BartelsEncoder(EncoderInterface):
         if is_binary_input:
             binary_sequence = [int(val) for val in sequence]
         else:
-            binary_sequence = BartelsEncoder.bits_from_string(sequence)
+            binary_sequence = IsmatecEncoder.bits_from_string(sequence)
 
 
         modulation_index = int(self.modulation_index)
@@ -82,16 +75,20 @@ class BartelsEncoder(EncoderInterface):
         - limit injection duration (symbol interval - 25ms)
         - limit modulation index to 8
         """
-        self.channel = self.parameter_values['channel']
-        self.frequency = self.parameter_values['frequency [Hz]']
-        self.voltage = self.parameter_values['voltage [V]']
+        self.background_channel = self.parameter_values['background flow channel']
+        self.injection_channel = self.parameter_values['injection flow channel']
+        self.background_rate = self.parameter_values['background flow rate [RPM]']
+        self.injection_rate = self.parameter_values['injection flow rate [RPM]']
+
         self.port = self.parameter_values['port']
+
         self.modulation = self.parameter_values['modulation']
-        self.symbol_interval = self.parameter_values['symbol interval [ms]']
-        self.injection_duration = self.parameter_values['injection duration [ms]']
-        self.base_time = self.parameter_values['base time (b) [ms]']
-        self.extra_time = self.parameter_values['extra time per symbol (e) [ms]']
         self.modulation_index = self.parameter_values['modulation index']
+
+        self.symbol_interval = self.parameter_values["symbol interval (CSK) [ms]"]
+        self.base_time = self.parameter_values["base time (PSK/TSK) [ms]"]
+        self.extra_time = self.parameter_values["extra time per symbol (PSK/TSK) [ms]"]
+        self.injection_duration = self.parameter_values["injection duration (per value for CSK) [ms]"]
 
         self.allowed_symbol_values = range(0, int(self.modulation_index))
 
@@ -116,10 +113,14 @@ class BartelsEncoder(EncoderInterface):
                 tx.shutdown()
             except:
                 pass
-
-        bartels = BartelsTransmitter(self.port)
-        bartels.micropump_set_frequency(self.frequency)
-        self.transmitters = [bartels]
+        
+        
+        ismatec = IsmatecTransmitter(self.port)
+        ismatec.pump_set_constant_rate(self.background_channel, self.background_rate)
+        ismatec.pump_set_time_rate(self.injection_channel, self.injection_duration)
+        #For TSK and PSK set fixed pulse injection
+        ismatec.pump_set_time_duration(self.injection_channel, self.injection_duration)
+        self.transmitters = [ismatec]
 
 
     def prepare_transmission(self, symbol_values):
@@ -144,8 +145,15 @@ class BartelsEncoder(EncoderInterface):
 
             self.sleep_time = delay_set
 
+        #start background flow
+        for tx in self.transmitters:
+            tx.pump_start(self.background_channel)
+
     def clean_up_transmission(self):
-        pass
+        #Stop background flow once we are done
+        #TODO: Perhaps introduce a static wait time
+        for tx in self.transmitters:
+            tx.pump_stop(self.background_channel)
 
     def transmit_single_symbol_value(self, symbol_value):
         """
@@ -155,15 +163,14 @@ class BartelsEncoder(EncoderInterface):
         """
         symbol_value = str(symbol_value).strip()
 
-        injection_duration = self.injection_duration
-        #For TSK and PSK injection burst is fixed - go ahead
-     
-        if self.modulation == "CSK":
-            #Injection burst length depends on symbol value
-            injection_duration = symbol_value*self.injection_duration
-
         for tx in self.transmitters:
-                tx.micropump_set_voltage_duration(self.channel, self.voltage, injection_duration)
+            #For TSK and PSK injection burst is fixed - go ahead
+            if self.modulation == "CSK":
+                #Injection burst length depends on symbol value
+                injection_duration = symbol_value*self.injection_duration
+                tx.pump_set_time_duration(self.injection_channel, injection_duration)
+            
+            tx.pump_start(self.injection_channel)
 
 
     def available_ports():
@@ -171,20 +178,8 @@ class BartelsEncoder(EncoderInterface):
     
         suggested_port = ""
         for port in sorted(ports):
-            conn = None
-            if BartelsTransmitter.HARDWARE_ID in port.hwid:            
-                try:
-                    conn = serial.Serial(port=port.name, baudrate=BartelsTransmitter.BAUDRATE, timeout=BartelsTransmitter.TIMEOUT)
-                except serial.serialutil.SerialException:
-                    #Port may be in use or wrong
-                    continue
-                
-                conn.write(str.encode("ID\r\n"))
-                read_id = conn.readline().decode('utf-8').replace("\r\n", "")
-                conn.close()
-                if read_id == BartelsTransmitter.DEVICE_ID:
-                    suggested_port = port.name
-                    break
+            # TODO find Reglo ICC port
+            pass
             
         return ports, suggested_port
 
@@ -195,7 +190,7 @@ class BartelsEncoder(EncoderInterface):
         - set default values
         """
 
-        ports, suggested_port = BartelsEncoder.available_ports()
+        ports, suggested_port = IsmatecEncoder.available_ports()
 
         parameters = [
             {
@@ -206,17 +201,35 @@ class BartelsEncoder(EncoderInterface):
             },
 
             {
-                'description': "channel",
+                'description': "background flow channel",
                 'dtype': 'item',
-                'default': "1",
+                'default': "3",
                 'items': ["1", "2", "3", "4"],
             },
 
             {
-                'description': "modulation index",
+                'description': "background flow rate [RPM]",
+                'dtype': 'float',
+                'decimals': 2,
+                'default': 83,
+                'min': 0.1,
+                'max': 100,
+            },
+
+            {
+                'description': "injection flow channel",
                 'dtype': 'item',
-                'default': "2",
-                'items': ["2", "4", "8", "16", "32", "64", "128", "256", "512", "1024"]
+                'default': "4",
+                'items': ["1", "2", "3", "4"],
+            },
+
+            {
+                'description': "injection flow rate [RPM]",
+                'dtype': 'float',
+                'decimals': 2,
+                'default': 83,
+                'min': 0.1,
+                'max': 100,
             },
 
             {
@@ -227,42 +240,31 @@ class BartelsEncoder(EncoderInterface):
             },
 
             {
-                'description': "voltage [V]",
-                'dtype': 'int',
-                'decimals': 0,
-                'default': 250,
-                'min': 0,
-                'max': 250,
+                'description': "modulation index",
+                'dtype': 'item',
+                'default': "2",
+                'items': ["2", "4", "8", "16", "32", "64", "128", "256", "512", "1024"]
             },
 
             {
-                'description': "frequency [Hz]",
-                'dtype': 'int',
-                'decimals': 0,
-                'default': 70,
-                'min': 50,
-                'max': 800,
-            },
-
-            {
-                'description': "symbol interval [ms]",
+                'description': "symbol interval (CSK) [ms]",
                 'decimals': 0,
                 'dtype': 'float',
-                'min': 25,
+                'min': 100,
                 'max': 10000,
                 'default': 500,
             },
                     {
-                'description': "base time (b) [ms]",
+                'description': "base time (PSK/TSK) [ms]",
                 'dtype': 'int',
                 'decimals': 0,
-                'min': 1,
+                'min': 100,
                 'max': 10000,
                 'default': 500,
             },
 
             {
-                'description': "extra time per symbol (e) [ms]",
+                'description': "extra time per symbol (PSK/TSK) [ms]",
                 'dtype': 'int',
                 'decimals': 0,
                 'min': 1,
@@ -271,10 +273,10 @@ class BartelsEncoder(EncoderInterface):
             },
 
             {
-                'description': "injection duration [ms]",
+                'description': "injection duration (per value for CSK) [ms]",
                 'dtype': 'int',
                 'decimals': 0,
-                'min': 10,
+                'min': 100,
                 'max': 10000,
                 'default': 100
             }
