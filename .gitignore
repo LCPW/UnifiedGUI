@@ -1,6 +1,7 @@
 # User-specific settings
 /Utils/Settings/settings.json
 /Utils/PlotSettings/DecoderPlotSettings/*
+launch.bat
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
