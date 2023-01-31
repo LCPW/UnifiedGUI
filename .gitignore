@@ -3,6 +3,9 @@
 /Utils/PlotSettings/DecoderPlotSettings/*
 launch.bat
 
+# VS Code
+.vscode
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
