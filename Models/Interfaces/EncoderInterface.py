@@ -1,6 +1,6 @@
 import numpy as np
 import threading
-import time
+import time, datetime
 
 from Utils import Logging
 
@@ -95,7 +95,7 @@ class EncoderInterface:
         :param symbol_values: List of symbol values.
         """
 
-        self.prepare_transmission(symbol_values)
+        self.prepare_transmission([int(val) for val in symbol_values])
 
         # Uniform sleep times
         if isinstance(self.sleep_time, float) or isinstance(self.sleep_time, int):
@@ -114,19 +114,27 @@ class EncoderInterface:
             Logging.warning("sleep_time is neither a float nor a list, check your implementation.")
             transmission_time_offsets = [1000] * len(symbol_values)
 
-        transmission_time_offsets.insert(0, 100) #start with 100ms delay
+        transmission_time_offsets.insert(0, 500) #start with 500ms delay
         transmission_times_offsets_acc = [sum(transmission_time_offsets[:y]) for y in range(1, len(transmission_time_offsets) + 1)]
         start_time = time.time()
         transmission_times = [x/1000 + start_time for x in transmission_times_offsets_acc]
+
+        start_timestamp = datetime.datetime.fromtimestamp(transmission_times[0]).strftime(r"%H:%M:%S.%f")[:-3]
+        end_timestamp = datetime.datetime.fromtimestamp(transmission_times[-1]).strftime(r"%H:%M:%S.%f")[:-3]
+        Logging.info(f"First symbol at {start_timestamp}, last symbol at {end_timestamp}.")
+
+        symbol_time = time.time()
 
         self.info['transmitting'] = True
         for sequence_index in range(len(symbol_values)):
 
             if time.time() > transmission_times[sequence_index]:
                 Logging.warning("Timing error! Transmission time was hit before I was ready.")
+                self.info['transmission_progress'] = int(np.round(((sequence_index + 1) / len(symbol_values)) * 100))
+                continue
 
             while time.time() < transmission_times[sequence_index]:
-                time.sleep(LOOP_DELAY_MS)
+                time.sleep(LOOP_DELAY_MS/1000)
                 if self.transmission_canceled:
                     break
 
@@ -135,8 +143,14 @@ class EncoderInterface:
                 self.transmission_canceled = False
                 break
 
-            self.transmit_single_symbol_value(symbol_values[sequence_index])
+            symbol_time = time.time()
+            self.transmit_single_symbol_value(int(symbol_values[sequence_index]))
             self.info['transmission_progress'] = int(np.round(((sequence_index + 1) / len(symbol_values)) * 100))
+
+        time_offset = symbol_time*1000-transmission_times[-1]*1000
+        symbol_timestamp = datetime.datetime.fromtimestamp(symbol_time).strftime(r"%H:%M:%S.%f")[:-3]
+        Logging.info(f"Transmitted last symbol at {symbol_timestamp} (offset: {np.round(time_offset, 2)}ms).")
+
 
         self.clean_up_transmission()
         self.info['transmitting'] = False
