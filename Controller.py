@@ -290,4 +290,5 @@ class Controller:
         Transmit given symbol values.
         :param symbol_values: Symbol values to transmit.
         """
-        self.model.encoder.transmit_symbol_values(symbol_values)
+        trimmed_values = [val.strip() for val in symbol_values]
+        self.model.encoder.transmit_symbol_values(trimmed_values)

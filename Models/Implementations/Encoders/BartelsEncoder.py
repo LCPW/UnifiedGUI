@@ -10,6 +10,7 @@ import serial
 import serial.tools.list_ports
 import graycode
 import math
+import re
 
 from Models.Interfaces.EncoderInterface import EncoderInterface
 from Models.Implementations.Transmitters.BartelsTransmitter import BartelsTransmitter
@@ -32,7 +33,10 @@ class BartelsEncoder(EncoderInterface):
     def bits_from_string(sequence):
 
         sequence_in_bytes = [ord(i) for i in sequence]
-        binary_sequence = [(byte >> i) & 1 for i in reversed(range(8)) for byte in sequence_in_bytes]
+        binary_sequence =  []
+        for byte in sequence_in_bytes:
+            for i in reversed(range(8)):
+                binary_sequence.append((byte>>i) & 1)
 
         return binary_sequence
 
@@ -50,7 +54,7 @@ class BartelsEncoder(EncoderInterface):
         - encoding individual codes
         """
 
-        is_binary_input = all(val == "1" or val == "0" for val in sequence)
+        is_binary_input = re.search("^[01]*$", sequence)
 
         binary_sequence = []
         if is_binary_input:
@@ -58,16 +62,14 @@ class BartelsEncoder(EncoderInterface):
         else:
             binary_sequence = BartelsEncoder.bits_from_string(sequence)
 
-
-        modulation_index = int(self.modulation_index)
-        bit_per_symbol = math.log(modulation_index, 2)
+        bit_per_symbol = int(math.log(self.modulation_index, 2))
 
         symbol_count = math.floor(len(binary_sequence)/bit_per_symbol)
         symbol_values = []
         for symbol_index in range(symbol_count):
-            symbol_binary = int("0", bit_per_symbol)
+            symbol_binary = 0
             for b in range(bit_per_symbol):
-                symbol_binary |= binary_sequence[symbol_index + b] << bit_per_symbol-b
+                symbol_binary |= binary_sequence[symbol_index*bit_per_symbol + b] << bit_per_symbol-b-1
             
             symbol_values.append(graycode.gray_code_to_tc(symbol_binary))
 
@@ -91,19 +93,19 @@ class BartelsEncoder(EncoderInterface):
         self.injection_duration = self.parameter_values['injection duration [ms]']
         self.base_time = self.parameter_values['base time (b) [ms]']
         self.extra_time = self.parameter_values['extra time per symbol (e) [ms]']
-        self.modulation_index = self.parameter_values['modulation index']
+        self.modulation_index = int(self.parameter_values['modulation index'])
 
-        self.allowed_symbol_values = range(0, int(self.modulation_index))
+        self.allowed_symbol_values = [str(val) for val in range(0, self.modulation_index)]
 
-        if self.modulation == "CSK" and self.injection_duration*int(self.modulation_index) > self.symbol_interval:
-            Logging.warn("Nonsensical configuration: Max. injection duration is longer than symbol interval.")
+        if self.modulation == "CSK" and self.injection_duration*(self.modulation_index-1) > self.symbol_interval:
+            Logging.warning("Nonsensical configuration: Max. injection duration is longer than symbol interval.")
         
-        psk_total_length = self.base_time + int(self.modulation_index)*self.extra_time
+        psk_total_length = self.base_time + (self.modulation_index-1)*self.extra_time
         if self.modulation == "PSK" and self.injection_duration > psk_total_length:
-            Logging.warn("Nonsensical configuration: Injection duration is longer than symbol interval.")
+            Logging.warning("Nonsensical configuration: Injection duration is longer than symbol interval.")
         
         if self.modulation == "TSK" and self.injection_duration > self.base_time:
-            Logging.warn("Nonsensical configuration: Injection duration is longer than TSK minimal duration.")
+            Logging.warning("Nonsensical configuration: Injection duration is longer than TSK minimal duration.")
 
         if self.modulation == "CSK":
             #CSK uses fixed symbol interval
@@ -111,11 +113,12 @@ class BartelsEncoder(EncoderInterface):
         #TSK and PSK symbol interval has to be calculated ad-hoc, as value dependant
 
         #Clean up
-        for tx in self.transmitters:
-            try:
-                tx.shutdown()
-            except:
-                pass
+        if self.transmitters is not None:
+            for tx in self.transmitters:
+                try:
+                    tx.shutdown()
+                except:
+                    pass
 
         bartels = BartelsTransmitter(self.port)
         bartels.micropump_set_frequency(self.frequency)
@@ -132,7 +135,7 @@ class BartelsEncoder(EncoderInterface):
 
         elif self.modulation == "PSK":
             #We have to calculate injection delay sequence for PSK
-            psk_interval = self.base_time + int(self.modulation_index)*self.extra_time
+            psk_interval = self.base_time + self.modulation_index*self.extra_time
             delay_set = []
             for i in range(1, len(symbol_values)):
                 this_value_time = self.base_time + symbol_values[i]*self.extra_time
@@ -153,7 +156,6 @@ class BartelsEncoder(EncoderInterface):
         - check modulation index and transmit accordingly
         - This will be called with correct timing
         """
-        symbol_value = str(symbol_value).strip()
 
         injection_duration = self.injection_duration
         #For TSK and PSK injection burst is fixed - go ahead
@@ -169,7 +171,7 @@ class BartelsEncoder(EncoderInterface):
     def available_ports():
         ports = serial.tools.list_ports.comports()
     
-        suggested_port = ""
+        suggested_port = ports[0].name
         for port in sorted(ports):
             conn = None
             if BartelsTransmitter.HARDWARE_ID in port.hwid:            

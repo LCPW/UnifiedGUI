@@ -71,6 +71,9 @@ class BartelsTransmitter(TransmitterInterface):
             voltage (int):  0-250
             duration (int): 0-10000
         """
+        if duration_ms == 0:
+            return
+
         self.micropump_set_voltage(channel, voltage)
 
         time.sleep(duration_ms/1000)

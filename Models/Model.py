@@ -37,8 +37,9 @@ class Model:
         :param parameters: Information about parameters.
         :param parameter_values: User-defined parameter values.
         """
-        module = importlib.import_module('.' + encoder_type, package='Models.Implementations.Encoders')
-        self.encoder = getattr(module, encoder_type)(parameters, parameter_values)
+        module_pkg = importlib.import_module('.' + encoder_type, package='Models.Implementations.Encoders')
+        module = getattr(module_pkg, encoder_type)
+        self.encoder = module(parameters, parameter_values)
         return self.encoder.info
 
     @staticmethod
@@ -94,7 +95,8 @@ class Model:
         :param decoder_type: Decoder type.
         :return: Parameter information.
         """
-        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        module_pkg = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        module = getattr(module_pkg, decoder_type)
         try:
             parameters = module.get_parameters()
         except AttributeError:
@@ -109,10 +111,11 @@ class Model:
         :param encoder_type: Encoder type.
         :return: Parameter information.
         """
-        module = importlib.import_module('.' + encoder_type, package='Models.Implementations.Encoders')
+        module_pkg = importlib.import_module('.' + encoder_type, package='Models.Implementations.Encoders')
+        module = getattr(module_pkg, encoder_type)
         try:
             parameters = module.get_parameters()
-        except AttributeError:
+        except AttributeError as e:
             Logging.info("Function get_parameters not defined.")
             parameters = None
         return parameters
@@ -145,6 +148,11 @@ class Model:
         """
         Removes the encoder.
         """
+        try:
+            self.encoder.shutdown()
+        except:
+            pass
+
         self.encoder = None
 
     def remove_decoder(self):
