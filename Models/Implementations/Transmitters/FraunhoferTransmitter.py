@@ -42,7 +42,7 @@ class FraunhoferTransmitter(TransmitterInterface):
         self.smp.close()
 
     def set_frequency(self, frequency):
-        data = 'setF:' + str(frequency) + '\n'
+        data = 'setFpump:' + str(frequency) + '\n'
         self.smp.write(data.encode('utf-8'))
 
     def hv_on(self):
@@ -59,7 +59,7 @@ class FraunhoferTransmitter(TransmitterInterface):
         self.smp.write(minCmd)
 
     def set_burst_mode(self):
-        modeCmd = b'setMode:3\n' # 1: normal mode, 2: continous mode, 3: burst mode, 4: custom mode
+        modeCmd = b'setMode:2\n' # 0: normal mode, 1: continous mode, 2: burst mode, 3: custom mode
         self.smp.write(modeCmd)
 
     def send_burst(self, burst_count):
@@ -69,5 +69,22 @@ class FraunhoferTransmitter(TransmitterInterface):
         burstCmd = 'setBurstCount:' + str(burst_count) + "\n"
         self.smp.write(burstCmd.encode("utf-8"))
 
+        self.hv_on()
+
         self.smp.write(b'Trigger\n')
+        #HV will be switched off by controller after burst completes
+
+    def read_port_line(serial_port):
+        #Controller always wraps message in "\n" characters
+        newlines = 0
+        message = ""
+        while(newlines < 2):
+            c = serial_port.read().decode()
+            if(c == ''):
+                return False
+            elif(c == '\n'):
+                newlines += 1
+            else:
+                message += c
+        return message
 

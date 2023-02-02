@@ -144,12 +144,10 @@ class FraunhoferEncoder(EncoderInterface):
 
             self.sleep_time = delay_set
         
-        #Activate pump driver output
-        for tx in self.transmitters:
-            tx.hv_on()
 
     def clean_up_transmission(self):
         #Deactive pump driver output (minimal safety)
+        #(should usually be done by controller anyway)
         for tx in self.transmitters:
             tx.hv_off()
 
@@ -174,7 +172,7 @@ class FraunhoferEncoder(EncoderInterface):
     def available_ports():
         ports = serial.tools.list_ports.comports()
     
-        suggested_port = ports[-1].name
+        suggested_port = ports[0].name
         for port in sorted(ports):
             conn = None          
             try:
@@ -183,10 +181,20 @@ class FraunhoferEncoder(EncoderInterface):
                 #Port may be in use or wrong
                 continue
                 
-            conn.write(str.encode("getInfo\r\n"))
-            read_id = conn.readline().decode('utf-8').replace("\n", "")
+            conn.write(str.encode("getInfo\n"))
+            #We expect four lines of reply like: 00009 // FAU // --- // dsPIC33EP64MC202 // TT
+            version = FraunhoferTransmitter.read_port_line(conn)
+            #Do not continue if version does not return
+            if not version:
+                continue
+
+            org = FraunhoferTransmitter.read_port_line(conn)
+            _ = FraunhoferTransmitter.read_port_line(conn)
+            uC_id = FraunhoferTransmitter.read_port_line(conn)
+            _ = FraunhoferTransmitter.read_port_line(conn)
             conn.close()
-            if read_id.startswith("bla"):
+
+            if org == "FAU":
                 suggested_port = port.name
                 break
 
