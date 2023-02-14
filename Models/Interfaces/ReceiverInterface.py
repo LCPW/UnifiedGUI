@@ -83,3 +83,7 @@ class ReceiverInterface:
         if timestamp is None:
             timestamp = time.time()
         self.buffer.append({'timestamp': timestamp, 'values': values})
+
+    def shutdown(self):
+        #Allow for any closing stuff
+        pass

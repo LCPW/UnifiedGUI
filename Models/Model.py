@@ -26,8 +26,9 @@ class Model:
         :param parameter_values: User-defined parameter values.
         :return: Information about decoder.
         """
-        module = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
-        self.decoder = getattr(module, decoder_type)(parameters, parameter_values)
+        module_pkg = importlib.import_module('.' + decoder_type, package='Models.Implementations.Decoders')
+        module = getattr(module_pkg, decoder_type)
+        self.decoder = module(parameters, parameter_values)
         return self.decoder.info
 
     def add_encoder(self, encoder_type, parameters, parameter_values):

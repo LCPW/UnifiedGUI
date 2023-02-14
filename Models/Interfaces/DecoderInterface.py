@@ -237,6 +237,13 @@ class DecoderInterface:
         """
         pass
 
+    def decoder_started(self):
+        """
+        Do stuff when decoder is started.
+        Can be implemented in the decoder implementation.
+        """
+        pass
+
     def decoder_stopped(self):
         """
         Do stuff when decoder is stopped.
@@ -356,11 +363,13 @@ class DecoderInterface:
         Starts the decoder.
         Runs the listen function of the receiver in a new (daemon) thread.
         """
+        self.decoder_started()
         for receiver_index in range(self.num_receivers):
             self.receivers[receiver_index].running = True
             thread = threading.Thread(target=self.receivers[receiver_index].listen, daemon=True)
             thread.start()
         self.active = True
+        
 
     def stop(self):
         """

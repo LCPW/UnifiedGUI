@@ -61,70 +61,70 @@ class LDC1614EVMDecoder(DecoderInterface):
         self.sigma = self.parameter_values['Sigma']
 
 
-def get_parameters():
-    parameters = [
-        {
-            'description': "COM Port",
-            'dtype': 'int',
-            'min': 0,
-            'max': 100,
-            'default': 3,
-            'editable': False
-        },
-        {
-            'description': "Input Deglitch Filter Bandwidth (MHz)",
-            'dtype': 'item',
-            'items': ['1.0', '3.3', '10', '33'],
-            'default': '33',
-            'editable': False
-        },
-        {
-            'description': "Low Power Activation Mode",
-            'dtype': 'bool',
-            'default': False,
-            'editable': False
-        }]
+    def get_parameters():
+        parameters = [
+            {
+                'description': "COM Port",
+                'dtype': 'int',
+                'min': 0,
+                'max': 100,
+                'default': 3,
+                'editable': False
+            },
+            {
+                'description': "Input Deglitch Filter Bandwidth (MHz)",
+                'dtype': 'item',
+                'items': ['1.0', '3.3', '10', '33'],
+                'default': '33',
+                'editable': False
+            },
+            {
+                'description': "Low Power Activation Mode",
+                'dtype': 'bool',
+                'default': False,
+                'editable': False
+            }]
 
-    for c in range(RECEIVER0_NUM_CHANNELS):
+        for c in range(RECEIVER0_NUM_CHANNELS):
+            parameters.append({
+                'description': "Settle Count CH" + str(c),
+                'dtype': 'int',
+                'min': 0,
+                'max': 65535,
+                'default': 1024,
+                'editable': False,
+                'conversion_function': lambda x: "Settling Time: " + str((x*16)/CLK_IN_MHZ) + "us"
+            })
+
+        for c in range(RECEIVER0_NUM_CHANNELS):
+            parameters.append({
+                'description': "Reference Count CH" + str(c),
+                'dtype': 'int',
+                'min': 0,
+                'max': 65535,
+                'default': 65535,
+                'editable': False,
+                'conversion_function': lambda x: "Conversion Time: " + str((x*16 + 4)/CLK_IN_MHZ) + "us"
+            })
+
+        for c in range(RECEIVER0_NUM_CHANNELS):
+            parameters.append({
+                'description': "Drive Current CH" + str(c),
+                'dtype': 'int',
+                'min': -1,
+                'max': 31,
+                'default': -1,
+                'editable': False
+            })
+
         parameters.append({
-            'description': "Settle Count CH" + str(c),
-            'dtype': 'int',
-            'min': 0,
-            'max': 65535,
-            'default': 1024,
-            'editable': False,
-            'conversion_function': lambda x: "Settling Time: " + str((x*16)/CLK_IN_MHZ) + "us"
-        })
-
-    for c in range(RECEIVER0_NUM_CHANNELS):
-        parameters.append({
-            'description': "Reference Count CH" + str(c),
-            'dtype': 'int',
-            'min': 0,
-            'max': 65535,
-            'default': 65535,
-            'editable': False,
-            'conversion_function': lambda x: "Conversion Time: " + str((x*16 + 4)/CLK_IN_MHZ) + "us"
-        })
-
-    for c in range(RECEIVER0_NUM_CHANNELS):
-        parameters.append({
-            'description': "Drive Current CH" + str(c),
-            'dtype': 'int',
-            'min': -1,
-            'max': 31,
-            'default': -1,
-            'editable': False
-        })
-
-    parameters.append({
-            # Sigma value for Gaussian filter
-            'description': "Sigma",
-            'decimals': 2,
-            'dtype': 'float',
-            'min': 0.01,
-            'max': 100,
-            'default': 2.0,
-            'conversion_function': lambda x: str(x*2) + "s"
-        })
-    return parameters
+                # Sigma value for Gaussian filter
+                'description': "Sigma",
+                'decimals': 2,
+                'dtype': 'float',
+                'min': 0.01,
+                'max': 100,
+                'default': 2.0,
+                'conversion_function': lambda x: str(x*2) + "s"
+            })
+        return parameters
