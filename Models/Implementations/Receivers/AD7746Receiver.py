@@ -4,14 +4,15 @@ from Models.Interfaces.ReceiverInterface import ReceiverInterface
 from Utils import Logging
 
 import serial
+import time
 
 class AD7746Receiver(ReceiverInterface):
 
-    #HARDWARE_ID = "2341:8037" #Arduino Micro
-    HARDWARE_ID = "2341:0043" #Arduino Uno
+    HARDWARE_ID = "2341:8037" #Arduino Micro
+    #HARDWARE_ID = "2341:0043" #Arduino Uno
     DEVICE_ID = "MacMolComCapacitiveSensor"
     BAUDRATE = 115200
-    TIMEOUT = 0.3 #s
+    TIMEOUT = 0.2 #s
 
     def __init__(self, port, conversion_time_level, excitation_level, active_channel, channel_diff):
         super().__init__()
@@ -39,6 +40,9 @@ class AD7746Receiver(ReceiverInterface):
         self.set_excitation_level(excitation_level)
         self.set_channel_config(active_channel, channel_diff)
 
+        self.ms_offset = None
+        self.start_rx_time = None
+
         super().setup()
 
     def set_conversion_time(self, time_level):
@@ -65,6 +69,10 @@ class AD7746Receiver(ReceiverInterface):
         write_cmd = b"STOP"
         if on:
             write_cmd = b"START"
+            
+            #Reset times for this transmission
+            self.ms_offset = None
+            self.start_rx_time = None
 
         self.smp.write(write_cmd + b"\r\n")
         self.smp.readline()
@@ -77,6 +85,18 @@ class AD7746Receiver(ReceiverInterface):
         out_val = zero_corrected*4096/8388607 #fF
         return out_val
 
+    def convert_timestamp(self, uc_time):
+        #uc_time is ms since the uc startup (will loop after about 40days)
+
+        if self.ms_offset == None:
+            #Set initial offset
+            self.ms_offset = uc_time
+            self.start_rx_time = time.time()
+        
+        timestamp = (uc_time-self.ms_offset)/1000 + self.start_rx_time
+        return timestamp
+
+
     def shutdown(self):
         self.set_status(False)
         self.smp.close()
@@ -84,9 +104,13 @@ class AD7746Receiver(ReceiverInterface):
 
     def listen_step(self):
         
-        while self.smp.in_waiting > 0:
+        if self.smp.in_waiting > 0:
             dataset = self.smp.readline().decode("ascii")
             elements = dataset.split(", ")
+            if len(elements) != 2:
+                Logging.warning("Unexpected receiver message: " + dataset)
+                return
+
             uc_time = int(elements[0])
             raw_value = int(elements[1])
-            self.append_values([self.convert_raw_value(raw_value)], uc_time)
+            self.append_values([self.convert_raw_value(raw_value)], self.convert_timestamp(uc_time))

@@ -235,6 +235,14 @@ class DecoderInterface:
         Do stuff when decoder is removed.
         Can be implemented in the decoder implementation.
         """
+        self.shutdown()
+        pass
+
+    def shutdown(self):
+        """
+        Stop decoder and receivers.
+        Can be implemented in the decoder implementation.
+        """
         pass
 
     def decoder_started(self):

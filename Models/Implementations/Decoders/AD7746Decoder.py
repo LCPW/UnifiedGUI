@@ -79,7 +79,18 @@ class AD7746Decoder(DecoderInterface):
                 except:
                     pass
 
+
+    def pre_processing(self):
+        pass
+
+    def calculate_additional_datalines(self):
+        pass
+
+    def calculate_landmarks(self):
+        pass
+
     def calculate_symbol_intervals(self):
+        return
         l = self.lengths[0]
         if l > 0:
             difference = self.received[0][1:l] - self.received[0][0:l-1]
@@ -87,6 +98,8 @@ class AD7746Decoder(DecoderInterface):
             self.symbol_intervals = [self.timestamps[0][i] for i in indices]
 
     def calculate_symbol_values(self):
+        return
+
         for i in range(len(self.symbol_values), len(self.symbol_intervals) - 1):
             left_index = np.argmin(list(map(abs, self.timestamps[0][:self.lengths[0]] - self.symbol_intervals[i])))
             right_index = np.argmin(list(map(abs, self.timestamps[0][:self.lengths[0]] - self.symbol_intervals[i + 1])))
@@ -95,6 +108,8 @@ class AD7746Decoder(DecoderInterface):
             self.symbol_values += [max_tmp]
 
     def calculate_sequence(self):
+        return
+
         symbol_length = 7
         length = max(0, len(self.symbol_values) - symbol_length * 2)
         for i in range(len(self.sequence) * symbol_length * 2, length, symbol_length * 2):
@@ -105,6 +120,13 @@ class AD7746Decoder(DecoderInterface):
                 c = c * 2 + bit
             self.sequence += chr(c)
 
+    def shutdown(self):
+        if self.receivers is not None:
+            for rx in self.receivers:
+                try:
+                    rx.shutdown()
+                except:
+                    pass
 
     def available_ports():
         ports = serial.tools.list_ports.comports()
@@ -120,11 +142,7 @@ class AD7746Decoder(DecoderInterface):
                     continue
                 
                 conn.write(b"ID\r\n")
-                read_id = conn.readline().decode('utf-8') #.replace("\r\n", "")
-                read_id2 = conn.readline().decode('utf-8')
-                read_id3 = conn.readline().decode('utf-8')
-                read_id4 = conn.readline().decode('utf-8')
-                read_id5 = conn.readline().decode('utf-8')
+                read_id = conn.readline().decode('utf-8').replace("\r\n", "")
                 conn.close()
                 if read_id == AD7746Receiver.DEVICE_ID:
                     suggested_port = port.name

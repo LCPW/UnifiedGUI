@@ -241,7 +241,14 @@ class Controller:
         """
 
         try:
+            self.cancel_transmission()
             self.model.encoder.shutdown()
+        except:
+            pass
+
+        try:
+            self.stop_decoder()
+            self.model.decoder.shutdown()
         except:
             pass
 
@@ -283,7 +290,7 @@ class Controller:
             self.view.decoder_view.decoder_stopped()
         except Exception as e:
             Logging.error(e.args[0])
-            Logging.error("Failed to start decoder.")
+            Logging.error("Failed to stop decoder.")
 
     def transmit_symbol_values(self, symbol_values):
         """
