@@ -24,10 +24,10 @@ class PlotWidgetView(pg.PlotWidget):
         self.setLabel('bottom', "Time")
 
         #self.setMouseEnabled(x=True, y=False)
-        self.setMouseEnabled(x=False, y=False)
+        self.setMouseEnabled(x=False, y=True)
 
         # Legend
-        self.legend = pg.LegendItem()
+        self.legend = pg.LegendItem(offset=(50, 5))
         self.legend.setParentItem(self.getPlotItem())
 
         self.additional_datalines = []

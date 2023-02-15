@@ -296,8 +296,8 @@ class DecoderView(QWidget):
         """
         Stops the decoder.
         """
-        if ViewUtils.message_box_warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
-            self.view.controller.stop_decoder()
+        #if ViewUtils.message_box_warning(self.style(), "Stop decoder?", "Are you sure you want to stop the decoder?", "Once the decoder is stopped, no more new data can be shown."):
+        self.view.controller.stop_decoder()
 
     def update_(self, decoded):
         """
