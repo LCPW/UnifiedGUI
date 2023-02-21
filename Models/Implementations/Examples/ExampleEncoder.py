@@ -1,7 +1,7 @@
 import numpy as np
 
 from Models.Interfaces.EncoderInterface import EncoderInterface
-from Models.Implementations.Transmitters.ExampleTransmitter import ExampleTransmitter
+from Models.Implementations.Examples.ExampleTransmitter import ExampleTransmitter
 
 
 class ExampleEncoder(EncoderInterface):

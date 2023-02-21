@@ -1,7 +1,7 @@
 import numpy as np
 
 from Models.Interfaces.DecoderInterface import DecoderInterface
-from Models.Implementations.Receivers.ExampleReceiver import ExampleReceiver
+from Models.Implementations.Examples.ExampleReceiver import ExampleReceiver
 
 
 class ExampleDecoder(DecoderInterface):

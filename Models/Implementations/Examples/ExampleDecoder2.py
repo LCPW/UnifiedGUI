@@ -2,7 +2,7 @@ import random
 import time
 
 from Models.Interfaces.DecoderInterface import DecoderInterface
-from Models.Implementations.Receivers.ExampleReceiver2 import ExampleReceiver2
+from Models.Implementations.Examples.ExampleReceiver2 import ExampleReceiver2
 
 
 class ExampleDecoder2(DecoderInterface):
