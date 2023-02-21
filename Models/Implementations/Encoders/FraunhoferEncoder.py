@@ -176,12 +176,16 @@ class FraunhoferEncoder(EncoderInterface):
         for port in sorted(ports):
             conn = None          
             try:
-                conn = serial.Serial(port=port.name, baudrate=FraunhoferTransmitter.BAUDRATE, timeout=FraunhoferTransmitter.TIMEOUT)
+                conn = serial.Serial(port=port.name, baudrate=FraunhoferTransmitter.BAUDRATE, write_timeout=FraunhoferTransmitter.TIMEOUT, timeout=FraunhoferTransmitter.TIMEOUT)
             except serial.serialutil.SerialException:
                 #Port may be in use or wrong
                 continue
-                
-            conn.write(str.encode("getInfo\n"))
+            
+            try:
+                conn.write(str.encode("getInfo\n"))
+            except serial.serialutil.SerialTimeoutException:
+                continue
+            
             #We expect four lines of reply like: 00009 // FAU // --- // dsPIC33EP64MC202 // TT
             version = FraunhoferTransmitter.read_port_line(conn)
             #Do not continue if version does not return

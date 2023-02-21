@@ -172,6 +172,7 @@ class BartelsEncoder(EncoderInterface):
                 conn = None            
                 try:
                     conn = serial.Serial(port=port.name, baudrate=BartelsTransmitter.BAUDRATE, timeout=BartelsTransmitter.TIMEOUT)
+                    conn.write_timeout = BartelsTransmitter.TIMEOUT
                 except serial.serialutil.SerialException:
                     #Port may be in use or wrong
                     continue
