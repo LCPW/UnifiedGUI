@@ -31,7 +31,8 @@ class PlotSettings:
                 self.settings = json.load(s)
         except IOError:
             Logging.info(f"No plot settings found for {decoder_info['type']}. Loading default settings.")
-            self.load_default_settings(decoder_info)
+        
+        self.load_default_settings(decoder_info)
 
     def load_default_settings(self, decoder_info):
         """
