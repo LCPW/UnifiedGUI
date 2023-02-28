@@ -53,6 +53,9 @@ class AD7746Decoder(DecoderInterface):
         self.active_channel = int(active_channel_str)
         self.diff_mode = self.parameter_values["differential mode"]
 
+        self.threshold_factor = self.parameter_values["detection threshold factor"]
+        self.symbol_duration = self.parameter_values["symbol duration [s]"]
+
         #Clean up
         if self.receivers is not None:
             for rx in self.receivers:
@@ -60,6 +63,9 @@ class AD7746Decoder(DecoderInterface):
                     rx.shutdown()
                 except:
                     pass
+
+        self.abs_detection_threshold = 0
+        self.first_symbol_edge = 0
 
         receiver = AD7746Receiver(self.port, self.conversion_time, self.excitation_level, self.active_channel, self.diff_mode)
         self.receivers = [receiver]
@@ -90,12 +96,37 @@ class AD7746Decoder(DecoderInterface):
         pass
 
     def calculate_symbol_intervals(self):
-        return
-        l = self.lengths[0]
-        if l > 0:
-            difference = self.received[0][1:l] - self.received[0][0:l-1]
-            indices = list(np.nonzero(np.array(difference))[0])
-            self.symbol_intervals = [self.timestamps[0][i] for i in indices]
+        ref_threshold_length = 2 #seconds
+
+        if self.first_symbol_edge > 0:
+            next_edge = self.symbol_intervals[-1] + self.symbol_duration
+            if self.timestamps[0][-1] > next_edge:
+                self.symbol_intervals.append(next_edge)
+            
+            return
+
+        if self.timestamps[0][-1] - self.timestamps[0][0] < ref_threshold_length:
+            #We have to wait for eneough samples
+            return
+        elif self.abs_detection_threshold == 0:
+            #Use start of transmission to determine a first peak threshold
+            quiet_stop = np.argmax(self.timestamps[0] > self.timestamps[0][0] + ref_threshold_length)
+
+            min_value = min(self.received[0][0:quiet_stop])
+            abs_variation = max(self.received[0][0:quiet_stop]) - min_value
+
+            self.abs_detection_threshold = abs_variation*self.threshold_factor + min_value
+
+        else:
+            #find first threshold pass to detect first peak
+            threshold_pass = np.argmax(self.received[0] > self.abs_detection_threshold)
+            if threshold_pass > 0:
+                first_peak_end_limit = np.argmax(self.timestamps[0] > self.timestamps[0][threshold_pass] + self.symbol_duration)
+                first_peak = np.argmax(self.received[0][threshold_pass:first_peak_end_limit])
+
+                #center first peak in first symbol interval
+                self.first_symbol_edge = self.timestamps[0][threshold_pass+first_peak] - self.symbol_duration/2
+                self.symbol_intervals = [self.first_symbol_edge]
 
     def calculate_symbol_values(self):
         return
@@ -183,6 +214,22 @@ class AD7746Decoder(DecoderInterface):
                 'description': "differential mode",
                 'dtype': 'bool',
                 'default': False
+            },
+            {
+                'description': "detection threshold factor",
+                'decimals': 2,
+                'dtype': 'float',
+                'min': 1,
+                'max': 50,
+                'default': 5.0
+            },
+            {
+                'description': "symbol duration [s]",
+                'decimals': 3,
+                'dtype': 'float',
+                'min': 0.010,
+                'max': 20,
+                'default': 1
             }
         ]
         return parameters
