@@ -100,17 +100,17 @@ class AD7746Decoder(DecoderInterface):
 
         if self.first_symbol_edge > 0:
             next_edge = self.symbol_intervals[-1] + self.symbol_duration
-            if self.timestamps[0][-1] > next_edge:
+            if self.max_timestamp > next_edge:
                 self.symbol_intervals.append(next_edge)
             
             return
-
-        if self.timestamps[0][-1] - self.timestamps[0][0] < ref_threshold_length:
+        
+        if self.max_timestamp - self.min_timestamp < ref_threshold_length:
             #We have to wait for eneough samples
             return
         elif self.abs_detection_threshold == 0:
             #Use start of transmission to determine a first peak threshold
-            quiet_stop = np.argmax(self.timestamps[0] > self.timestamps[0][0] + ref_threshold_length)
+            quiet_stop = np.argmax(self.timestamps[0] > self.min_timestamp + ref_threshold_length)
 
             min_value = min(self.received[0][0:quiet_stop])
             abs_variation = max(self.received[0][0:quiet_stop]) - min_value
@@ -122,11 +122,12 @@ class AD7746Decoder(DecoderInterface):
             threshold_pass = np.argmax(self.received[0] > self.abs_detection_threshold)
             if threshold_pass > 0:
                 first_peak_end_limit = np.argmax(self.timestamps[0] > self.timestamps[0][threshold_pass] + self.symbol_duration)
-                first_peak = np.argmax(self.received[0][threshold_pass:first_peak_end_limit])
+                if first_peak_end_limit > 0:
+                    first_peak = np.argmax(self.received[0][threshold_pass:first_peak_end_limit])
 
-                #center first peak in first symbol interval
-                self.first_symbol_edge = self.timestamps[0][threshold_pass+first_peak] - self.symbol_duration/2
-                self.symbol_intervals = [self.first_symbol_edge]
+                    #center first peak in first symbol interval
+                    self.first_symbol_edge = self.timestamps[0][threshold_pass+first_peak] - self.symbol_duration/2
+                    self.symbol_intervals = [self.first_symbol_edge]
 
     def calculate_symbol_values(self):
         return
