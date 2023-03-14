@@ -57,12 +57,7 @@ class AD7746Decoder(DecoderInterface):
         self.symbol_duration = self.parameter_values["symbol duration [s]"]
 
         #Clean up
-        if self.receivers is not None:
-            for rx in self.receivers:
-                try:
-                    rx.shutdown()
-                except:
-                    pass
+        self.shutdown()
 
         self.abs_detection_threshold = 0
         self.first_symbol_edge = 0
@@ -70,6 +65,11 @@ class AD7746Decoder(DecoderInterface):
         receiver = AD7746Receiver(self.port, self.conversion_time, self.excitation_level, self.active_channel, self.diff_mode)
         self.receivers = [receiver]
         self.receiver_names = ["AD7746"]
+
+    def clear(self):
+        self.abs_detection_threshold = 0
+        self.first_symbol_edge = 0
+        return super().clear()
 
     def decoder_started(self):
         self.set_rx_status(True)

@@ -60,7 +60,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         self.active_channels = num_channels
         self.clk_in_mhz = clk_in_mhz
         self.sensor_names = ["CH" + str(i) + " (MHz)" for i in range(4)]
-        self.drop_first_measurements = 5
+        self.drop_first_measurements = 10
 
         super().setup()
 

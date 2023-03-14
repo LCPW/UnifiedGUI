@@ -203,6 +203,9 @@ class DecoderInterface:
         self.sequence = ""
         self.landmarks = [None] * self.num_landmarks
 
+        self.min_timestamp = time.time()
+        self.max_timestamp = time.time()
+
         for receiver in self.receivers:
             receiver.buffer = []
 
