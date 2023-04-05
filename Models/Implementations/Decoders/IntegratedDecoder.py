@@ -1,0 +1,319 @@
+
+import scipy.ndimage
+import serial
+import serial.tools.list_ports
+import numpy as np
+
+from Models.Interfaces.DecoderInterface import DecoderInterface
+from Models.Implementations.Receivers.IntegratedReceiver import IntegratedReceiver
+from Utils import Logging
+
+CLK_IN_MHZ = 40.0
+
+
+class IntegratedDecoder(DecoderInterface):
+    """
+    Decoder for the Integrated Decoder
+    """
+    def __init__(self, parameters, parameter_values):
+        super().__init__(parameters, parameter_values)
+
+        self.parameter_values = parameter_values
+        self.parameters_edited()
+
+        super().setup()
+
+    def calculate_additional_datalines(self):
+        """
+        Generates Gaussian filtered version of the datalines.
+        Note: Can be optimized by avoiding re-calculating old values every time.
+        """
+        received = self.decoded['received']
+        lengths, timestamps = received['lengths'], received['timestamps']
+        for i in range(self.active_channels):
+            sensor_values = self.get_received(0, i)
+            # No values available
+            if sensor_values is None:
+                return
+            sensor_filtered = scipy.ndimage.gaussian_filter1d(sensor_values, self.sigma)
+            dataline = {'length': lengths[0], 'timestamps': timestamps[0][:lengths[0]], 'values': sensor_filtered}
+            self.additional_datalines[i] = dataline
+
+    def parameters_edited(self):
+        
+        self.sigma = self.parameter_values['Sigma']
+        
+        port = self.parameter_values['port']
+
+        #--------------------------------------------------------------------------------------------------IND
+        deglitch_filter = self.parameter_values["IND Input Deglitch Filter Bandwidth (MHz)"]
+
+        settle_count = self.parameter_values["IND Settle Count"]
+        # Settle count allows for the sensor to settle after power up
+        # SETTLECOUNT >= floor((Q_sensor * 40MHz) / (16* f_sensor))
+        # Q_sensor = Rp*sqrt(C/L)
+        # t_settle = Q_sensor / f_sensor = SETTLECOUNT*16/40MHz
+
+        reference_count = self.parameter_values["IND Reference Count"]
+        # This is an internal meas averaging - the highest possible value is best
+        # R_COUNT = floor(t_count * 40MHz / 16)
+        # t_count = 1/f_sample - t_settle - t_switchdelay ---> trade-off between sample rate (f_sample) and sensitivity
+        # t_switchdelay = 629ns + 5/40MHz = 754ns
+
+        self.active_channels = self.parameter_values["IND active channels"]
+        self.additional_datalines_names = ["CH" + str(i) + " Filtered (MHz)" for i in range(2)]
+        #--------------------------------------------------------------------------------------------------IND
+
+        #--------------------------------------------------------------------------------------------------CAP
+
+        conv_time_str = self.parameter_values["conversion time"]
+
+        if conv_time_str == "11.0ms":
+            self.conversion_time = 0
+        elif conv_time_str == "11.9ms":
+            self.conversion_time = 1
+        elif conv_time_str == "20.0ms":
+            self.conversion_time = 2
+        elif conv_time_str == "38.0ms":
+            self.conversion_time = 3
+        elif conv_time_str == "62.0ms":
+            self.conversion_time = 4
+        elif conv_time_str == "77.0ms":
+            self.conversion_time = 5
+        elif conv_time_str == "92.0ms":
+            self.conversion_time = 6
+        elif conv_time_str == "109.6ms":
+            self.conversion_time = 7
+
+        exc_level_str = self.parameter_values["excitation level"]
+
+        if exc_level_str == "Vdd/8":
+            self.excitation_level = 0
+        elif exc_level_str == "Vdd/4":
+            self.excitation_level = 1
+        elif exc_level_str == "Vdd*3/8":
+            self.excitation_level = 2
+        elif exc_level_str == "Vdd/2":
+            self.excitation_level = 3
+
+        active_channel_str = self.parameter_values["active channel"]
+        self.active_channel = int(active_channel_str)
+        self.diff_mode = self.parameter_values["differential mode"]
+        #--------------------------------------------------------------------------------------------------CAP
+
+        self.threshold_factor = self.parameter_values["detection threshold factor"]
+        self.symbol_duration = self.parameter_values["symbol duration [s]"]
+
+
+        t_count = reference_count*16/(CLK_IN_MHZ*1000000)
+        t_settle = settle_count*16/(CLK_IN_MHZ*1000000)
+        t_switchdelay = 0.000000754
+
+        t_sample = (t_count + t_settle + t_switchdelay)*self.active_channels
+        Logging.info(f"Approximate inductance sample rate: {1/t_sample:2.2f} Sa/s")
+
+
+        self.plot_settings = {
+            'additional_datalines_active': [True, self.active_channels>1, self.active_channels>2, self.active_channels>3],
+            'additional_datalines_width': 3,
+            'datalines_active': [[True, self.active_channels>1, self.active_channels>2, self.active_channels>3]],
+            'datalines_width': 3
+        }
+
+        #Clean up
+        self.shutdown()
+
+        self.abs_detection_threshold = 0
+        self.first_symbol_edge = 0
+
+        # Define receivers list
+        receiver = IntegratedReceiver(self.active_channels, CLK_IN_MHZ, port, deglitch_filter, settle_count, reference_count)
+        self.receivers = [receiver]
+        self.receiver_names = ["Integrated Sensor"]
+
+    def clear(self):
+        self.abs_detection_threshold = 0
+        self.first_symbol_edge = 0
+        return super().clear()
+
+    def calculate_symbol_intervals(self):
+        return
+        ref_threshold_length = 2 #seconds
+
+        if self.first_symbol_edge > 0:
+            next_edge = self.symbol_intervals[-1] + self.symbol_duration
+            if self.max_timestamp > next_edge:
+                self.symbol_intervals.append(next_edge)
+            
+            return
+        
+        if self.max_timestamp - self.min_timestamp < ref_threshold_length:
+            #We have to wait for enough samples
+            return
+        elif self.abs_detection_threshold == 0:
+            #Use start of transmission to determine a first peak threshold
+            quiet_stop = np.argmax(self.timestamps[0] > self.min_timestamp + ref_threshold_length)
+
+            min_value = min(self.received[0][0:quiet_stop])
+            abs_variation = max(self.received[0][0:quiet_stop]) - min_value
+
+            self.abs_detection_threshold = min_value + abs_variation*self.threshold_factor
+
+        else:
+            #find first threshold pass to detect first peak
+            threshold_pass = np.argmax(self.received[0] > self.abs_detection_threshold)
+            if threshold_pass > 0:
+                first_peak_end_limit = np.argmax(self.timestamps[0] > self.timestamps[0][threshold_pass] + self.symbol_duration)
+                if first_peak_end_limit > 0:
+                    first_peak = np.argmax(self.received[0][threshold_pass:first_peak_end_limit])
+
+                    #center first peak in first symbol interval
+                    self.first_symbol_edge = self.timestamps[0][threshold_pass+first_peak] - self.symbol_duration/2
+                    self.symbol_intervals = [self.first_symbol_edge]
+
+    def available_ports():
+        ports = serial.tools.list_ports.comports()
+    
+        suggested_port = ports[0].name
+        for port in sorted(ports):
+            if IntegratedReceiver.HARDWARE_ID in port.hwid:          
+                try:
+                    serial.Serial(port=port.name, baudrate=IntegratedReceiver.BAUDRATE, timeout=IntegratedReceiver.TIMEOUT)
+                except serial.serialutil.SerialException:
+                    #Port may be in use or wrong
+                    continue
+                
+                suggested_port = port.name
+                break
+            
+        return ports, suggested_port
+
+    def shutdown(self):
+        if self.receivers is not None:
+            for rx in self.receivers:
+                try:
+                    rx.shutdown()
+                except:
+                    pass
+
+    def decoder_started(self):
+        if self.receivers is not None:
+            for rx in self.receivers:
+                try:
+                    rx.set_streaming(True)
+                except:
+                    pass
+    
+    def decoder_stopped(self):
+        if self.receivers is not None:
+            for rx in self.receivers:
+                try:
+                    rx.set_streaming(False)
+                except:
+                    pass
+
+    def get_parameters():
+        ports, suggested_port = IntegratedDecoder.available_ports()
+
+        parameters = [
+            {
+                'description': "port",
+                'dtype': 'item',
+                'default': suggested_port,
+                'items': [port.name for port in ports],
+            },
+            {
+                'description': "Use capacitive sensor (CAP)",
+                'dtype': 'bool',
+                'default': True
+            },
+            {
+                'description': "CAP conversion time",
+                'dtype': 'item',
+                'items': ['11.0ms', '11.9ms', '20.0ms', '38.0ms', '62.0ms', '77.0ms', '92.0ms', '109.6ms'],
+                'default': '11.0ms'
+            },
+            {
+                'description': "CAP excitation level",
+                'dtype': 'item',
+                'items': ['Vdd/8', 'Vdd/4', 'Vdd*3/8', 'Vdd/2'],
+                'default': 'Vdd/2'
+            },
+            {
+                'description': "CAP active channel",
+                'dtype': 'item',
+                'items': ['1', '2'],
+                'default': '2'
+            },
+            {
+                'description': "CAP differential mode",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "Use inductive sensor (IND)",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "IND active channels",
+                'dtype': 'int',
+                'min': 1,
+                'max': 2,
+                'default': 1,
+                'editable': True
+            },
+            {
+                'description': "IND Input Deglitch Filter Bandwidth (MHz)",
+                'dtype': 'item',
+                'items': ['1.0', '3.3', '10', '33'],
+                'default': '3.3',
+                'editable': True
+            },
+            {
+                'description': "IND Settle Count",
+                'dtype': 'int',
+                'min': 2,
+                'max': 65535,
+                'default': 1024,
+                'editable': True,
+                'conversion_function': lambda x: str((x*16)/CLK_IN_MHZ) + "us"
+            },
+            {
+                'description': "IND Reference Count",
+                'dtype': 'int',
+                'min': 5,
+                'max': 65535,
+                'default': 65535,
+                'editable': True,
+                'conversion_function': lambda x: str((x*16)/CLK_IN_MHZ) + "us"
+            },
+            {
+                'description': "detection threshold factor",
+                'decimals': 2,
+                'dtype': 'float',
+                'min': 1,
+                'max': 50,
+                'default': 5.0
+            },
+            {
+                'description': "symbol duration [s]",
+                'decimals': 3,
+                'dtype': 'float',
+                'min': 0.010,
+                'max': 20,
+                'default': 1
+            }]
+
+
+        parameters.append({
+                # Sigma value for Gaussian filter
+                'description': "Sigma",
+                'decimals': 2,
+                'dtype': 'float',
+                'min': 0.01,
+                'max': 100,
+                'default': 2.0,
+                'conversion_function': lambda x: str(x*2) + "s"
+            })
+        return parameters
