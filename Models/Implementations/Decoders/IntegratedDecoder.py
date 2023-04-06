@@ -23,29 +23,12 @@ class IntegratedDecoder(DecoderInterface):
 
         super().setup()
 
-    def calculate_additional_datalines(self):
-        """
-        Generates Gaussian filtered version of the datalines.
-        Note: Can be optimized by avoiding re-calculating old values every time.
-        """
-        received = self.decoded['received']
-        lengths, timestamps = received['lengths'], received['timestamps']
-        for i in range(self.active_channels):
-            sensor_values = self.get_received(0, i)
-            # No values available
-            if sensor_values is None:
-                return
-            sensor_filtered = scipy.ndimage.gaussian_filter1d(sensor_values, self.sigma)
-            dataline = {'length': lengths[0], 'timestamps': timestamps[0][:lengths[0]], 'values': sensor_filtered}
-            self.additional_datalines[i] = dataline
-
     def parameters_edited(self):
-        
-        self.sigma = self.parameter_values['Sigma']
-        
+                
         port = self.parameter_values['port']
 
         #--------------------------------------------------------------------------------------------------IND
+        self.use_ind = self.parameter_values["Use inductive sensor (IND)"]
         deglitch_filter = self.parameter_values["IND Input Deglitch Filter Bandwidth (MHz)"]
 
         settle_count = self.parameter_values["IND Settle Count"]
@@ -60,63 +43,62 @@ class IntegratedDecoder(DecoderInterface):
         # t_count = 1/f_sample - t_settle - t_switchdelay ---> trade-off between sample rate (f_sample) and sensitivity
         # t_switchdelay = 629ns + 5/40MHz = 754ns
 
-        self.active_channels = self.parameter_values["IND active channels"]
-        self.additional_datalines_names = ["CH" + str(i) + " Filtered (MHz)" for i in range(2)]
-        #--------------------------------------------------------------------------------------------------IND
-
-        #--------------------------------------------------------------------------------------------------CAP
-
-        conv_time_str = self.parameter_values["conversion time"]
-
-        if conv_time_str == "11.0ms":
-            self.conversion_time = 0
-        elif conv_time_str == "11.9ms":
-            self.conversion_time = 1
-        elif conv_time_str == "20.0ms":
-            self.conversion_time = 2
-        elif conv_time_str == "38.0ms":
-            self.conversion_time = 3
-        elif conv_time_str == "62.0ms":
-            self.conversion_time = 4
-        elif conv_time_str == "77.0ms":
-            self.conversion_time = 5
-        elif conv_time_str == "92.0ms":
-            self.conversion_time = 6
-        elif conv_time_str == "109.6ms":
-            self.conversion_time = 7
-
-        exc_level_str = self.parameter_values["excitation level"]
-
-        if exc_level_str == "Vdd/8":
-            self.excitation_level = 0
-        elif exc_level_str == "Vdd/4":
-            self.excitation_level = 1
-        elif exc_level_str == "Vdd*3/8":
-            self.excitation_level = 2
-        elif exc_level_str == "Vdd/2":
-            self.excitation_level = 3
-
-        active_channel_str = self.parameter_values["active channel"]
-        self.active_channel = int(active_channel_str)
-        self.diff_mode = self.parameter_values["differential mode"]
-        #--------------------------------------------------------------------------------------------------CAP
-
-        self.threshold_factor = self.parameter_values["detection threshold factor"]
-        self.symbol_duration = self.parameter_values["symbol duration [s]"]
-
+        self.active_ind_channels = self.parameter_values["IND active channels"]
 
         t_count = reference_count*16/(CLK_IN_MHZ*1000000)
         t_settle = settle_count*16/(CLK_IN_MHZ*1000000)
         t_switchdelay = 0.000000754
 
-        t_sample = (t_count + t_settle + t_switchdelay)*self.active_channels
-        Logging.info(f"Approximate inductance sample rate: {1/t_sample:2.2f} Sa/s")
+        t_sample = (t_count + t_settle + t_switchdelay)*self.active_ind_channels
+        #--------------------------------------------------------------------------------------------------IND
+        #--------------------------------------------------------------------------------------------------CAP
 
+        self.use_cap = self.parameter_values["Use capacitive sensor (CAP)"]
+        conv_time_str = self.parameter_values["CAP conversion time"]
+
+        conversion_time = 0
+
+        if conv_time_str == "11.0ms":
+            conversion_time = 0
+        elif conv_time_str == "11.9ms":
+            conversion_time = 1
+        elif conv_time_str == "20.0ms":
+            conversion_time = 2
+        elif conv_time_str == "38.0ms":
+            conversion_time = 3
+        elif conv_time_str == "62.0ms":
+            conversion_time = 4
+        elif conv_time_str == "77.0ms":
+            conversion_time = 5
+        elif conv_time_str == "92.0ms":
+            conversion_time = 6
+        elif conv_time_str == "109.6ms":
+            conversion_time = 7
+
+        exc_level_str = self.parameter_values["CAP excitation level"]
+        excitation_level = 0
+        if exc_level_str == "Vdd/8":
+            excitation_level = 0
+        elif exc_level_str == "Vdd/4":
+            excitation_level = 1
+        elif exc_level_str == "Vdd*3/8":
+            excitation_level = 2
+        elif exc_level_str == "Vdd/2":
+            excitation_level = 3
+
+        active_channel_str = self.parameter_values["CAP active channel"]
+        active_cap_channel = int(active_channel_str)
+        diff_mode = self.parameter_values["CAP differential mode"]
+        #--------------------------------------------------------------------------------------------------CAP
+
+        if self.use_ind and not self.use_cap:
+            Logging.info(f"Approximate inductance sample rate: {1/t_sample:2.2f} Sa/s")
+
+        self.threshold_factor = self.parameter_values["detection threshold factor"]
+        self.symbol_duration = self.parameter_values["symbol duration [s]"]
 
         self.plot_settings = {
-            'additional_datalines_active': [True, self.active_channels>1, self.active_channels>2, self.active_channels>3],
-            'additional_datalines_width': 3,
-            'datalines_active': [[True, self.active_channels>1, self.active_channels>2, self.active_channels>3]],
+            'datalines_active': [[self.use_cap, self.use_ind, self.use_ind and self.active_ind_channels > 1]],
             'datalines_width': 3
         }
 
@@ -127,7 +109,11 @@ class IntegratedDecoder(DecoderInterface):
         self.first_symbol_edge = 0
 
         # Define receivers list
-        receiver = IntegratedReceiver(self.active_channels, CLK_IN_MHZ, port, deglitch_filter, settle_count, reference_count)
+        receiver = IntegratedReceiver(port, 
+                conversion_time, excitation_level, active_cap_channel, diff_mode,
+                self.active_ind_channels, CLK_IN_MHZ, deglitch_filter, settle_count, reference_count,
+                self.use_cap, self.use_ind)                     
+        
         self.receivers = [receiver]
         self.receiver_names = ["Integrated Sensor"]
 
@@ -197,18 +183,16 @@ class IntegratedDecoder(DecoderInterface):
                     pass
 
     def decoder_started(self):
-        if self.receivers is not None:
-            for rx in self.receivers:
-                try:
-                    rx.set_streaming(True)
-                except:
-                    pass
+        self.set_rx_status(True)
     
     def decoder_stopped(self):
+        self.set_rx_status(False)
+
+    def set_rx_status(self, status):
         if self.receivers is not None:
             for rx in self.receivers:
                 try:
-                    rx.set_streaming(False)
+                    rx.set_status(status)
                 except:
                     pass
 
@@ -243,7 +227,7 @@ class IntegratedDecoder(DecoderInterface):
                 'description': "CAP active channel",
                 'dtype': 'item',
                 'items': ['1', '2'],
-                'default': '2'
+                'default': '1'
             },
             {
                 'description': "CAP differential mode",
@@ -305,15 +289,4 @@ class IntegratedDecoder(DecoderInterface):
                 'default': 1
             }]
 
-
-        parameters.append({
-                # Sigma value for Gaussian filter
-                'description': "Sigma",
-                'decimals': 2,
-                'dtype': 'float',
-                'min': 0.01,
-                'max': 100,
-                'default': 2.0,
-                'conversion_function': lambda x: str(x*2) + "s"
-            })
         return parameters

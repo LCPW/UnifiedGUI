@@ -12,11 +12,12 @@ class IntegratedReceiver(ReceiverInterface):
     #HARDWARE_ID = "2341:0043" #Arduino Uno
     DEVICE_ID = "MacMolComIntegratedSensor"
     BAUDRATE = 115200
-    TIMEOUT = 0.2 #s
+    TIMEOUT = 0.01 #s
 
     def __init__(self, port, 
                  cap_conversion_time_level, cap_excitation_level, cap_active_channel, cap_channel_diff, 
-                 ind_num_channels, ind_clk_in_mhz, ind_deglitch_filter, ind_settle_count, ind_reference_count):
+                 ind_num_channels, ind_clk_in_mhz, ind_deglitch_filter, ind_settle_count, ind_reference_count,
+                 use_cap, use_ind):
         super().__init__()
 
         self.num_sensors = 3
@@ -45,6 +46,10 @@ class IntegratedReceiver(ReceiverInterface):
         self.set_ind_mux_config(ind_deglitch_filter, ind_num_channels)
         self.set_ind_settle_count(ind_settle_count)
         self.set_ind_reference_count(ind_reference_count)
+
+        self.set_active_devices(use_cap, use_ind)
+
+        self.clk_in_mhz = ind_clk_in_mhz
 
         self.ms_offset = None
         self.start_rx_time = None
@@ -138,6 +143,33 @@ class IntegratedReceiver(ReceiverInterface):
         
         timestamp = (uc_time-self.ms_offset)/1000 + self.start_rx_time
         return timestamp
+    
+    def calculate_frequency(self, data, channel, err):
+
+        errStat = err & 0b00001111
+
+        if channel > 0:
+            errStat = (err & 0b11110000)>>4
+
+        if errStat & (1<<1) > 0:
+            Logging.warning(f"ERR_UR/OR{channel}: Channel {channel} Conversion Under/Over-range Error", repeat=False)
+        if errStat & (1<<2) > 0:
+            Logging.warning(f"ERR_WD{channel}: Channel {channel} Conversion Watchdog Timeout Error", repeat=False)
+        if errStat & (1<<3) > 0:
+            Logging.warning(f"ERR_AE{channel}: Channel {channel} Conversion Amplitude Error", repeat=False)
+        if errStat & (1<<0) > 0:
+            Logging.warning(f"ERR{channel}: Channel {channel} Conversion Error", repeat=False)
+        
+        # Calculate reference frequency and channel offset
+        offset = 0 #we currently do not use an offset or dividers
+        reference_divider = 1
+        input_divider = 1
+        reference_frequency = self.clk_in_mhz * 1000000 / reference_divider
+        channel_offset = (offset / 2 ** 16) * reference_frequency
+
+        # Calculate frequency (see page 39 of the data sheet)
+        frequency = input_divider * reference_frequency * ((data / 2 ** 28) + (channel_offset / 2 ** 16))
+        return frequency
 
 
     def shutdown(self):
@@ -146,9 +178,16 @@ class IntegratedReceiver(ReceiverInterface):
 
 
     def listen_step(self):
+
+        t1 = time.time()
+        t3 = 0
+        t4 = 0
+        t5 = 0
         
         if self.smp.in_waiting > 0:
+            t4 = time.time()
             dataset = self.smp.readline().decode("ascii")
+            t5 = time.time()
             elements = dataset.split(", ")
             if len(elements) != 5:
                 Logging.warning("Unexpected receiver message: " + dataset)
@@ -159,4 +198,11 @@ class IntegratedReceiver(ReceiverInterface):
             raw_ind0_value = int(elements[2])
             raw_ind1_value = int(elements[3])
             ind_channel_errors = int(elements[4])
-            self.append_values([self.convert_raw_cap_value(raw_cap_value)], self.convert_timestamp(uc_time))
+            t3 = time.time()
+            ind0_val = self.calculate_frequency(raw_ind0_value, 0, ind_channel_errors)
+            ind1_val = self.calculate_frequency(raw_ind1_value, 1, ind_channel_errors)
+            self.append_values([self.convert_raw_cap_value(raw_cap_value), ind0_val, ind1_val], self.convert_timestamp(uc_time))
+
+        t2 = time.time()
+
+        print((t5-t4)*1000)
