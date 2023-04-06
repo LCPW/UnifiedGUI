@@ -111,6 +111,9 @@ class AD7746Receiver(ReceiverInterface):
                 Logging.warning("Unexpected receiver message: " + dataset)
                 return
 
-            uc_time = int(elements[0])
-            raw_value = int(elements[1])
-            self.append_values([self.convert_raw_value(raw_value)], self.convert_timestamp(uc_time))
+            try:
+                uc_time = int(elements[0])
+                raw_value = int(elements[1])
+                self.append_values([self.convert_raw_value(raw_value)], self.convert_timestamp(uc_time))
+            except:
+                Logging.warning("Unexpected receiver message.")

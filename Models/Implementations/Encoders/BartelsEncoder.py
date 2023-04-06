@@ -63,9 +63,12 @@ class BartelsEncoder(EncoderInterface):
             binary_sequence = BartelsEncoder.bits_from_string(sequence)
 
         bit_per_symbol = int(math.log(self.modulation_index, 2))
+        max_value = self.modulation_index-1
 
         symbol_count = math.floor(len(binary_sequence)/bit_per_symbol)
-        symbol_values = []
+
+        #Prepend transmission with sync
+        symbol_values = [max_value, 0, 0]
         for symbol_index in range(symbol_count):
             symbol_binary = 0
             for b in range(bit_per_symbol):
@@ -248,7 +251,7 @@ class BartelsEncoder(EncoderInterface):
                 'dtype': 'float',
                 'min': 25,
                 'max': 10000,
-                'default': 500,
+                'default': 1000,
             },
                     {
                 'description': "base time (b) [ms]",
@@ -265,7 +268,7 @@ class BartelsEncoder(EncoderInterface):
                 'decimals': 0,
                 'min': 1,
                 'max': 10000,
-                'default': 10,
+                'default': 50,
             },
 
             {
@@ -274,7 +277,7 @@ class BartelsEncoder(EncoderInterface):
                 'decimals': 0,
                 'min': 10,
                 'max': 10000,
-                'default': 100
+                'default': 200
             }
         ]
         return parameters

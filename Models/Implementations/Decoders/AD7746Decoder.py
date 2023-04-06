@@ -7,6 +7,7 @@ import serial.tools.list_ports
 from Models.Interfaces.DecoderInterface import DecoderInterface
 from Models.Implementations.Receivers.AD7746Receiver import AD7746Receiver
 
+NEGATIVE_DETECTION_THRESHOLD = True
 
 class AD7746Decoder(DecoderInterface):
     def __init__(self, parameters, parameter_values):
@@ -68,6 +69,7 @@ class AD7746Decoder(DecoderInterface):
 
     def clear(self):
         self.abs_detection_threshold = 0
+        self.abs_variation = 0
         self.first_symbol_edge = 0
         return super().clear()
 
@@ -106,51 +108,93 @@ class AD7746Decoder(DecoderInterface):
             return
         
         if self.max_timestamp - self.min_timestamp < ref_threshold_length:
-            #We have to wait for eneough samples
+            #We have to wait for enough samples
             return
         elif self.abs_detection_threshold == 0:
             #Use start of transmission to determine a first peak threshold
             quiet_stop = np.argmax(self.timestamps[0] > self.min_timestamp + ref_threshold_length)
-
+            
+            max_value = max(self.received[0][0:quiet_stop])
             min_value = min(self.received[0][0:quiet_stop])
-            abs_variation = max(self.received[0][0:quiet_stop]) - min_value
+            self.abs_variation = max_value - min_value
 
-            self.abs_detection_threshold = abs_variation*self.threshold_factor + min_value
+            if NEGATIVE_DETECTION_THRESHOLD:
+                self.abs_detection_threshold = max_value - self.abs_variation*(self.threshold_factor + 0.5)
+            else:
+                self.abs_detection_threshold = min_value + self.abs_variation*(self.threshold_factor + 0.5)
 
         else:
             #find first threshold pass to detect first peak
-            threshold_pass = np.argmax(self.received[0] > self.abs_detection_threshold)
+            threshold_pass = 0
+            if NEGATIVE_DETECTION_THRESHOLD:
+                threshold_pass = np.argmax(self.received[0] < self.abs_detection_threshold)
+            else:
+                threshold_pass = np.argmax(self.received[0] > self.abs_detection_threshold)
+
             if threshold_pass > 0:
                 first_peak_end_limit = np.argmax(self.timestamps[0] > self.timestamps[0][threshold_pass] + self.symbol_duration)
                 if first_peak_end_limit > 0:
-                    first_peak = np.argmax(self.received[0][threshold_pass:first_peak_end_limit])
+                    first_peak = 0
+                    if NEGATIVE_DETECTION_THRESHOLD:
+                        first_peak = np.argmin(self.received[0][threshold_pass:first_peak_end_limit])
+                    else:
+                        first_peak = np.argmax(self.received[0][threshold_pass:first_peak_end_limit])
 
                     #center first peak in first symbol interval
                     self.first_symbol_edge = self.timestamps[0][threshold_pass+first_peak] - self.symbol_duration/2
                     self.symbol_intervals = [self.first_symbol_edge]
 
     def calculate_symbol_values(self):
-        return
+        
+        if len(self.symbol_intervals)-1 > len(self.symbol_values):
+            start_time = self.symbol_intervals[-2]
+            end_time = self.symbol_intervals[-1]
 
-        for i in range(len(self.symbol_values), len(self.symbol_intervals) - 1):
-            left_index = np.argmin(list(map(abs, self.timestamps[0][:self.lengths[0]] - self.symbol_intervals[i])))
-            right_index = np.argmin(list(map(abs, self.timestamps[0][:self.lengths[0]] - self.symbol_intervals[i + 1])))
+            start_index = np.argmax(self.timestamps[0] > start_time)
+            end_index = np.argmax(self.timestamps[0] > end_time)
 
-            max_tmp = int(np.round(np.mean(self.received[0][left_index:right_index])))
-            self.symbol_values += [max_tmp]
+            if start_index == 0 or start_index == end_index:
+                return
+
+            interval_data = self.received[0][start_index:end_index]
+
+            #So far only binary CSK
+            symbol_value = self.binary_threshold_detection(interval_data)
+        
+            self.symbol_values.append(symbol_value)
+
+    def binary_threshold_detection(self, interval_data):
+        if NEGATIVE_DETECTION_THRESHOLD:
+            #Downward symbols
+            min_index = np.argmin(interval_data)
+            if min_index > 0 and max(interval_data[0:min_index]) > interval_data[min_index] + self.abs_variation*self.threshold_factor:
+                return 1
+        else:
+            max_index = np.argmax(interval_data)
+            if max_index > 0 and min(interval_data[0:max_index]) < interval_data[max_index] - self.abs_variation*self.threshold_factor:
+                return 1
+        
+        return 0
 
     def calculate_sequence(self):
-        return
 
-        symbol_length = 7
-        length = max(0, len(self.symbol_values) - symbol_length * 2)
-        for i in range(len(self.sequence) * symbol_length * 2, length, symbol_length * 2):
-            vs = self.symbol_values[i:i + symbol_length * 2]
-            vs = [v-1 for v in vs if v > 0]
-            c = 0
-            for bit in vs:
-                c = c * 2 + bit
-            self.sequence += chr(c)
+        #binary CSK
+        sync_symbols = 3
+        symbol_length = 8
+
+        received_seq_length = np.floor((len(self.symbol_values)-3)/symbol_length)
+
+        if received_seq_length > 0 and received_seq_length > len(self.sequence):
+            #We have something to decode
+
+            seq_start = len(self.sequence)*symbol_length+sync_symbols
+
+            chr_value = 0
+
+            for i in range(symbol_length):
+                chr_value += (self.symbol_values[seq_start+i]<<(7-i))
+
+            self.sequence += chr(chr_value)
 
     def shutdown(self):
         if self.receivers is not None:
