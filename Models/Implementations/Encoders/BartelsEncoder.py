@@ -87,7 +87,10 @@ class BartelsEncoder(EncoderInterface):
         - limit injection duration (symbol interval - 25ms)
         - limit modulation index to 8
         """
-        self.channel = self.parameter_values['channel']
+        self.channel1 = self.parameter_values['channel 1']
+        self.channel2 = self.parameter_values['channel 2']
+        self.channel3 = self.parameter_values['channel 3']
+        self.channel4 = self.parameter_values['channel 4']
         self.frequency = self.parameter_values['frequency [Hz]']
         self.voltage = self.parameter_values['voltage [V]']
         self.port = self.parameter_values['port']
@@ -145,7 +148,14 @@ class BartelsEncoder(EncoderInterface):
 
             self.sleep_time = delay_set
 
+        #Start pump
+        for tx in self.transmitters:
+            tx.micropump_set_state(True)
+
     def clean_up_transmission(self):
+        #Stop pump
+        for tx in self.transmitters:
+            tx.micropump_set_state(False)
         pass
 
     def transmit_single_symbol_value(self, symbol_value):
@@ -163,7 +173,7 @@ class BartelsEncoder(EncoderInterface):
             injection_duration = symbol_value*self.injection_duration
 
         for tx in self.transmitters:
-                tx.micropump_set_voltage_duration(self.channel, self.voltage, injection_duration)
+                tx.micropump_set_voltage_duration(self.channel1, self.channel2, self.channel3, self.channel4, self.voltage, injection_duration)
 
 
     def available_ports():
@@ -205,12 +215,25 @@ class BartelsEncoder(EncoderInterface):
                 'default': suggested_port,
                 'items': [port.name for port in ports],
             },
-
             {
-                'description': "channel",
-                'dtype': 'item',
-                'default': "1",
-                'items': ["1", "2", "3", "4"],
+                'description': "channel 1",
+                'dtype': 'bool',
+                'default': True
+            },
+            {
+                'description': "channel 2",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "channel 3",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "channel 4",
+                'dtype': 'bool',
+                'default': False
             },
 
             {
