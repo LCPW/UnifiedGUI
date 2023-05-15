@@ -166,7 +166,7 @@ class FraunhoferEncoder(EncoderInterface):
             injection_bursts = symbol_value*self.burst_per_val
 
         for tx in self.transmitters:
-                tx.send_burst(injection_bursts)
+            tx.send_burst(injection_bursts)
 
 
     def available_ports():

@@ -6,6 +6,7 @@ E-mail: max.bartunik@fau.de
 import time
 import serial.tools.list_ports
 import serial
+import math
 from Utils import Logging
 
 from Models.Interfaces.TransmitterInterface import TransmitterInterface
@@ -73,6 +74,20 @@ class FraunhoferTransmitter(TransmitterInterface):
 
         self.smp.write(b'Trigger\n')
         #HV will be switched off by controller after burst completes
+
+    def send_volume_burst(self, burst_amount, max_voltage):
+        #Use this with care - not really working
+        if burst_amount == 0:
+            return
+        full_bursts = math.floor(burst_amount)
+        last_burst = burst_amount-full_bursts
+
+        self.set_voltage(max_voltage)
+        self.send_burst(full_bursts)
+
+        if last_burst > 0:
+            self.set_voltage(max_voltage*last_burst)
+            self.send_burst(1)
 
     def read_port_line(serial_port):
         #Controller always wraps message in "\n" characters
