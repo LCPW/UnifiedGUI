@@ -141,7 +141,7 @@ class PocketLoCDecoder(DecoderInterface):
                 'max': 1000,
                 'default': 10,
                 'editable': True,
-                'conversion_function': lambda x: str(1000/(x*4)) + "Sa/s"
+                'conversion_function': lambda x: f"{1000/(x*4):.1f} Sa/s"
             },
             {
                 'description': "Sensor 1",
