@@ -63,9 +63,12 @@ class BartelsEncoder(EncoderInterface):
             binary_sequence = BartelsEncoder.bits_from_string(sequence)
 
         bit_per_symbol = int(math.log(self.modulation_index, 2))
+        max_value = self.modulation_index-1
 
         symbol_count = math.floor(len(binary_sequence)/bit_per_symbol)
-        symbol_values = []
+
+        #Prepend transmission with sync
+        symbol_values = [max_value, 0, 0]
         for symbol_index in range(symbol_count):
             symbol_binary = 0
             for b in range(bit_per_symbol):
@@ -84,7 +87,10 @@ class BartelsEncoder(EncoderInterface):
         - limit injection duration (symbol interval - 25ms)
         - limit modulation index to 8
         """
-        self.channel = self.parameter_values['channel']
+        self.channel1 = self.parameter_values['channel 1']
+        self.channel2 = self.parameter_values['channel 2']
+        self.channel3 = self.parameter_values['channel 3']
+        self.channel4 = self.parameter_values['channel 4']
         self.frequency = self.parameter_values['frequency [Hz]']
         self.voltage = self.parameter_values['voltage [V]']
         self.port = self.parameter_values['port']
@@ -133,7 +139,7 @@ class BartelsEncoder(EncoderInterface):
 
         elif self.modulation == "PSK":
             #We have to calculate injection delay sequence for PSK
-            psk_interval = self.base_time + self.modulation_index*self.extra_time
+            psk_interval = self.base_time + (self.modulation_index-1)*self.extra_time
             delay_set = []
             for i in range(1, len(symbol_values)):
                 this_value_time = self.base_time + symbol_values[i]*self.extra_time
@@ -142,7 +148,14 @@ class BartelsEncoder(EncoderInterface):
 
             self.sleep_time = delay_set
 
+        #Start pump
+        for tx in self.transmitters:
+            tx.micropump_set_state(True)
+
     def clean_up_transmission(self):
+        #Stop pump
+        for tx in self.transmitters:
+            tx.micropump_set_state(False)
         pass
 
     def transmit_single_symbol_value(self, symbol_value):
@@ -160,7 +173,7 @@ class BartelsEncoder(EncoderInterface):
             injection_duration = symbol_value*self.injection_duration
 
         for tx in self.transmitters:
-                tx.micropump_set_voltage_duration(self.channel, self.voltage, injection_duration)
+                tx.micropump_set_voltage_duration(self.channel1, self.channel2, self.channel3, self.channel4, self.voltage, injection_duration)
 
 
     def available_ports():
@@ -202,12 +215,25 @@ class BartelsEncoder(EncoderInterface):
                 'default': suggested_port,
                 'items': [port.name for port in ports],
             },
-
             {
-                'description': "channel",
-                'dtype': 'item',
-                'default': "1",
-                'items': ["1", "2", "3", "4"],
+                'description': "channel 1",
+                'dtype': 'bool',
+                'default': True
+            },
+            {
+                'description': "channel 2",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "channel 3",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "channel 4",
+                'dtype': 'bool',
+                'default': False
             },
 
             {
@@ -248,7 +274,7 @@ class BartelsEncoder(EncoderInterface):
                 'dtype': 'float',
                 'min': 25,
                 'max': 10000,
-                'default': 500,
+                'default': 1000,
             },
                     {
                 'description': "base time (b) [ms]",
@@ -265,7 +291,7 @@ class BartelsEncoder(EncoderInterface):
                 'decimals': 0,
                 'min': 1,
                 'max': 10000,
-                'default': 10,
+                'default': 50,
             },
 
             {
@@ -274,7 +300,7 @@ class BartelsEncoder(EncoderInterface):
                 'decimals': 0,
                 'min': 10,
                 'max': 10000,
-                'default': 100
+                'default': 200
             }
         ]
         return parameters

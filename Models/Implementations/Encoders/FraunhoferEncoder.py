@@ -135,7 +135,7 @@ class FraunhoferEncoder(EncoderInterface):
 
         elif self.modulation == "PSK":
             #We have to calculate injection delay sequence for PSK
-            psk_interval = self.base_time + self.modulation_index*self.extra_time
+            psk_interval = self.base_time + (self.modulation_index-1)*self.extra_time
             delay_set = []
             for i in range(1, len(symbol_values)):
                 this_value_time = self.base_time + symbol_values[i]*self.extra_time
@@ -166,7 +166,7 @@ class FraunhoferEncoder(EncoderInterface):
             injection_bursts = symbol_value*self.burst_per_val
 
         for tx in self.transmitters:
-                tx.send_burst(injection_bursts)
+            tx.send_burst(injection_bursts)
 
 
     def available_ports():

@@ -104,13 +104,18 @@ class AD7746Receiver(ReceiverInterface):
 
     def listen_step(self):
         
-        if self.smp.in_waiting > 0:
-            dataset = self.smp.readline().decode("ascii")
+        while self.smp.in_waiting >= 24:
+            raw_set = self.smp.readline()
+            dataset = raw_set.decode("ascii")
             elements = dataset.split(", ")
             if len(elements) != 2:
                 Logging.warning("Unexpected receiver message: " + dataset)
                 return
 
-            uc_time = int(elements[0])
-            raw_value = int(elements[1])
-            self.append_values([self.convert_raw_value(raw_value)], self.convert_timestamp(uc_time))
+            try:
+                uc_time = int(elements[0])
+                raw_value = int(elements[1])
+                self.append_values([self.convert_raw_value(raw_value)], self.convert_timestamp(uc_time))
+            except:
+                Logging.warning("Unexpected receiver message.")
+                return

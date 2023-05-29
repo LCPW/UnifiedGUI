@@ -162,7 +162,7 @@ class PlotSettingsDialog(QDialog):
         # Symbol values fixed height
         self.spinbox_symbol_values_fixed_height = QDoubleSpinBox()
         self.spinbox_symbol_values_fixed_height.setDecimals(2)
-        self.spinbox_symbol_values_fixed_height.setRange(-100, 100)
+        self.spinbox_symbol_values_fixed_height.setRange(-10000, 10000)
         self.spinbox_symbol_values_fixed_height.valueChanged.connect(self.plot_view.set_symbol_values_height)
 
         # Symbol values size

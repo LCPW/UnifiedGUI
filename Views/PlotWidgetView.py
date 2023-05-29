@@ -375,23 +375,28 @@ class PlotWidgetView(pg.PlotWidget):
                     timestamps, values = vals['timestamps'], vals['values']
                     minimum_values, maximum_values = [], []
                     for receiver_index in range(len(timestamps)):
-                        left_index = np.argmin(list(map(abs, timestamps[receiver_index] - symbol_intervals[i])))
-                        right_index = np.argmin(list(map(abs, timestamps[receiver_index] - symbol_intervals[i+1])))
-                        if left_index == right_index:
-                            max_tmp = np.max(values[receiver_index][left_index])
-                            min_tmp = np.max(values[receiver_index][left_index])
+
+                        start_time = symbol_intervals[i]
+                        end_time = symbol_intervals[i+1]
+
+                        start_index = np.argmax(timestamps[receiver_index] > start_time)
+                        end_index = np.argmax(timestamps[receiver_index] > end_time)
+
+                        if start_index == end_index:
+                            max_tmp = values[receiver_index][start_index]
+                            min_tmp = values[receiver_index][start_index]
                         else:
-                            max_tmp = np.max(values[receiver_index][left_index:right_index])
-                            min_tmp = np.min(values[receiver_index][left_index:right_index])
+                            max_tmp = np.max(values[receiver_index][start_index:end_index])
+                            min_tmp = np.min(values[receiver_index][start_index:end_index])
                         maximum_values.append(max_tmp)
                         minimum_values.append(min_tmp)
                     maximum_interval_value = max(maximum_values)
                     minimum_interval_value = min(minimum_values)
 
                     if self.plot_view.settings['symbol_values_position'] == 'Above':
-                        y_pos = maximum_interval_value + (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) * np.abs(maximum_interval_value)
+                        y_pos = maximum_interval_value + (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) #* np.abs(maximum_interval_value)
                     else:
-                        y_pos = minimum_interval_value - (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) * np.abs(minimum_interval_value)
+                        y_pos = minimum_interval_value - (0.1 + 0.001 * self.plot_view.settings['symbol_values_size']) #* np.abs(minimum_interval_value)
                 else:
                     y_pos = self.plot_view.settings['symbol_values_fixed_height']
                 text = pg.TextItem(str(symbol_values[i]), color='k')
