@@ -6,6 +6,7 @@ E-mail: steve.kungu@fau.de
 import time
 import serial.tools.list_ports
 import serial
+import numpy as np
 from Utils import Logging
 
 from Models.Interfaces.TransmitterInterface import TransmitterInterface
@@ -92,6 +93,58 @@ class BartelsTransmitter(TransmitterInterface):
         time.sleep(duration_ms/1000)
 
         self.micropump_set_all_voltages(off_voltages)
+
+    def micropump_set_voltages_with_delay(self, on_voltages, off_voltages, delays, duration_ms):
+        if duration_ms == 0:
+            return
+        
+        #make lists of all points in time where pump changes occur
+        on_times = delays
+        off_times = delays+duration_ms
+
+        #get sorted indices of events
+        events = np.argsort(on_times + off_times)
+
+        #start with base state
+        voltages = [off_voltages]
+        times = [0]
+
+        time_sum = 0
+
+        for i in len(events):
+            event_pos = events.index(i)
+            setting = voltages[-1]
+            if event_pos < 4:
+                #this is an on event
+                setting[event_pos] = on_voltages[event_pos]
+                voltages.append(setting)
+
+                diff_time = delays[event_pos] - time_sum
+                time_sum = delays[event_pos]
+                times.append(diff_time)
+            else:
+                #this is an off event
+                event_pos = event_pos-4 #offset for off times
+                setting[event_pos] = off_voltages[event_pos]
+                voltages.append(setting)
+
+                diff_time = delays[event_pos] + duration_ms - time_sum
+                time_sum = delays[event_pos] + duration_ms
+                times.append(diff_time)
+
+        #reverse lists so we can find the last unique value
+        voltages.reverse()
+        times.reverse()
+
+        unique_times, indexes = np.unique(times, return_index=True)
+        unique_voltages = voltages[indexes]
+
+        unique_times.reverse()
+        unique_voltages.reverse()
+
+        for n in len(unique_times):
+            time.sleep(unique_times[n]/1000)
+            self.micropump_set_all_voltages(unique_voltages[n])
 
 
     def micropump_set_frequency(self, frequency):

@@ -66,7 +66,7 @@ class PocketLoCEncoder(EncoderInterface):
         symbol_count = math.floor(len(binary_sequence)/bit_per_symbol)
 
         #Prepend transmission with flush and sync
-        symbol_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, max_value, 0, 0]
+        symbol_values = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, max_value, 0, 0, 1, 2, 3, 0, 0]
         for symbol_index in range(symbol_count):
             symbol_binary = 0
             for b in range(bit_per_symbol):
@@ -91,9 +91,15 @@ class PocketLoCEncoder(EncoderInterface):
         channel3off = self.parameter_values["Channel 3 off voltage [V]"]
         channel4on = self.parameter_values["Channel 4 on voltage [V]"]
         channel4off = self.parameter_values["Channel 4 off voltage [V]"]
+        
+        channel1delay = self.parameter_values["Channel 1 delay [ms]"]
+        channel2delay = self.parameter_values["Channel 2 delay [ms]"]
+        channel3delay = self.parameter_values["Channel 3 delay [ms]"]
+        channel4delay = self.parameter_values["Channel 4 delay [ms]"]
 
         self.on_voltages = [channel1on, channel2on, channel3on, channel4on]
         self.off_voltages = [channel1off, channel2off, channel3off, channel4off]
+        self.delays = [channel1delay, channel2delay, channel3delay, channel4delay]
 
         port = self.parameter_values['Port']
         frequency = self.parameter_values['Frequency [Hz]']
@@ -159,7 +165,7 @@ class PocketLoCEncoder(EncoderInterface):
         off_values[self.background_flow_channel] = self.on_voltages[self.background_flow_channel]
 
         for tx in self.transmitters:
-                tx.micropump_set_all_voltages_duration(on_values, off_values, injection_duration)
+                tx.micropump_set_voltages_with_delay(on_values, off_values, self.delays, injection_duration)
 
 
     def available_ports():
@@ -218,6 +224,14 @@ class PocketLoCEncoder(EncoderInterface):
                 'max': 250,
             },
             {
+                'description': "Channel 1 delay [ms]",
+                'dtype': 'int',
+                'decimals': 0,
+                'default': 0,
+                'min': 0,
+                'max': 10000,
+            },
+            {
                 'description': "Channel 2 on voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
@@ -232,6 +246,14 @@ class PocketLoCEncoder(EncoderInterface):
                 'default': 20,
                 'min': 0,
                 'max': 250,
+            },
+            {
+                'description': "Channel 2 delay [ms]",
+                'dtype': 'int',
+                'decimals': 0,
+                'default': 0,
+                'min': 0,
+                'max': 10000,
             },
             {
                 'description': "Channel 3 on voltage [V]",
@@ -250,6 +272,14 @@ class PocketLoCEncoder(EncoderInterface):
                 'max': 250,
             },
             {
+                'description': "Channel 3 delay [ms]",
+                'dtype': 'int',
+                'decimals': 0,
+                'default': 0,
+                'min': 0,
+                'max': 10000,
+            },
+            {
                 'description': "Channel 4 on voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
@@ -264,6 +294,14 @@ class PocketLoCEncoder(EncoderInterface):
                 'default': 20,
                 'min': 0,
                 'max': 250,
+            },
+            {
+                'description': "Channel 4 delay [ms]",
+                'dtype': 'int',
+                'decimals': 0,
+                'default': 0,
+                'min': 0,
+                'max': 10000,
             },
             {
                 'description': "Background flow",
@@ -299,7 +337,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'decimals': 0,
                 'min': 10,
                 'max': 10000,
-                'default': 200
+                'default': 50
             }
         ]
         return parameters
