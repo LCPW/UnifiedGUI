@@ -62,17 +62,11 @@ class BartelsTransmitter(TransmitterInterface):
             self.smp.readline().decode("ascii")
         
 
-    def micropump_set_voltage(self, channels, voltage):
-        """
-        set micropump voltage
-            parameters:
-            active channels (array of ints): [1, 0, 0, 0]
-            voltage (int): 0-250
-        """
+    def micropump_set_all_voltages(self, channel_voltages):
 
         # PA<aaa>#<bbb>#<ccc>#<ddd>
         # Set the voltage of all four pumps (<aaa> for pump 1, <bbb> for pump 2, ...). Each value must be zero-padded to exactly three characters.
-        command = "PA{:03d}#{:03d}#{:03d}#{:03d}\r\n".format(voltage*channels[0], voltage*channels[1], voltage*channels[2], voltage*channels[3])
+        command = "PA{:03d}#{:03d}#{:03d}#{:03d}\r\n".format(channel_voltages[0], channel_voltages[1], channel_voltages[2], channel_voltages[3])
 
         self.smp.write(str.encode(command))
         self.smp.readline().decode("ascii")
@@ -85,15 +79,20 @@ class BartelsTransmitter(TransmitterInterface):
             voltage (int):  0-250
             duration (int): 0-10000
         """
+
+        channels = [int(channel1), int(channel2), int(channel3), int(channel4)]
+        self.micropump_set_all_voltages_duration(self, channels*voltage, [0,0,0,0], duration_ms)
+
+
+    def micropump_set_all_voltages_duration(self, on_voltages, off_voltages, duration_ms):
         if duration_ms == 0:
             return
         
-        channels = [int(channel1), int(channel2), int(channel3), int(channel4)]
-
-        self.micropump_set_voltage(channels, voltage)
-
+        self.micropump_set_all_voltages(on_voltages)
         time.sleep(duration_ms/1000)
-        self.micropump_set_voltage(channels, 0)
+
+        self.micropump_set_all_voltages(off_voltages)
+
 
     def micropump_set_frequency(self, frequency):
         """
