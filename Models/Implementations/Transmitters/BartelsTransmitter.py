@@ -100,7 +100,7 @@ class BartelsTransmitter(TransmitterInterface):
         
         #make lists of all points in time where pump changes occur
         on_times = delays
-        off_times = delays+duration_ms
+        off_times = [x+duration_ms for x in delays]
 
         #get sorted indices of events
         events = np.argsort(on_times + off_times)
@@ -109,42 +109,42 @@ class BartelsTransmitter(TransmitterInterface):
         voltages = [off_voltages]
         times = [0]
 
-        time_sum = 0
-
-        for i in len(events):
-            event_pos = events.index(i)
+        for i in range(len(events)):
+            event_pos = events[i]
             setting = voltages[-1]
             if event_pos < 4:
                 #this is an on event
                 setting[event_pos] = on_voltages[event_pos]
                 voltages.append(setting)
 
-                diff_time = delays[event_pos] - time_sum
-                time_sum = delays[event_pos]
-                times.append(diff_time)
+                times.append(delays[event_pos])
             else:
                 #this is an off event
                 event_pos = event_pos-4 #offset for off times
                 setting[event_pos] = off_voltages[event_pos]
                 voltages.append(setting)
 
-                diff_time = delays[event_pos] + duration_ms - time_sum
-                time_sum = delays[event_pos] + duration_ms
-                times.append(diff_time)
+                times.append(delays[event_pos] + duration_ms)
 
         #reverse lists so we can find the last unique value
         voltages.reverse()
         times.reverse()
 
-        unique_times, indexes = np.unique(times, return_index=True)
-        unique_voltages = voltages[indexes]
+        sorted_unique, indexes = np.unique(times, return_index=True)
+        unique_voltages = [voltages[x] for x in sorted(indexes)]
+        unique_times = [times[x] for x in sorted(indexes)]
 
-        unique_times.reverse()
         unique_voltages.reverse()
+        unique_times.reverse()
 
-        for n in len(unique_times):
-            time.sleep(unique_times[n]/1000)
-            self.micropump_set_all_voltages(unique_voltages[n])
+        diff_times = np.diff(unique_times).tolist()
+
+        #set initial state immediately
+        self.micropump_set_all_voltages(unique_voltages[0])
+
+        for n in range(len(diff_times)):
+            time.sleep(diff_times[n]/1000)
+            self.micropump_set_all_voltages(unique_voltages[n+1])
 
 
     def micropump_set_frequency(self, frequency):
