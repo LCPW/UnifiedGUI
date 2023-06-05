@@ -11,14 +11,14 @@ class PocketLoCReceiver(ReceiverInterface):
 
     HARDWARE_ID = "2341:8037"
     DEVICE_ID = "PocketLoCSensor"
-    BAUDRATE = 9600
-    TIMEOUT = 0.2 #s
+    BAUDRATE = 115200
+    TIMEOUT = 0.1 #s
 
     def __init__(self, port, active_sensor_channels):
         super().__init__()
 
         self.num_sensors = len(active_sensor_channels)
-        self.sensor_names = [active_sensor_channels]
+        self.sensor_names = active_sensor_channels
 
         self.smp = serial.Serial()
         self.smp.port = str(port)
@@ -90,8 +90,8 @@ class PocketLoCReceiver(ReceiverInterface):
 
     def read_values(self):
         # Get a line of data from the serial connection and parse it
-        raw = self.smp.readline().decode('utf-8')
-        raw_items = re.split("\\t", raw)
+        raw = self.smp.read(188).decode('utf-8')
+        raw_items = re.split(",", raw)
         
         sensor0_vals = [0,0,0,0,0,0]
         sensor1_vals = [0,0,0,0,0,0]
@@ -123,9 +123,9 @@ class PocketLoCReceiver(ReceiverInterface):
 
     
     def set_status(self, on):
-        write_cmd = b"STOP"
+        write_cmd = "STOP"
         if on:
-            write_cmd = b"START"
+            write_cmd = "START"
 
         self.send_command(write_cmd)
         self.read_response(1)
@@ -137,9 +137,9 @@ class PocketLoCReceiver(ReceiverInterface):
 
     def listen_step(self):
         
-        if self.smp.in_waiting > 0:
+        while self.smp.in_waiting >= 188:
             sensor0, sensor1, sat_err, timestamp = self.read_values()
             if sensor0 is None:
                 return
 
-            self.append_values(sensor0 + sensor1, timestamp)
+            self.append_values(sensor0, timestamp)

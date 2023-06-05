@@ -23,20 +23,7 @@ class PocketLoCDecoder(DecoderInterface):
         super().setup()
 
     def calculate_additional_datalines(self):
-        """
-        Generates Gaussian filtered version of the datalines.
-        Note: Can be optimized by avoiding re-calculating old values every time.
-        """
-        received = self.decoded['received']
-        lengths, timestamps = received['lengths'], received['timestamps']
-        for i in range(self.active_channels):
-            sensor_values = self.get_received(0, i)
-            # No values available
-            if sensor_values is None:
-                return
-            sensor_filtered = scipy.ndimage.gaussian_filter1d(sensor_values, self.sigma)
-            dataline = {'length': lengths[0], 'timestamps': timestamps[0][:lengths[0]], 'values': sensor_filtered}
-            self.additional_datalines[i] = dataline
+        pass
 
     def parameters_edited(self):
         
@@ -65,7 +52,10 @@ class PocketLoCDecoder(DecoderInterface):
 
         # Define receivers list
         receiver = PocketLoCReceiver(port, [sensor1, sensor2, sensor3, sensor4, sensor5, sensor6])
-        receiver.set_gain(gain)
+
+        gain_level = ['0.5x', '1x', '2x', '4x', '8x', '16x', '32x', '64x', '128x', '256x', '512x'].index(gain)
+
+        receiver.set_gain(gain_level)
         receiver.set_sample_time(sample_time)
 
         self.receivers = [receiver]
