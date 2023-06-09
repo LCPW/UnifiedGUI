@@ -116,6 +116,8 @@ class PocketLoCEncoder(EncoderInterface):
         if self.modulation == "MoSK" and self.injection_duration > self.symbol_interval:
             Logging.warning("Nonsensical configuration: Injection duration is longer than symbol interval.")
 
+        self.sleep_time = self.symbol_interval
+
         #Clean up
         if self.transmitters is not None:
             for tx in self.transmitters:
@@ -150,8 +152,8 @@ class PocketLoCEncoder(EncoderInterface):
         injection_duration = self.injection_duration
         
         #activate pump according to signal value, keep background flow on
-        on_values = self.off_voltages
-        off_values = self.off_voltages
+        on_values = self.off_voltages.copy()
+        off_values = self.off_voltages.copy()
 
         if symbol_value > 0:
             #ignore 0 values, as no pump action
@@ -211,7 +213,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 1 on voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 200,
+                'default': 250,
                 'min': 0,
                 'max': 250,
             },
@@ -219,7 +221,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 1 off voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 20,
+                'default': 5,
                 'min': 0,
                 'max': 250,
             },
@@ -235,7 +237,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 2 on voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 200,
+                'default': 150,
                 'min': 0,
                 'max': 250,
             },
@@ -243,7 +245,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 2 off voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 20,
+                'default': 5,
                 'min': 0,
                 'max': 250,
             },
@@ -259,7 +261,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 3 on voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 200,
+                'default': 150,
                 'min': 0,
                 'max': 250,
             },
@@ -267,7 +269,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 3 off voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 20,
+                'default': 5,
                 'min': 0,
                 'max': 250,
             },
@@ -283,7 +285,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 4 on voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 200,
+                'default': 150,
                 'min': 0,
                 'max': 250,
             },
@@ -291,7 +293,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Channel 4 off voltage [V]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 20,
+                'default': 5,
                 'min': 0,
                 'max': 250,
             },
@@ -319,7 +321,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'description': "Frequency [Hz]",
                 'dtype': 'int',
                 'decimals': 0,
-                'default': 70,
+                'default': 50,
                 'min': 50,
                 'max': 800,
             },
@@ -337,7 +339,7 @@ class PocketLoCEncoder(EncoderInterface):
                 'decimals': 0,
                 'min': 10,
                 'max': 10000,
-                'default': 50
+                'default': 100
             }
         ]
         return parameters

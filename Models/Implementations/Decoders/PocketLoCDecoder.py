@@ -137,7 +137,7 @@ class PocketLoCDecoder(DecoderInterface):
                 'description': "Sensor 1",
                 'dtype': 'item',
                 'items': diode_list,
-                'default': "F1",
+                'default': "F2",
                 'editable': True
             },
             {
@@ -151,28 +151,28 @@ class PocketLoCDecoder(DecoderInterface):
                 'description': "Sensor 3",
                 'dtype': 'item',
                 'items': diode_list,
-                'default': "F5",
+                'default': "F4",
                 'editable': True
             },
             {
                 'description': "Sensor 4",
                 'dtype': 'item',
                 'items': diode_list,
-                'default': "F7",
+                'default': "F5",
                 'editable': True
             },
             {
                 'description': "Sensor 5",
                 'dtype': 'item',
                 'items': diode_list,
-                'default': "F8",
+                'default': "F7",
                 'editable': True
             },
             {
                 'description': "Sensor 6",
                 'dtype': 'item',
                 'items': diode_list,
-                'default': "NIR",
+                'default': "F8",
                 'editable': True
             }]
 

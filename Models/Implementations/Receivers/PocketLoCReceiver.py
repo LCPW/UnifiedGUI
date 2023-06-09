@@ -38,6 +38,9 @@ class PocketLoCReceiver(ReceiverInterface):
 
         self.set_mux(active_sensor_channels)
 
+        global error_flag
+        error_flag = False
+
         super().setup()
 
     def send_command(self, command):

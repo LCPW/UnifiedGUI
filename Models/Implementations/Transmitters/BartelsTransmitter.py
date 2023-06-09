@@ -19,6 +19,8 @@ class BartelsTransmitter(TransmitterInterface):
     BAUDRATE = 9600
     TIMEOUT = 0.1 #s
 
+    stopped = False
+
     def __init__(self, port):
         """
         Initialization of the Transmitter
@@ -54,9 +56,16 @@ class BartelsTransmitter(TransmitterInterface):
 
     def micropump_set_state(self, on):
         if on:
+            BartelsTransmitter.stopped = False
             self.smp.write(b"PON\r\n")
             self.smp.readline().decode("ascii")
         else:
+            BartelsTransmitter.stopped = True
+            self.smp.write(b"POFF\r\n")
+            self.smp.readline().decode("ascii")
+            self.smp.write(b"PA000#000#000#000\r\n")
+            self.smp.readline().decode("ascii")
+            time.sleep(0.1)
             self.smp.write(b"POFF\r\n")
             self.smp.readline().decode("ascii")
             self.smp.write(b"PA000#000#000#000\r\n")
@@ -92,6 +101,9 @@ class BartelsTransmitter(TransmitterInterface):
         self.micropump_set_all_voltages(on_voltages)
         time.sleep(duration_ms/1000)
 
+        if BartelsTransmitter.stopped:
+            return
+
         self.micropump_set_all_voltages(off_voltages)
 
     def micropump_set_voltages_with_delay(self, on_voltages, off_voltages, delays, duration_ms):
@@ -111,7 +123,7 @@ class BartelsTransmitter(TransmitterInterface):
 
         for i in range(len(events)):
             event_pos = events[i]
-            setting = voltages[-1]
+            setting = voltages[-1].copy()
             if event_pos < 4:
                 #this is an on event
                 setting[event_pos] = on_voltages[event_pos]
@@ -140,10 +152,14 @@ class BartelsTransmitter(TransmitterInterface):
         diff_times = np.diff(unique_times).tolist()
 
         #set initial state immediately
+        if BartelsTransmitter.stopped:
+                return
         self.micropump_set_all_voltages(unique_voltages[0])
 
         for n in range(len(diff_times)):
             time.sleep(diff_times[n]/1000)
+            if BartelsTransmitter.stopped:
+                return
             self.micropump_set_all_voltages(unique_voltages[n+1])
 
 
