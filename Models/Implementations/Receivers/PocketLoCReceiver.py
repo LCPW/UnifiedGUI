@@ -17,8 +17,8 @@ class PocketLoCReceiver(ReceiverInterface):
     def __init__(self, port, active_sensor_channels):
         super().__init__()
 
-        self.num_sensors = len(active_sensor_channels)
-        self.sensor_names = active_sensor_channels
+        self.num_sensors = len(active_sensor_channels)*2
+        self.sensor_names = ["1-" + x for x in active_sensor_channels] + ["2-" + x for x in active_sensor_channels]
 
         self.smp = serial.Serial()
         self.smp.port = str(port)
@@ -145,4 +145,4 @@ class PocketLoCReceiver(ReceiverInterface):
             if sensor0 is None:
                 return
 
-            self.append_values(sensor0, timestamp)
+            self.append_values(sensor0 + sensor1, timestamp)

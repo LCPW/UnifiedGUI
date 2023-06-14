@@ -42,9 +42,9 @@ class PocketLoCDecoder(DecoderInterface):
 
         self.plot_settings = {
             'additional_datalines_active': [],
-            'additional_datalines_width': 0,
-            'datalines_active': [[True, True, True, True, True, True]],
-            'datalines_width': 6
+            'additional_datalines_width': 3,
+            'datalines_active': [[True, True, True, True, True, True,True, True, True, True, True, True]],
+            'datalines_width': 3
         }
 
         #Clean up
@@ -121,7 +121,7 @@ class PocketLoCDecoder(DecoderInterface):
                 'description': "Gain",
                 'dtype': 'item',
                 'items': ['0.5x', '1x', '2x', '4x', '8x', '16x', '32x', '64x', '128x', '256x', '512x'],
-                'default': '256x',
+                'default': '16x',
                 'editable': True
             },
             {
