@@ -1,7 +1,3 @@
-"""
-Author: Steve Kungu
-E-mail: steve.kungu@fau.de
-"""
 
 import time
 import serial.tools.list_ports
@@ -90,8 +86,8 @@ class BartelsTransmitter(TransmitterInterface):
             duration (int): 0-10000
         """
 
-        channels = [int(channel1), int(channel2), int(channel3), int(channel4)]
-        self.micropump_set_all_voltages_duration(self, channels*voltage, [0,0,0,0], duration_ms)
+        channels = [int(channel1)*voltage, int(channel2)*voltage, int(channel3)*voltage, int(channel4)+voltage]
+        self.micropump_set_all_voltages_duration(channels, [0,0,0,0], duration_ms)
 
 
     def micropump_set_all_voltages_duration(self, on_voltages, off_voltages, duration_ms):
