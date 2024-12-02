@@ -1,6 +1,6 @@
 """
-Author: Benjamin Schiller
-E-mail: benjamin.bs.schiller@fau.de
+Author: Benjamin Schiller / Luiz Wille
+E-mail: benjamin.bs.schiller@fau.de / luiz.wille@fau.de
 """
 import scipy.ndimage
 import serial
@@ -140,7 +140,7 @@ class LDC1614EVMDecoder(DecoderInterface):
     
         suggested_port = ports[0].name
         for port in sorted(ports):
-            if LDC1614EVMReceiver.HARDWARE_ID in port.hwid:          
+            if LDC1614EVMReceiver.HARDWARE_ID in port.hwid:
                 try:
                     serial.Serial(port=port.name, baudrate=LDC1614EVMReceiver.BAUDRATE, timeout=LDC1614EVMReceiver.TIMEOUT)
                 except serial.serialutil.SerialException:
