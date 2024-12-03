@@ -153,7 +153,15 @@ class PlotWidgetView(pg.PlotWidget):
     def export_plot(self):
         """
         Opens the export dialog.
+        ExportDialog not recommended due to non-configurability of names, data structure ...
         """
+        # data = self.datalines[0]
+        # for i in range(len(data)):
+        #     data_t = data[i].xData
+        #     data_y = data[i].yData
+        #     if data_t is not None:
+        #         # save ...
+
         self.e = exportDialog.ExportDialog(self.plotItem.scene())
         self.e.show(self.plotItem)
 

@@ -4,9 +4,13 @@ import numpy as np
 import time
 import os
 import csv
+import xlsxwriter
+from xlsxwriter.exceptions import FileCreateError
 
 from Utils import Logging
 from Utils.Settings import SettingsStore
+
+import version
 
 
 class DecoderInterface:
@@ -274,33 +278,90 @@ class DecoderInterface:
                 self.append(receiver_index, timestamp, values)
                 self.lengths[receiver_index] += 1
 
-    def export_custom(self, directory):
+    def export_custom(self, directory, dataset_name, save_encoder_activation, dataset_additional_name=None):
         """
         Exports received data by creating a new table for every receiver and all additional datalines.
-        :param directory: Directory for .csv files to be stored.
+        :param directory: Directory for the data files to be stored.
+        :param dataset_name: file name prefix of the created .xlsx files
+        :param save_encoder_activation: True or False, whether the encoder activation will be saved as part of the data # TODO
+        :param dataset_additional_name: file name prefix for additional data .csv files. If not wanted, set to None
         """
         # Export received
+
+        # --------------------------------------------------------------------------------
+        # Gather data of the receivers
         received = self.decoded['received']
         lengths, timestamps, values = received['lengths'], received['timestamps'], received['values']
-        for r in range(self.num_receivers):
-            filename = os.path.join(directory, "received" + str(r))
-            with open(filename, 'w', encoding='UTF8', newline='') as f:
-                writer = csv.writer(f)
-                for t in range(lengths[r]):
-                    row = [timestamps[r][t]] + list(values[r][t, :])
-                    writer.writerow(row)
+
+        # Create a new workbook for receiver datasets
+        filename = os.path.join(directory, dataset_name + ".xlsx")
+        workbook = xlsxwriter.Workbook(filename)
+        bold = workbook.add_format({'bold': True})  # Add a bold format to use to highlight cells.
+
+        # Iterate through all receivers to save single worksheets (one per receiver)
+        for receiver_idx in range(self.num_receivers):
+            # Gather data of the next receiver and create a new worksheet
+            dataset_length = lengths[receiver_idx]
+            dataset_timestamp = timestamps[receiver_idx]
+            dataset_values = values[receiver_idx]
+            worksheet = workbook.add_worksheet(self.receiver_names[receiver_idx])
+
+            # Iterate through the value-pairs, usually one value array per sensor channel present
+            for value_idx in range(dataset_values.shape[1]):
+                # Add headers for each time-value pair
+                worksheet.write(0, 2*value_idx, "Time", bold)
+                worksheet.write(0, 2*value_idx+1, self.receivers[receiver_idx].sensor_names[value_idx], bold)
+
+                # Add each row for the current time-value pair
+                for row_idx in range(dataset_length):
+                    worksheet.write(row_idx+1, 2*value_idx, dataset_timestamp[row_idx])
+                    worksheet.write(row_idx+1, 2*value_idx+1, dataset_values[row_idx, value_idx])
+
+        # Save the metadata of the current software
+        worksheet_metadata = workbook.add_worksheet('Metadata')
+        worksheet_metadata.write(0, 0, 'Software-Version', bold)
+        worksheet_metadata.write(0, 1, version.__version__)
+
+        # Save the dataset
+        try:
+            workbook.close()
+        except FileCreateError as e:
+            Logging.error("Could not save the dataset, the file could not be written!", repeat=True)
+        # --------------------------------------------------------------------------------
 
         # Export additional datalines
-        additional_datalines = self.decoded['additional_datalines']
-        for a in range(len(additional_datalines)):
-            filename = os.path.join(directory, "additional_dataline" + str(a))
-            dataline = additional_datalines[a]
-            length, timestamps, values = dataline['length'], dataline['timestamps'], dataline['values']
-            with open(filename, 'w', encoding='UTF8', newline='') as f:
-                writer = csv.writer(f)
-                for i in length:
-                    row = [timestamps[i], values[i]]
-                    writer.writerow(row)
+        if dataset_additional_name is not None:
+            # Gather data from the additional datasets
+            additional_datalines = self.decoded['additional_datalines']
+
+            # Create a new workbook for additional datasets
+            filename = os.path.join(directory, dataset_additional_name + ".xlsx")
+            workbook = xlsxwriter.Workbook(filename)
+            worksheet = workbook.add_worksheet("Additional data")
+
+            # Iterate through each additional data line
+            for additional_dataset_idx in range(len(additional_datalines)):
+                # Gather data of the next data line
+                dataline = additional_datalines[additional_dataset_idx]
+                if dataline is None:
+                    continue
+
+                dataset_length, dataset_timestamps, dataset_values = dataline['length'], dataline['timestamps'], dataline['values']
+
+                # Add headers for each time-value pair
+                worksheet.write(0, 2*additional_dataset_idx, 'Time')
+                worksheet.write(0, 2*additional_dataset_idx+1, self.additional_datalines_names[additional_dataset_idx])
+
+                # Add each row for the current time-value pair
+                for row_idx in range(dataset_length):
+                    worksheet.write(row_idx+1, 2*additional_dataset_idx, dataset_timestamps[row_idx])
+                    worksheet.write(row_idx+1, 2*additional_dataset_idx+1, dataset_values[row_idx])
+
+            # Save the dataset
+            try:
+                workbook.close()
+            except FileCreateError as e:
+                Logging.error("Could not save the additional dataset, the file could not be written!", repeat=True)
 
     def export_sequence(self, filename):
         """

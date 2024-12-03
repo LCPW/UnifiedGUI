@@ -68,12 +68,10 @@ class LDC1614EVMDecoder(DecoderInterface):
         self.threshold_factor = self.parameter_values["detection threshold factor"]
         self.symbol_duration = self.parameter_values["symbol duration [s]"]
 
-
-        t_count = reference_count*16/(CLK_IN_MHZ*1000000)
+        t_conversion = (reference_count*16 + 4) / (CLK_IN_MHZ*1000000)
         t_settle = settle_count*16/(CLK_IN_MHZ*1000000)
-        t_switchdelay = 0.000000754
-
-        t_sample = (t_count + t_settle + t_switchdelay)*self.active_channels
+        t_switchdelay = 0.000000629 + (5/(CLK_IN_MHZ*1e6))
+        t_sample = (t_conversion + t_settle + t_switchdelay)*self.active_channels
         Logging.info(f"Approximate sample rate: {1/t_sample:2.2f} Sa/s")
 
 

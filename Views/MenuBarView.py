@@ -4,7 +4,7 @@ from PyQt5 import QtWidgets, QtCore, QtGui, Qt
 import subprocess
 import os
 
-from Views import SettingsDialog
+from Views import SettingsDialog, ExportDialog
 from Utils import ViewUtils
 
 
@@ -15,7 +15,7 @@ class MenuBarView(QMenuBar):
 
         menu_file = self.addMenu("File")
         self.settings_dialog = SettingsDialog.SettingsDialog(self)
-        menu_file.addAction(ViewUtils.get_icon('export'), "Export (Native)", self.export)
+        menu_file.addAction(ViewUtils.get_icon('export'), "Export (Plot)", self.export)
         menu_file.addAction(ViewUtils.get_icon('export'), "Export (Custom)", self.export_custom)
         menu_file.addAction(ViewUtils.get_icon('settings'), "Settings", self.show_settings)
         menu_file.addAction("Exit", self.view.close)
@@ -51,5 +51,11 @@ class MenuBarView(QMenuBar):
         self.view.data_view.tab_plot.plot_widget.export_plot()
 
     def export_custom(self):
-        directory = QFileDialog.getExistingDirectory(self, "Select Directory")
-        self.view.controller.export_custom(directory)
+        export_dialog = ExportDialog.ExportDialog(self.view.controller)
+        if export_dialog.exec():
+            directory = QFileDialog.getExistingDirectory(self, "Select Directory")
+            if directory is not None:
+                self.view.controller.export_custom(directory, export_dialog.get_data_name(),
+                                                   export_dialog.has_selected_encoder_activation(),
+                                                   export_dialog.get_additional_data_name())
+

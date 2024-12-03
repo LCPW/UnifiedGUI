@@ -147,8 +147,11 @@ class Controller:
     def encode_with_check(self, sequence):
         return self.model.encoder.encode_with_check(sequence)
 
-    def export_custom(self, directory):
-        self.model.decoder.export_custom(directory)
+    def export_custom(self, directory, dataset_name, save_encoder_activation, dataset_additional_name):
+        if self.model.decoder is not None:
+            self.model.decoder.export_custom(directory, dataset_name, save_encoder_activation, dataset_additional_name)
+        else:
+            Logging.error('No decoder selected. Export of data is not possible!')
 
     def export_sequence(self, filename):
         self.model.decoder.export_sequence(filename)

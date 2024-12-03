@@ -124,7 +124,7 @@ class Model:
     def get_encoder_info(self):
         """
         Gets information about encoder.
-        :return: Encoder information dictionary if decoder exists, else None.
+        :return: Encoder information dictionary if encoder exists, else None.
         """
         if self.encoder is not None:
             return self.encoder.info

@@ -40,8 +40,6 @@ START_STREAMING_COMMAND = "4C0501000601290404302AC1"
 # will periodically output 32 bytes - bytes 7-10 CH0, bytes 11-14 CH1, ... MSB first
 
 STOP_STREAMING_COMMAND = "4C0601000101D2"
-
-
 # after set, MCU responds with 32 bytes - byte 4 is zero if command is correct
 
 
@@ -61,7 +59,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         self.num_sensors = 4
         self.active_channels = num_channels
         self.clk_in_mhz = clk_in_mhz
-        self.sensor_names = ["CH" + str(i) + " (MHz)" for i in range(4)]
+        self.sensor_names = ["CH" + str(i) for i in range(4)]
         self.drop_first_measurements = 10
 
         super().setup()
@@ -92,7 +90,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         elif deglitch_filter_value == "10":
             filter_set = 0b101
         else:
-            filter_set = 0b111  # DATASHEET IS ambigous, either b011 or b111, experiments indicate that b111 is correct
+            filter_set = 0b111  # DATASHEET IS ambiguous, either b011 or b111, experiments indicate that b111 is correct
 
         # We can set single channel or auto channel using CH0 & 1, CH0 & 1 & 2 or CH0 & 1 & 2 & 3
         autoscan_enable = 0
@@ -118,9 +116,21 @@ class LDC1614EVMReceiver(ReceiverInterface):
 
     def set_config(self):
         # Default config
-        config = 0b0000001000000001
         # CH0 when in single mode, sleep off, no I override, full current sensor activation
         # auto amplitude correction, external clk, res, use interrupt pin, normal current, resx6
+        config = 0b0
+        config |= 0b00 << 14  # CH0 selected in single mode, CH0 = 0b00, CH1 = 0b01, CH2 = 0b10, CH3 = 0b11
+        config |= 0b0 << 13  # Sleep Mode, b0 = active, b1 = sleep mode
+        config |= 0b0 << 12  # Rp override enable, b0 = override off - autom. determine current, b1 = override on
+        config |= 0b0 << 11  # sensor activation mode, b0 = full current, b1 = low power
+        config |= 0b0 << 10  # automatic amplitude correction, b0 = enabled, b1 = disabled (recommended for precision)
+        config |= 0b1 << 9  # reference clock source, b0 = internal, b1 = external CLKIN pin (recommended)
+        # 8 == reserved
+        config |= 0b0 << 7  # INTB disabled, b0 = INTB will be asserted when register updates, b1 = ... not asserted
+        # high current drive, b0 = will drive all channels with normal current,
+        config |= 0b0 << 6  # b1 = will drive channel 0 with current > 1.5 mA
+        config |= 0b000001  # 0-5 reserved bits
+        # standard configuration: config = 0b0000001000000001
 
         self.write_register(CONFIG, f'{config:04x}')
 
@@ -166,7 +176,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         (error_code, ch0_msb, ch0_lsb, ch1_msb, ch1_lsb, ch2_msb, ch2_lsb, ch3_msb, ch3_lsb) = struct.unpack(
             '>3xB2xHHHHHHHH10x', read)
         if error_code:
-            print('Error reported from serial.')
+            Logging.warning('Error reported from serial during streaming.', repeat=False)
             ch0 = 0
             ch1 = 0
             ch2 = 0
@@ -198,16 +208,15 @@ class LDC1614EVMReceiver(ReceiverInterface):
         # Combine values from MSB and LSB to final value
         data = (data_msb << 16) + data_lsb
 
-        # Calculate reference frequency and channel offset
+        # Calculate reference frequency and channel offset (see page 39 of the data sheet)
         offset = 0  # we currently do not use an offset or dividers
         reference_divider = 1
         input_divider = 1
         reference_frequency = self.clk_in_mhz * 1000000 / reference_divider
-        channel_offset = (
-                                     offset / 2 ** 16) * reference_frequency  # TODO ERROR - OFFSET IS CALCULATED TWICE - SEE BELOW!
+        channel_freq_offset = (offset / 2 ** 16) * reference_frequency
 
         # Calculate frequency (see page 39 of the data sheet)
-        frequency = input_divider * reference_frequency * ((data / 2 ** 28) + (channel_offset / 2 ** 16))
+        frequency = input_divider * reference_frequency * ((data / 2 ** 28) + channel_freq_offset)
         return frequency
 
     def get_channel_frequency(self, channel):

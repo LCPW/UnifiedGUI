@@ -154,6 +154,14 @@ class PlotView(QWidget):
         self.plot_settings_dialog.decoder_removed()
         self.button_settings.setEnabled(False)
 
+    def encoder_added(self, encoder_info):
+        # TODO
+        pass
+
+    def encoder_removed(self):
+        # TODO
+        pass
+
     def init_x_range(self):
         """
         Initializes the settings for the x-range above the plot accordingly.
