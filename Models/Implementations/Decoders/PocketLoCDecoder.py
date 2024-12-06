@@ -66,7 +66,11 @@ class PocketLoCDecoder(DecoderInterface):
 
     def available_ports():
         ports = serial.tools.list_ports.comports()
-    
+
+        if len(ports) == 0:
+            Logging.error("No COM ports detected!")
+            return
+
         suggested_port = ports[0].name
         for port in sorted(ports):
             if PocketLoCReceiver.HARDWARE_ID in port.hwid:          

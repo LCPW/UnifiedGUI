@@ -1,16 +1,12 @@
-import importlib
 import threading
 import numpy as np
 import time
 import os
-import csv
 import xlsxwriter
 from xlsxwriter.exceptions import FileCreateError
 
 from Utils import Logging
 from Utils.Settings import SettingsStore
-
-import version
 
 
 class DecoderInterface:
@@ -278,25 +274,19 @@ class DecoderInterface:
                 self.append(receiver_index, timestamp, values)
                 self.lengths[receiver_index] += 1
 
-    def export_custom(self, directory, dataset_name, save_encoder_activation, dataset_additional_name=None):
+    def export_custom(self, workbook, directory, dataset_additional_name=None):
         """
         Exports received data by creating a new table for every receiver and all additional datalines.
+        :param workbook: .xlsx workbook object
         :param directory: Directory for the data files to be stored.
-        :param dataset_name: file name prefix of the created .xlsx files
-        :param save_encoder_activation: True or False, whether the encoder activation will be saved as part of the data # TODO
-        :param dataset_additional_name: file name prefix for additional data .csv files. If not wanted, set to None
+        :param dataset_additional_name: File name prefix for additional data .csv files. If not wanted, set to None
         """
-        # Export received
+        bold = workbook.add_format({'bold': True})  # Add a bold format to use to highlight cells.
 
         # --------------------------------------------------------------------------------
         # Gather data of the receivers
         received = self.decoded['received']
         lengths, timestamps, values = received['lengths'], received['timestamps'], received['values']
-
-        # Create a new workbook for receiver datasets
-        filename = os.path.join(directory, dataset_name + ".xlsx")
-        workbook = xlsxwriter.Workbook(filename)
-        bold = workbook.add_format({'bold': True})  # Add a bold format to use to highlight cells.
 
         # Iterate through all receivers to save single worksheets (one per receiver)
         for receiver_idx in range(self.num_receivers):
@@ -304,6 +294,9 @@ class DecoderInterface:
             dataset_length = lengths[receiver_idx]
             dataset_timestamp = timestamps[receiver_idx]
             dataset_values = values[receiver_idx]
+            if dataset_values is None:
+                continue
+
             worksheet = workbook.add_worksheet(self.receiver_names[receiver_idx])
 
             # Iterate through the value-pairs, usually one value array per sensor channel present
@@ -316,17 +309,6 @@ class DecoderInterface:
                 for row_idx in range(dataset_length):
                     worksheet.write(row_idx+1, 2*value_idx, dataset_timestamp[row_idx])
                     worksheet.write(row_idx+1, 2*value_idx+1, dataset_values[row_idx, value_idx])
-
-        # Save the metadata of the current software
-        worksheet_metadata = workbook.add_worksheet('Metadata')
-        worksheet_metadata.write(0, 0, 'Software-Version', bold)
-        worksheet_metadata.write(0, 1, version.__version__)
-
-        # Save the dataset
-        try:
-            workbook.close()
-        except FileCreateError as e:
-            Logging.error("Could not save the dataset, the file could not be written!", repeat=True)
         # --------------------------------------------------------------------------------
 
         # Export additional datalines
@@ -437,11 +419,9 @@ class DecoderInterface:
         """
         self.decoder_started()
         for receiver_index in range(self.num_receivers):
-            self.receivers[receiver_index].running = True
             thread = threading.Thread(target=self.receivers[receiver_index].listen, daemon=True)
             thread.start()
         self.active = True
-        
 
     def stop(self):
         """
@@ -449,5 +429,5 @@ class DecoderInterface:
         """
         self.active = False
         for receiver in self.receivers:
-            receiver.running = False
+            receiver.stop_listen()
         self.decoder_stopped()

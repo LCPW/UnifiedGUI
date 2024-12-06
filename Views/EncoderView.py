@@ -35,6 +35,15 @@ class EncoderView(QWidget):
         self.button_remove_encoder.clicked.connect(self.remove_encoder)
         self.toolbar.addWidget(self.button_remove_encoder)
 
+        self.button_startstop_icon_start = ViewUtils.get_icon('play')
+        self.button_startstop_icon_stop = ViewUtils.get_icon('stop')
+        self.button_startstop_encoder = QToolButton()
+        self.button_startstop_encoder.setToolTip("Start encoder recording")
+        self.button_startstop_encoder.setIcon(self.button_startstop_icon_start)
+        self.button_startstop_encoder.setEnabled(False)
+        self.button_startstop_encoder.clicked.connect(self.start_encoder_recording)
+        self.toolbar.addWidget(self.button_startstop_encoder)
+
         label = QLabel("Encoder")
         label.setObjectName("header")
         self.label_subtitle = QLabel("No encoder selected")
@@ -177,6 +186,7 @@ class EncoderView(QWidget):
 
         self.button_add_encoder.setEnabled(False)
         self.button_remove_encoder.setEnabled(True)
+        self.button_startstop_encoder.setEnabled(True)
 
     def encoder_removed(self):
         """
@@ -196,6 +206,7 @@ class EncoderView(QWidget):
 
         self.button_add_encoder.setEnabled(True)
         self.button_remove_encoder.setEnabled(False)
+        self.button_startstop_encoder.setEnabled(False)
 
     def encode(self):
         """
@@ -238,6 +249,26 @@ class EncoderView(QWidget):
         """
         if ViewUtils.message_box_warning(self.style(), "Remove encoder?", "Are you sure you want to remove the decoder?"):
             self.view.controller.remove_encoder()
+
+    def start_encoder_recording(self):
+        """
+        Callback function after the recording button has been clicked.
+        """
+        self.view.controller.start_encoder_recording()
+
+        self.button_startstop_encoder.setIcon(self.button_startstop_icon_stop)
+        self.button_startstop_encoder.clicked.disconnect(self.start_encoder_recording)
+        self.button_startstop_encoder.clicked.connect(self.stop_encoder_recording)
+
+    def stop_encoder_recording(self):
+        """
+        Callback function after the recording button has been clicked.
+        """
+        self.view.controller.stop_encoder_recording()
+
+        self.button_startstop_encoder.setIcon(self.button_startstop_icon_start)
+        self.button_startstop_encoder.clicked.disconnect(self.stop_encoder_recording)
+        self.button_startstop_encoder.clicked.connect(self.start_encoder_recording)
 
     def transmit_symbol_values(self):
         """

@@ -11,6 +11,7 @@ class TransmitterInterface:
     the amount of background flow in the case of fluids.
     """
     def __init__(self):
+        self.channel_names = []
         pass
 
     def shutdown(self):

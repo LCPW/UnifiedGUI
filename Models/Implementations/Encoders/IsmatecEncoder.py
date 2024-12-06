@@ -18,6 +18,7 @@ from Models.Implementations.Transmitters.IsmatecTransmitter import IsmatecTransm
 class IsmatecEncoder(EncoderInterface):
     def __init__(self, parameters, parameter_values):
         super().__init__(parameters, parameter_values)
+        self.transmitter_names = ["Ismatec"]
 
         # update settings
         self.parameters_edited()

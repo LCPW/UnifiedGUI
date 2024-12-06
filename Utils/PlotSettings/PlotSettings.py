@@ -8,6 +8,7 @@ import os
 from Utils import Logging
 
 SETTINGS_PATH = os.path.join('Utils', 'PlotSettings', 'DecoderPlotSettings')
+GENERAL_SETTINGS_NAME = 'general'
 
 
 class PlotSettings:
@@ -16,7 +17,7 @@ class PlotSettings:
     are shown can be selected by the user during the execution of the program and are saved once the program is
     closed so they can be restored during the next execution (on the same device).
     """
-    def __init__(self, decoder_info):
+    def __init__(self):
         """
         Initializes the plot settings.
         :param decoder_info: Information about decoder.
@@ -24,19 +25,38 @@ class PlotSettings:
         if not os.path.isdir(SETTINGS_PATH):
             os.mkdir(SETTINGS_PATH)
 
-        self.path = os.path.join(SETTINGS_PATH, 'plot_settings_' + decoder_info['type'] + '.json')
+        self.path_general = os.path.join(SETTINGS_PATH, 'plot_settings_' + GENERAL_SETTINGS_NAME + '.json')
+
+        self.current_color = 0
+
+        self.settings_general = None
+        self.settings_decoder = None
+        self.settings_encoder = None
+
+    def is_empty(self):
+        return not self.is_loaded_settings_decoder() and not self.is_loaded_settings_encoder()
+
+    def is_loaded_settings_decoder(self):
+        return self.settings_decoder is not None and bool(self.settings_decoder)
+
+    def is_loaded_settings_encoder(self):
+        return self.settings_encoder is not None and bool(self.settings_encoder)
+
+    def load_file_default_settings_decoder(self, decoder_info):
+        self.path_decoder = os.path.join(SETTINGS_PATH, 'plot_settings_' + decoder_info['type'] + '.json')
+        self.settings_decoder = {}
 
         try:
-            with open(self.path, 'r') as s:
-                self.settings = json.load(s)
+            with open(self.path_decoder, 'r') as s:
+                self.settings_decoder.update(json.load(s))
         except IOError:
             Logging.info(f"No plot settings found for {decoder_info['type']}. Loading default settings.")
-        
-        self.load_default_settings(decoder_info)
 
-    def load_default_settings(self, decoder_info):
+        self.load_default_settings_decoder(decoder_info)
+
+    def load_default_settings_decoder(self, decoder_info):
         """
-        Loads default settings which they user might have provided in the decoder implementation.
+        Loads default settings which the user might have provided in the decoder implementation.
         If no information has been provided for a key, use a standard value.
         This is executed if the program is for the first time on a new device or the user clicked on the
         'Default settings' button in the plot settings dialog.
@@ -44,7 +64,6 @@ class PlotSettings:
         """
         receiver_info, additional_datalines_info, landmark_info, plot_settings = decoder_info['receivers'], decoder_info['additional_datalines'], decoder_info['landmarks'], decoder_info['plot_settings']
         settings = {}
-        self.current_color = 0
 
         if 'additional_datalines_active' in list(plot_settings.keys()):
             settings['additional_datalines_active'] = plot_settings['additional_datalines_active']
@@ -95,11 +114,6 @@ class PlotSettings:
                 sensor_names = receiver_info['sensor_names'][receiver_index]
                 settings['datalines_style'].append(['SolidLine'] * len(sensor_names))
 
-        if 'datalines_width' in list(plot_settings.keys()):
-            settings['datalines_width'] = plot_settings['datalines_width']
-        else:
-            settings['datalines_width'] = 1
-
         if 'landmarks_active' in list(plot_settings.keys()):
             settings['landmarks_active'] = plot_settings['landmarks_active']
         else:
@@ -119,16 +133,6 @@ class PlotSettings:
             settings['landmarks_symbols'] = plot_settings['landmarks_symbols']
         else:
             settings['landmarks_symbols'] = ['o'] * landmark_info['num']
-
-        if 'show_grid' in list(plot_settings.keys()):
-            settings['show_grid'] = plot_settings['show_grid']
-        else:
-            settings['show_grid'] = 'x-axis and y-axis'
-
-        if 'step_size' in list(plot_settings.keys()):
-            settings['step_size'] = plot_settings['step_size']
-        else:
-            settings['step_size'] = 1
 
         if 'symbol_intervals' in list(plot_settings.keys()):
             settings['symbol_intervals'] = plot_settings['symbol_intervals']
@@ -170,6 +174,90 @@ class PlotSettings:
         else:
             settings['symbol_values_size'] = 20
 
+        self.settings_decoder.update(settings)
+
+    def load_file_default_settings_encoder(self, encoder_info):
+        self.path_encoder = os.path.join(SETTINGS_PATH, 'plot_settings_' + encoder_info['type'] + '.json')
+        self.settings_encoder = {}
+
+        try:
+            with open(self.path_encoder, 'r') as s:
+                self.settings_encoder.update(json.load(s))
+        except IOError:
+            Logging.info(f"No plot settings found for {encoder_info['type']}. Loading default settings.")
+
+        self.load_default_settings_encoder(encoder_info)
+
+    def load_default_settings_encoder(self, encoder_info):
+        """
+        Loads default settings which the user might have provided in the encoder implementation.
+        If no information has been provided for a key, use a standard value.
+        This is executed if the program is for the first time on a new device or the user clicked on the
+        'Default settings' button in the plot settings dialog.
+        :param encoder_info: Information about the encoder.
+        """
+        encoder_info, plot_settings = encoder_info['transmitters'], encoder_info['plot_settings']
+        settings = {}
+
+        if 'datalines_active' in list(plot_settings.keys()):
+            settings['datalines_active'] = plot_settings['datalines_active']
+        else:
+            settings['datalines_active'] = []
+            for transmitter_index in range(encoder_info['num']):
+                channel_names = encoder_info['channel_names'][transmitter_index]
+                settings['datalines_active'].append([True] * len(channel_names))
+
+        if 'datalines_color' in list(plot_settings.keys()):
+            settings['datalines_color'] = plot_settings['datalines_color']
+        else:
+            settings['datalines_color'] = []
+            for transmitter_index in range(encoder_info['num']):
+                channel_names = encoder_info['channel_names'][transmitter_index]
+                colors_ = []
+                for channel in channel_names:
+                    colors_.append(pg.intColor(self.current_color).name())
+                    self.current_color += 1
+                settings['datalines_color'].append(colors_)
+
+        if 'datalines_style' in list(plot_settings.keys()):
+            settings['datalines_style'] = plot_settings['datalines_style']
+        else:
+            settings['datalines_style'] = []
+            for transmitter_index in range(encoder_info['num']):
+                channel_names = encoder_info['channel_names'][transmitter_index]
+                settings['datalines_style'].append(['SolidLine'] * len(channel_names))
+
+        self.settings_encoder.update(settings)
+
+    def load_file_default_settings_general(self):
+        self.settings_general = {}
+        try:
+            with open(self.path_general, 'r') as s:
+                self.settings_general.update(json.load(s))
+        except IOError:
+            Logging.info("No general plot settings found. Loading default settings.")
+
+        self.load_default_settings_general(self.settings_general)
+
+    def load_default_settings_general(self, plot_settings):
+        """
+        Loads default settings which the developer might have been provided by default.
+        If no information has been provided for a key, use a standard value.
+        This is executed if the program is for the first time on a new device or the user clicked on the
+        'Default settings' button in the plot settings dialog.
+        """
+        settings = {}
+
+        if 'step_size' in list(plot_settings.keys()):
+            settings['step_size'] = plot_settings['step_size']
+        else:
+            settings['step_size'] = 1
+
+        if 'show_grid' in list(plot_settings.keys()):
+            settings['show_grid'] = plot_settings['show_grid']
+        else:
+            settings['show_grid'] = 'x-axis and y-axis'
+
         if 'x_range_decimals' in list(plot_settings.keys()):
             settings['x_range_decimals'] = plot_settings['x_range_decimals']
         else:
@@ -195,13 +283,36 @@ class PlotSettings:
         else:
             settings['x_range_value'] = 10
 
-        self.settings = settings
+        if 'datalines_width' in list(plot_settings.keys()):
+            settings['datalines_width'] = plot_settings['datalines_width']
+        else:
+            settings['datalines_width'] = 3
 
-    def save(self):
+        self.settings_general.update(settings)
+
+    def save_decoder(self):
         """
-        Saves the settings back to a JSON file.
+        Saves the decoder settings back to a JSON file.
         """
-        if self.settings is not None:
-            with open(self.path, 'w') as outfile:
-                json.dump(self.settings, outfile, indent=4)
-            self.settings = None
+        if self.settings_decoder is not None:
+            with open(self.path_decoder, 'w') as outfile:
+                json.dump(self.settings_decoder, outfile, indent=4)
+            self.settings_decoder = None
+
+    def save_encoder(self):
+        """
+        Saves the encoder settings back to a JSON file.
+        """
+        if self.settings_encoder is not None:
+            with open(self.path_encoder, 'w') as outfile:
+                json.dump(self.settings_encoder, outfile, indent=4)
+            self.settings_encoder = None
+
+    def save_general(self):
+        """
+        Saves the general settings back to a JSON file.
+        """
+        if self.settings_general is not None:
+            with open(self.path_general, 'w') as outfile:
+                json.dump(self.settings_general, outfile, indent=4)
+            self.settings_general = None

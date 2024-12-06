@@ -4,11 +4,15 @@ import threading
 import time
 import logging
 import os
+import xlsxwriter
+from xlsxwriter.exceptions import FileCreateError
 
 from Models import Model
 from Views import View
 from Utils.Settings import SettingsStore
 from Utils import Logging, ViewUtils
+
+import version
 
 
 class Controller:
@@ -25,18 +29,18 @@ class Controller:
 
         self.running = True
 
+        self.lock_view = threading.Lock()
         self.thread_gui = threading.Thread(target=self.run_gui, daemon=True)
         self.thread_gui.start()
 
-        while self.view is None:
-            time.sleep(0.1)
-
-        Logging.info("Starting UnifiedGUI.")
+    def start(self):
+        with self.lock_view:  # will only start, when self.view has been initialized
+            Logging.info("Starting UnifiedGUI.")
 
         # Main program loop
         fps = SettingsStore.settings['FRAMES_PER_SECOND']
         while self.running:
-            self.run(sleep_time=1.0/fps)
+            self.run(sleep_time=1.0 / fps)
 
         self.shutdown()
 
@@ -86,13 +90,13 @@ class Controller:
             else:
                 return
 
-        try:
+        # try:
             encoder_info = self.model.add_encoder(encoder_type, parameters, parameter_values)
             encoder_info.update({'parameter_values': parameter_values})
             self.view.encoder_added(encoder_info)
-        except Exception as e:
-            Logging.error(e.args[0])
-            Logging.error("Failed to add encoder. Make sure device is connected and not used by other applications.")
+        # except Exception as e:
+        #     Logging.error(e.args[0])
+        #     Logging.error("Failed to add encoder. Make sure device is connected and not used by other applications.")
 
     def cancel_transmission(self):
         """
@@ -108,7 +112,7 @@ class Controller:
         """
         self.running = False
 
-    def decoder_clear(self):
+    def clear_decoder(self):
         """
         Clears decoder.
         This is called when the user presses on the Clear button.
@@ -116,9 +120,16 @@ class Controller:
         self.view.decoder_clear()
         self.model.decoder.clear()
 
+    def clear_encoder_recording(self):
+        """
+        Clears encoder recording.
+        This is called when the user presses on the Start button.
+        """
+        self.model.encoder.clear_recording()
+
     def edit_decoder_parameters(self):
         """
-        Let the user edit the decoder parameters by executing a dialog.
+        Let the user edit the decoder parameters by execu+ting a dialog.
         """
         parameters = self.model.decoder.parameters
         current_values = list(self.model.decoder.parameter_values.values())
@@ -148,8 +159,36 @@ class Controller:
         return self.model.encoder.encode_with_check(sequence)
 
     def export_custom(self, directory, dataset_name, save_encoder_activation, dataset_additional_name):
-        if self.model.decoder is not None:
-            self.model.decoder.export_custom(directory, dataset_name, save_encoder_activation, dataset_additional_name)
+        """
+        ...
+        :param directory: Directory for the data files to be stored.
+        :param dataset_name: File name prefix of the main dataset file.
+        :param save_encoder_activation: True or False, whether the encoder activation will be saved as part of the data
+        :param dataset_additional_name: File name prefix for additional data .csv files. If not wanted, set to None
+        """
+        export_possible = self.model.decoder is not None or (save_encoder_activation and self.model.encoder is not None)
+
+        if export_possible:
+            # Create a new workbook for the datasets
+            filename = os.path.join(directory, dataset_name + ".xlsx")
+            workbook = xlsxwriter.Workbook(filename)
+
+            if self.model.decoder is not None:
+                self.model.decoder.export_custom(workbook, directory, dataset_additional_name)
+
+            if save_encoder_activation and self.model.encoder is not None:
+                self.model.encoder.export_custom(workbook)
+
+            # Save the metadata of the current software
+            worksheet_metadata = workbook.add_worksheet('Metadata')
+            worksheet_metadata.write(0, 0, 'Software-Version')
+            worksheet_metadata.write(0, 1, version.__version__)
+
+            # Save the dataset
+            try:
+                workbook.close()
+            except FileCreateError as e:
+                Logging.error("Could not save the dataset, the file could not be written!", repeat=True)
         else:
             Logging.error('No decoder selected. Export of data is not possible!')
 
@@ -189,6 +228,13 @@ class Controller:
         """
         return self.model.get_decoder_info()
 
+    def get_encoded(self):
+        """
+        Gets value updates from the encoder.
+        :return: Encoder value updates if they are available, else None.
+        """
+        return self.model.get_encoded()
+
     def get_encoder_info(self):
         """
         Gets information about encoder.
@@ -217,6 +263,9 @@ class Controller:
         """
         if self.model.is_decoder_active():
             self.model.decoder.decode()
+
+        if self.model.is_encoder_recording():
+            self.model.encoder.update_datalines()
         time.sleep(sleep_time)
 
     def run_gui(self):
@@ -227,15 +276,16 @@ class Controller:
               However, I could not find a way to make it work this way due to some issues I did not fully understand.
               This seems to be the most understandable solution to avoid these issues.
         """
-        app = QtWidgets.QApplication(sys.argv)
-        app.setStyle('Fusion')
-        # Use stylesheet
-        with open('./Views/Style.qss', 'r') as f:
-            app.setStyleSheet(f.read())
-        # Disables the question mark in dialog windows
-        app.setAttribute(QtCore.Qt.AA_DisableWindowContextHelpButton)
-        self.view = View.View(self)
-        self.view.show()
+        with self.lock_view:
+            app = QtWidgets.QApplication(sys.argv)
+            app.setStyle('Fusion')
+            # Use stylesheet
+            with open('./Views/Style.qss', 'r') as f:
+                app.setStyleSheet(f.read())
+            # Disables the question mark in dialog windows
+            app.setAttribute(QtCore.Qt.AA_DisableWindowContextHelpButton)
+            self.view = View.View(self)
+            self.view.show()
         app.exec_()
 
     def shutdown(self):
@@ -276,13 +326,22 @@ class Controller:
         """
         Starts the decoder.
         """
-        self.decoder_clear()
+        self.clear_decoder()
         try:
             self.model.start_decoder()
             self.view.decoder_started()
         except Exception as e:
             Logging.error(e.args[0])
             Logging.error("Failed to start decoder.")
+
+    def start_encoder_recording(self):
+        """
+        Starts the encoder recording.
+        """
+        self.clear_encoder_recording()
+
+        self.model.encoder.set_recording(True)
+        self.view.encoder_started_recording()
 
     def stop_decoder(self):
         """
@@ -294,6 +353,12 @@ class Controller:
         except Exception as e:
             Logging.error(e.args[0])
             Logging.error("Failed to stop decoder.")
+
+    def stop_encoder_recording(self):
+        """
+        Stops the encoder recording.
+        """
+        self.model.encoder.set_recording(False)
 
     def transmit_symbol_values(self, symbol_values):
         """

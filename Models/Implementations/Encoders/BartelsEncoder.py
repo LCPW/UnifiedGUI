@@ -25,6 +25,7 @@ class BartelsEncoder(EncoderInterface):
         - determine current runtime
         """
         super().__init__(parameters, parameter_values)
+        self.transmitter_names = ["Bartels"]
 
         # update settings
         self.parameters_edited()
@@ -78,6 +79,28 @@ class BartelsEncoder(EncoderInterface):
 
         return symbol_values
 
+    def get_transmitter_current_symbols(self):
+        """
+        Returns a list of currently transmitted symbols by the transmitters. (for example: active/inactive=1/0)
+        :return: A list of symbols, with a length equal to the amount of transmitters present.
+        """
+        transmitter_active_list = []
+        for tx_idx in range(len(self.transmitters)):
+            active_list = []
+            channel_active = self.transmitters[tx_idx].get_channel_active()
+            if self.channel1:
+                active_list.append(channel_active[0])
+            if self.channel2:
+                active_list.append(channel_active[1])
+            if self.channel3:
+                active_list.append(channel_active[2])
+            if self.channel4:
+                active_list.append(channel_active[3])
+
+            transmitter_active_list.append(active_list)
+
+        return transmitter_active_list
+
     # update parameters
     def parameters_edited(self):
         """
@@ -100,6 +123,14 @@ class BartelsEncoder(EncoderInterface):
         self.base_time = self.parameter_values['base time (b) [ms]']
         self.extra_time = self.parameter_values['extra time per symbol (e) [ms]']
         self.modulation_index = int(self.parameter_values['modulation index'])
+
+        self.active_channels = int(self.channel1) + int(self.channel2) + int(self.channel3) + int(self.channel4)
+        self.plot_settings = {
+            'additional_datalines_active': [True, self.active_channels>1, self.active_channels>2, self.active_channels>3],
+            'additional_datalines_width': 3,
+            'datalines_active': [[True, self.active_channels>1, self.active_channels>2, self.active_channels>3]],
+            'datalines_width': 3
+        }
 
         self.allowed_symbol_values = [str(val) for val in range(0, self.modulation_index)]
 
@@ -129,7 +160,6 @@ class BartelsEncoder(EncoderInterface):
         bartels = BartelsTransmitter(self.port)
         bartels.micropump_set_frequency(self.frequency)
         self.transmitters = [bartels]
-
 
     def prepare_transmission(self, symbol_values):
         if self.modulation == "TSK":
@@ -165,16 +195,22 @@ class BartelsEncoder(EncoderInterface):
         - This will be called with correct timing
         """
 
-        injection_duration = self.injection_duration
+        injection_duration = self.injection_duration  # the amount of activation time (0-10000)
         #For TSK and PSK injection burst is fixed - go ahead
      
         if self.modulation == "CSK":
             #Injection burst length depends on symbol value
             injection_duration = symbol_value*self.injection_duration
 
-        for tx in self.transmitters:
-                tx.micropump_set_voltage_duration(self.channel1, self.channel2, self.channel3, self.channel4, self.voltage, injection_duration)
+        if injection_duration < 1:
+            return
 
+        for tx in self.transmitters:
+            tx.micropump_set_voltage(self.channel1, self.channel2, self.channel3, self.channel4, self.voltage)
+
+            time.sleep(injection_duration / 1000)
+
+            tx.micropump_disable_voltages()
 
     def available_ports():
         ports = serial.tools.list_ports.comports()

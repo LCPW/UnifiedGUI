@@ -105,7 +105,6 @@ class View(QMainWindow):
         Clears stuff from decoder view and data view.
         """
         self.data_view.decoder_clear()
-        self.decoder_view.decoder_clear()
 
     def decoder_started(self):
         """
@@ -128,14 +127,23 @@ class View(QMainWindow):
         :param encoder_info: Information about encoder.
         """
         self.encoder_view.encoder_added(encoder_info)
+        self.data_view.encoder_added(encoder_info)
         self.update_window_title()
 
     def encoder_removed(self):
         """
         Do stuff when an encoder is removed.
         """
+        self.data_view.encoder_removed()
         self.encoder_view.encoder_removed()
         self.update_window_title()
+
+    def encoder_started_recording(self):
+        """
+        Do stuff when the encoder recording is started.
+        """
+        #self.encoder_view.encoder_started()
+        self.data_view.tab_plot.plot_widget.encoder_started_recording()
 
     def toggle_log(self, state):
         """
@@ -156,8 +164,11 @@ class View(QMainWindow):
         This function is repeatedly called whenever the QTimer times out.
         """
         decoded = self.controller.get_decoded()
+        encoded = self.controller.get_encoded()
+        if decoded is not None or encoded is not None:
+            self.data_view.update_(decoded, encoded)
+
         if decoded is not None:
-            self.data_view.update_(decoded)
             self.decoder_view.update_(decoded)
 
         encoder_info = self.controller.get_encoder_info()

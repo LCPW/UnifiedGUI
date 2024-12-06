@@ -25,6 +25,10 @@ class BartelsTransmitter(TransmitterInterface):
         """
         super().__init__()
 
+        self.num_channels = 4
+        self.channel_names = ["CH" + str(i) for i in range(self.num_channels)]
+        self.channel_active = [False for i in range(self.num_channels)]
+
         self.smp = serial.Serial()
         self.smp.port = str(port)
         self.smp.baudrate = BartelsTransmitter.BAUDRATE
@@ -45,6 +49,12 @@ class BartelsTransmitter(TransmitterInterface):
         self.smp.readline().decode("ascii")
         self.micropump_set_state(False)
 
+    def get_channel_active(self):
+        """
+        returns a bool array of length = channel amount, which indicates whether a certain channel is active or not.
+        """
+        return self.channel_active
+
     def shutdown(self):
         self.micropump_set_state(False)
 
@@ -56,6 +66,8 @@ class BartelsTransmitter(TransmitterInterface):
             self.smp.write(b"PON\r\n")
             self.smp.readline().decode("ascii")
         else:
+            self.micropump_disable_voltages()
+
             BartelsTransmitter.stopped = True
             self.smp.write(b"POFF\r\n")
             self.smp.readline().decode("ascii")
@@ -66,10 +78,8 @@ class BartelsTransmitter(TransmitterInterface):
             self.smp.readline().decode("ascii")
             self.smp.write(b"PA000#000#000#000\r\n")
             self.smp.readline().decode("ascii")
-        
 
     def micropump_set_all_voltages(self, channel_voltages):
-
         # PA<aaa>#<bbb>#<ccc>#<ddd>
         # Set the voltage of all four pumps (<aaa> for pump 1, <bbb> for pump 2, ...). Each value must be zero-padded to exactly three characters.
         command = "PA{:03d}#{:03d}#{:03d}#{:03d}\r\n".format(channel_voltages[0], channel_voltages[1], channel_voltages[2], channel_voltages[3])
@@ -77,30 +87,29 @@ class BartelsTransmitter(TransmitterInterface):
         self.smp.write(str.encode(command))
         self.smp.readline().decode("ascii")
 
-    def micropump_set_voltage_duration(self, channel1, channel2, channel3, channel4, voltage, duration_ms):
+    def micropump_set_voltage(self, channel1, channel2, channel3, channel4, voltage):
         """
-        set micropump frequency
-            parameters:
-            channel (int):  1-4
-            voltage (int):  0-250
-            duration (int): 0-10000
+        Activation of the Bartels micropumps for a certain time duration.
+        NOTE: This is a blocking function call and will stop the program for at least duration_ms!
+        :param channel1: (bool) activate channel 1
+        :param channel2: (bool) activate channel 2
+        :param channel3: (bool) activate channel 3
+        :param channel4: (bool) activate channel 4
+        :param voltage: (int) 0-250
         """
-
-        channels = [int(channel1)*voltage, int(channel2)*voltage, int(channel3)*voltage, int(channel4)+voltage]
-        self.micropump_set_all_voltages_duration(channels, [0,0,0,0], duration_ms)
-
-
-    def micropump_set_all_voltages_duration(self, on_voltages, off_voltages, duration_ms):
-        if duration_ms == 0:
-            return
-        
-        self.micropump_set_all_voltages(on_voltages)
-        time.sleep(duration_ms/1000)
-
         if BartelsTransmitter.stopped:
             return
+        if voltage < 0 or voltage > 250:
+            return
 
-        self.micropump_set_all_voltages(off_voltages)
+        voltages = [int(channel1)*voltage, int(channel2)*voltage, int(channel3)*voltage, int(channel4)*voltage]
+        self.micropump_set_all_voltages(voltages)
+
+        self.channel_active = voltages
+
+    def micropump_disable_voltages(self):
+        self.micropump_set_voltage(True, True, True, True, 0)
+        self.channel_active = [False, False, False, False]
 
     def micropump_set_voltages_with_delay(self, on_voltages, off_voltages, delays, duration_ms):
         if duration_ms == 0:
@@ -158,7 +167,6 @@ class BartelsTransmitter(TransmitterInterface):
                 return
             self.micropump_set_all_voltages(unique_voltages[n+1])
 
-
     def micropump_set_frequency(self, frequency):
         """
         set micropump voltage + duration
@@ -166,4 +174,3 @@ class BartelsTransmitter(TransmitterInterface):
             frequency (int):  0-850
         """
         self.smp.write(b"F" + str.encode(str(frequency)) + b"\r\n")
-

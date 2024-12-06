@@ -93,8 +93,16 @@ class PlotView(QWidget):
         self.setLayout(layout)
 
     @property
-    def settings(self):
-        return self.settings_object.settings
+    def settings_decoder(self):
+        return self.settings_object.settings_decoder
+
+    @property
+    def settings_encoder(self):
+        return self.settings_object.settings_encoder
+
+    @property
+    def settings_general(self):
+        return self.settings_object.settings_general
 
     def add_additional_datalines(self, additional_datalines_info):
         """
@@ -105,14 +113,23 @@ class PlotView(QWidget):
         self.plot_widget.add_additional_datalines(additional_datalines_info)
         self.plot_settings_dialog.add_additional_datalines(additional_datalines_info)
 
-    def add_datalines(self, receiver_info):
+    def add_datalines_receiver(self, receiver_info):
         """
         Adds new datalines.
         This function is usually executed when a new decoder has been added.
         :param receiver_info: Information about the receivers.
         """
-        self.plot_widget.add_datalines(receiver_info)
-        self.plot_settings_dialog.add_datalines(receiver_info)
+        self.plot_widget.add_datalines_receiver(receiver_info)
+        self.plot_settings_dialog.add_datalines(True, receiver_info)
+
+    def add_datalines_encoder(self, transmitter_info):
+        """
+        Adds new datalines.
+        This function is usually executed when a new encoder has been added.
+        :param transmitter_info: Information about the transmitters.
+        """
+        self.plot_widget.add_datalines_transmitter(transmitter_info)
+        self.plot_settings_dialog.add_datalines(False, transmitter_info)
 
     def add_landmarks(self, landmark_info):
         """
@@ -129,14 +146,17 @@ class PlotView(QWidget):
         Loads settings and creates datalines/landmarks.
         :param decoder_info: Information about decoder.
         """
-        self.settings_object = PlotSettings.PlotSettings(decoder_info)
-        self.init_x_range()
-        self.show_grid(self.settings['show_grid'])
-        self.add_datalines(decoder_info['receivers'])
+        if self.settings_object is None:
+            self.settings_object = PlotSettings.PlotSettings()
+            self.settings_object.load_file_default_settings_decoder(decoder_info)
+            self.init_plot()
+        else:
+            self.settings_object.load_file_default_settings_decoder(decoder_info)
+
+        self.add_datalines_receiver(decoder_info['receivers'])
         self.add_additional_datalines(decoder_info['additional_datalines'])
         self.add_landmarks(decoder_info['landmarks'])
         self.plot_settings_dialog.decoder_added()
-        self.button_settings.setEnabled(True)
 
     def decoder_clear(self):
         """
@@ -149,33 +169,69 @@ class PlotView(QWidget):
         Do stuff when the decoder has been removed.
         Saves settings and resets plot.
         """
-        self.settings_object.save()
+        self.settings_object.save_decoder()
+        if self.settings_object.is_empty():
+            self.destroy_plot()
+            self.plot_settings_dialog.decoder_removed()
+
+    def destroy_plot(self):
+        self.settings_object.save_general()
         self.plot_widget.reset_plot()
-        self.plot_settings_dialog.decoder_removed()
         self.button_settings.setEnabled(False)
+        self.settings_object = None
 
     def encoder_added(self, encoder_info):
-        # TODO
-        pass
+        """
+        Do stuff when a new encoder is added.
+        Loads settings and creates datalines/landmarks.
+        :param encoder_info: Information about the encoder.
+        """
+        if self.settings_object is None:
+            self.settings_object = PlotSettings.PlotSettings()
+            self.settings_object.load_file_default_settings_encoder(encoder_info)
+            self.init_plot()
+        else:
+            self.settings_object.load_file_default_settings_encoder(encoder_info)
+
+        self.add_datalines_encoder(encoder_info['transmitters'])
+        self.plot_settings_dialog.encoder_added()
+
+    def encoder_clear(self):
+        """
+        Clears elements from the plot.
+        """
+        self.plot_widget.clear_()
 
     def encoder_removed(self):
-        # TODO
-        pass
+        """
+        Do stuff when the encoder has been removed.
+        Saves settings and resets plot.
+        """
+        self.settings_object.save_encoder()
+        if self.settings_object.is_empty():
+            self.destroy_plot()
+            self.plot_settings_dialog.encoder_removed()
+
+    def init_plot(self):
+        self.settings_object.load_file_default_settings_general()
+        self.init_x_range()
+        self.show_grid(self.settings_general['show_grid'])
+        self.button_settings.setEnabled(True)
 
     def init_x_range(self):
         """
         Initializes the settings for the x-range above the plot accordingly.
         """
-        self.slider_range.setRange(max(self.settings['x_range_min'], 1), self.settings['x_range_max'])
-        self.slider_range.setValue(int(round(self.settings['x_range_value'])))
-        self.spinbox_range.setDecimals(self.settings['x_range_decimals'])
-        self.spinbox_range.setRange(self.settings['x_range_min'], self.settings['x_range_max'])
-        self.spinbox_range.setValue(self.settings['x_range_value'])
+        self.slider_range.setRange(max(self.settings_general['x_range_min'], 1), self.settings_general['x_range_max'])
+        self.slider_range.setValue(int(round(self.settings_general['x_range_value'])))
+        self.spinbox_range.setDecimals(self.settings_general['x_range_decimals'])
+        self.spinbox_range.setRange(self.settings_general['x_range_min'], self.settings_general['x_range_max'])
+        self.spinbox_range.setValue(self.settings_general['x_range_value'])
         # Actually set the x range
-        self.plot_widget.plotItem.setLimits(maxXRange=self.settings['x_range_value'])
+        self.plot_widget.plotItem.setLimits(maxXRange=self.settings_general['x_range_value'])
         self.slider_range.setEnabled(True)
         self.spinbox_range.setEnabled(True)
-        if self.settings['x_range_active']:
+        if self.settings_general['x_range_active']:
             self.button_range.setEnabled(True)
 
     def load_default_settings(self):
@@ -187,7 +243,7 @@ class PlotView(QWidget):
         self.settings_object.load_default_settings(decoder_info)
         self.plot_settings_dialog.hide()
         self.plot_settings_dialog = PlotSettingsDialog.PlotSettingsDialog(self)
-        self.plot_settings_dialog.add_datalines(decoder_info['receivers'])
+        self.plot_settings_dialog.add_datalines_receiver(decoder_info['receivers'])
         self.plot_settings_dialog.add_landmarks(decoder_info['landmarks'])
         self.plot_settings_dialog.decoder_added()
         self.plot_settings_dialog.show()
@@ -198,11 +254,11 @@ class PlotView(QWidget):
         Sets the color for a given additional dataline.
         :param dataline_index: Index of the additional dataline.
         """
-        initial_color = QColor(self.settings['additional_datalines_color'][dataline_index])
+        initial_color = QColor(self.settings_decoder['additional_datalines_color'][dataline_index])
         color = QColorDialog.getColor(initial_color)
         # Is False if the user pressed Cancel
         if color.isValid():
-            self.settings['additional_datalines_color'][dataline_index] = color.name()
+            self.settings_decoder['additional_datalines_color'][dataline_index] = color.name()
             self.plot_widget.set_additional_dataline_pen(dataline_index)
             self.plot_settings_dialog.buttons_additional_datalines_color[dataline_index].setStyleSheet("background-color: " + color.name())
 
@@ -212,7 +268,7 @@ class PlotView(QWidget):
         :param dataline_index: Index of the additional dataline.
         :param combobox: Combobox containing the style item.
         """
-        self.settings['additional_datalines_style'][dataline_index] = combobox.currentText()
+        self.settings_decoder['additional_datalines_style'][dataline_index] = combobox.currentText()
         self.plot_widget.set_additional_dataline_pen(dataline_index)
 
     def set_additional_datalines_width(self, width):
@@ -220,41 +276,56 @@ class PlotView(QWidget):
         Sets the width for all additional datalines.
         :param width: New width of the additional datalines.
         """
-        self.settings['additional_datalines_width'] = width
+        self.settings_decoder['additional_datalines_width'] = width
         self.plot_widget.set_additional_dataline_pens()
 
-    def set_color(self, receiver_index, sensor_index):
+    def set_color_decoder(self, decoder_index, sensor_index):
         """
         Sets the color for a given dataline.
-        :param receiver_index: Receiver index of the dataline.
+        :param decoder_index: Decoder index of the dataline.
         :param sensor_index: Sensor_index of the dataline
         """
-        initial_color = QColor(self.settings['datalines_color'][receiver_index][sensor_index])
+        initial_color = QColor(self.settings_decoder['datalines_color'][decoder_index][sensor_index])
         color = QColorDialog.getColor(initial_color)
         # Is False if the user pressed Cancel
         if color.isValid():
-            self.settings['datalines_color'][receiver_index][sensor_index] = color.name()
-            self.plot_widget.set_dataline_pen(receiver_index, sensor_index)
-            self.plot_settings_dialog.buttons_color[receiver_index][sensor_index].setStyleSheet("background-color: " + color.name())
+            self.settings_decoder['datalines_color'][decoder_index][sensor_index] = color.name()
+            self.plot_widget.set_dataline_pen(True, decoder_index, sensor_index)
+            self.plot_settings_dialog.buttons_color_receivers[decoder_index][sensor_index].setStyleSheet("background-color: " + color.name())
+
+    def set_color_encoder(self, encoder_index, channel_index):
+        """
+        Sets the color for a given dataline.
+        :param encoder_index: Encoder index of the dataline.
+        :param channel_index: Channel index of the dataline
+        """
+        initial_color = QColor(self.settings_encoder['datalines_color'][encoder_index][channel_index])
+        color = QColorDialog.getColor(initial_color)
+        # Is False if the user pressed Cancel
+        if color.isValid():
+            self.settings_encoder['datalines_color'][encoder_index][channel_index] = color.name()
+            self.plot_widget.set_dataline_pen(False, encoder_index, channel_index)
+            self.plot_settings_dialog.buttons_color_transmitters[encoder_index][channel_index].setStyleSheet("background-color: " + color.name())
 
     def set_datalines_width(self, width):
         """
         Sets the width for all datalines.
         :param width: New width of the datalines.
         """
-        self.settings['datalines_width'] = width
-        self.plot_widget.set_dataline_pens()
+        self.settings_general['datalines_width'] = width
+        self.plot_widget.set_dataline_pens(True)
+        self.plot_widget.set_dataline_pens(False)
 
     def set_landmark_color(self, landmark_index):
         """
         Sets the color of the symbols of a given landmark set.
         :param landmark_index: Index of the landmark.
         """
-        initial_color = QColor(self.settings['landmarks_color'][landmark_index])
+        initial_color = QColor(self.settings_decoder['landmarks_color'][landmark_index])
         color = QColorDialog.getColor(initial_color)
         # Is False if the user pressed Cancel
         if color.isValid():
-            self.settings['landmarks_color'][landmark_index] = color.name()
+            self.settings_decoder['landmarks_color'][landmark_index] = color.name()
             self.plot_widget.set_landmark_pen(landmark_index)
             self.plot_settings_dialog.buttons_landmarks_color[landmark_index].setStyleSheet("background-color: " + color.name())
 
@@ -263,7 +334,7 @@ class PlotView(QWidget):
         Sets the size for the landmarks.
         :param size: New size.
         """
-        self.settings['landmarks_size'] = size
+        self.settings_decoder['landmarks_size'] = size
         self.plot_widget.set_landmark_pens()
 
     def set_landmark_symbol(self, landmark_index, combobox):
@@ -273,7 +344,7 @@ class PlotView(QWidget):
         :param combobox: Combobox item containing the selected symbol.
         """
         symbol = SYMBOLS[combobox.currentText()]
-        self.settings['landmarks_symbols'][landmark_index] = symbol
+        self.settings_decoder['landmarks_symbols'][landmark_index] = symbol
         self.plot_widget.set_landmark_pen(landmark_index)
 
     def set_step_size(self, step_size):
@@ -281,27 +352,37 @@ class PlotView(QWidget):
         Sets the step size for values to be shown in the live plot.
         :param step_size: New step size.
         """
-        self.settings['step_size'] = step_size
+        self.settings_general['step_size'] = step_size
 
-    def set_style(self, receiver_index, sensor_index, combobox):
+    def set_style_decoder(self, decoder_index, sensor_index, combobox):
         """
         Sets the line style for a given dataline (Qt.SolidLine, etc.).
-        :param receiver_index: Receiver index of the dataline.
+        :param decoder_index: Decoder index of the dataline.
         :param sensor_index: Sensor index of the dataline.
         :param combobox: Combobox containing the style item.
         """
-        self.settings['datalines_style'][receiver_index][sensor_index] = combobox.currentText()
-        self.plot_widget.set_dataline_pen(receiver_index, sensor_index)
+        self.settings_decoder['datalines_style'][decoder_index][sensor_index] = combobox.currentText()
+        self.plot_widget.set_dataline_pen(True, decoder_index, sensor_index)
+
+    def set_style_encoder(self, encoder_index, channel_index, combobox):
+        """
+        Sets the line style for a given dataline (Qt.SolidLine, etc.).
+        :param encoder_index: Encoder index of the dataline.
+        :param channel_index: Channel index of the dataline.
+        :param combobox: Combobox containing the style item.
+        """
+        self.settings_encoder['datalines_style'][encoder_index][channel_index] = combobox.currentText()
+        self.plot_widget.set_dataline_pen(False, encoder_index, channel_index)
 
     def set_symbol_intervals_color(self):
         """
         Sets the color of the vertical lines that indicate symbol intervals.
         """
-        initial_color = QColor(self.settings['symbol_intervals_color'])
+        initial_color = QColor(self.settings_decoder['symbol_intervals_color'])
         color = QColorDialog.getColor(initial_color)
         # Is False if the user pressed Cancel
         if color.isValid():
-            self.settings['symbol_intervals_color'] = color.name()
+            self.settings_decoder['symbol_intervals_color'] = color.name()
             self.plot_widget.set_symbol_intervals_pen()
             self.plot_settings_dialog.button_symbol_intervals_color.setStyleSheet("background-color: " + color.name())
         self.plot_widget.set_symbol_intervals_pen()
@@ -311,7 +392,7 @@ class PlotView(QWidget):
         Sets the width of the vertical lines that indicate symbol intervals.
         :param width: Width of the vertical lines.
         """
-        self.settings['symbol_intervals_width'] = width
+        self.settings_decoder['symbol_intervals_width'] = width
         self.plot_widget.set_symbol_intervals_pen()
 
     def set_symbol_values_height(self, height):
@@ -319,7 +400,7 @@ class PlotView(QWidget):
         Sets the height for the symbol values if fixed height is used.
         :param height: Fixed height of the symbol values.
         """
-        self.settings['symbol_values_fixed_height'] = height
+        self.settings_decoder['symbol_values_fixed_height'] = height
         self.plot_widget.clear_symbol_values()
 
     def set_symbol_values_position(self, index):
@@ -336,7 +417,7 @@ class PlotView(QWidget):
         else:
             position = "Fixed"
             self.plot_settings_dialog.spinbox_symbol_values_fixed_height.setEnabled(True)
-        self.settings['symbol_values_position'] = position
+        self.settings_decoder['symbol_values_position'] = position
         self.plot_widget.clear_symbol_values()
 
     def set_symbol_values_size(self, size):
@@ -344,7 +425,7 @@ class PlotView(QWidget):
         Sets font size for symbol values
         :param size: font size.
         """
-        self.settings['symbol_values_size'] = size
+        self.settings_decoder['symbol_values_size'] = size
         self.plot_widget.set_symbol_values_size()
 
     def set_x_range(self, widget):
@@ -357,20 +438,20 @@ class PlotView(QWidget):
         auto_scroll_enabled = self.plot_widget.autoscroll
         if widget == 'button':
             self.plot_widget.plotItem.setLimits(maxXRange=None, xMin=None)
-            self.settings['x_range_active'] = False
+            self.settings_general['x_range_active'] = False
             self.button_range.setEnabled(False)
         elif widget == 'slider':
             x_range = self.slider_range.value()
             self.plot_widget.plotItem.setLimits(maxXRange=x_range)
-            self.settings['x_range_value'] = x_range
-            self.settings['x_range_active'] = True
+            self.settings_general['x_range_value'] = x_range
+            self.settings_general['x_range_active'] = True
             self.spinbox_range.setValue(x_range)
             self.button_range.setEnabled(True)
         elif widget == 'spinbox':
             x_range = self.spinbox_range.value()
             self.plot_widget.plotItem.setLimits(maxXRange=x_range)
-            self.settings['x_range_value'] = x_range
-            self.settings['x_range_active'] = True
+            self.settings_general['x_range_value'] = x_range
+            self.settings_general['x_range_active'] = True
             self.slider_range.setValue(int(round(x_range)))
             self.button_range.setEnabled(True)
         self.update_x_range(auto_scroll_enabled)
@@ -388,10 +469,10 @@ class PlotView(QWidget):
             show_grid = 'y-axis only'
         else:
             show_grid = 'x-axis and y-axis'
-        self.settings['show_grid'] = show_grid
+        self.settings_general['show_grid'] = show_grid
         self.plot_widget.showGrid(
-            x=self.settings['show_grid'] in ['x-axis only', 'x-axis and y-axis'],
-            y=self.settings['show_grid'] in ['y-axis only', 'x-axis and y-axis'])
+            x=self.settings_general['show_grid'] in ['x-axis only', 'x-axis and y-axis'],
+            y=self.settings_general['show_grid'] in ['y-axis only', 'x-axis and y-axis'])
 
     def show_settings(self):
         """
@@ -414,8 +495,8 @@ class PlotView(QWidget):
             self.plot_settings_dialog.set_all_additional_datalines_checkboxes(True)
             new_state = True
 
-        for dataline_index in range(len(self.settings['additional_datalines_active'])):
-            self.settings['additional_datalines_active'][dataline_index] = new_state
+        for dataline_index in range(len(self.settings_decoder['additional_datalines_active'])):
+            self.settings_decoder['additional_datalines_active'][dataline_index] = new_state
             # True -> False
             if not new_state:
                 self.plot_widget.clear_additional_dataline(dataline_index)
@@ -428,13 +509,13 @@ class PlotView(QWidget):
         :param checkbox: Checkbox object.
         """
         state = checkbox.checkState()
-        self.settings['additional_datalines_active'][dataline_index] = state
+        self.settings_decoder['additional_datalines_active'][dataline_index] = state
         # Deactivated
         if not state:
             self.plot_widget.clear_additional_dataline(dataline_index)
 
         # If necessary, update the checkbox
-        all_, any_ = all(self.settings['additional_datalines_active']), any(self.settings['additional_datalines_active'])
+        all_, any_ = all(self.settings_decoder['additional_datalines_active']), any(self.settings_decoder['additional_datalines_active'])
         state = 2 if all_ else (1 if any_ else 0)
         self.plot_settings_dialog.checkbox_all_additional_datalines.setCheckState(Qt.CheckState(state))
 
@@ -454,14 +535,14 @@ class PlotView(QWidget):
             self.plot_settings_dialog.set_all_landmark_checkboxes(True)
             new_state = True
 
-        for landmark_index in range(len(self.settings['landmarks_active'])):
-            self.settings['landmarks_active'][landmark_index] = new_state
+        for landmark_index in range(len(self.settings_decoder['landmarks_active'])):
+            self.settings_decoder['landmarks_active'][landmark_index] = new_state
             # Deactivated
             if not new_state:
                 self.plot_widget.clear_landmark(landmark_index)
         self.plot_widget.update_legend()
 
-    def toggle_all_sensor_datalines(self, receiver_index, checkbox):
+    def toggle_all_sensor_datalines_decoder(self, receiver_index, checkbox):
         """
         Shows/hides all sensor datalines of a given receiver.
         :param receiver_index: Receiver index of the datalines.
@@ -477,11 +558,34 @@ class PlotView(QWidget):
             self.plot_settings_dialog.set_all_sensor_checkboxes(receiver_index, True)
             new_state = True
 
-        for sensor_index in range(len(self.settings['datalines_active'][receiver_index])):
-            self.settings['datalines_active'][receiver_index][sensor_index] = new_state
+        for sensor_index in range(len(self.settings_decoder['datalines_active'][receiver_index])):
+            self.settings_decoder['datalines_active'][receiver_index][sensor_index] = new_state
             # True -> False
             if not new_state:
-                self.plot_widget.clear_dataline(receiver_index, sensor_index)
+                self.plot_widget.clear_dataline_receiver(receiver_index, sensor_index)
+        self.plot_widget.update_legend()
+
+    def toggle_all_sensor_datalines_encoder(self, encoder_index, checkbox):
+        """
+        Shows/hides all sensor datalines of a given encoder.
+        :param encoder_index: Encoder index of the datalines.
+        :param checkbox: Checkbox object.
+        """
+        state = checkbox.checkState()
+        if state == 0:
+            self.plot_settings_dialog.set_all_channel_checkboxes(encoder_index, False)
+            new_state = False
+        else:
+            state = 2
+            checkbox.setCheckState(Qt.CheckState(state))
+            self.plot_settings_dialog.set_all_channel_checkboxes(encoder_index, True)
+            new_state = True
+
+        for channel_index in range(len(self.settings_encoder['datalines_active'][encoder_index])):
+            self.settings_encoder['datalines_active'][encoder_index][channel_index] = new_state
+            # True -> False
+            if not new_state:
+                self.plot_widget.clear_dataline_transmitter(encoder_index, channel_index)
         self.plot_widget.update_legend()
 
     def toggle_landmark(self, landmark_index, checkbox):
@@ -490,20 +594,20 @@ class PlotView(QWidget):
         :param landmark_index: Landmark index of the landmark set.
         """
         state = checkbox.checkState()
-        self.settings['landmarks_active'][landmark_index] = state
+        self.settings_decoder['landmarks_active'][landmark_index] = state
         # Deactivated
         if not state:
             self.plot_widget.clear_landmark(landmark_index)
         self.data_view.view.update_()
 
         # If necessary, update the "Select all landmarks" checkbox
-        all_, any_ = all(self.settings['landmarks_active']), any(self.settings['landmarks_active'])
+        all_, any_ = all(self.settings_decoder['landmarks_active']), any(self.settings_decoder['landmarks_active'])
         state = 2 if all_ else (1 if any_ else 0)
         self.plot_settings_dialog.checkbox_all_landmarks.setCheckState(Qt.CheckState(state))
 
         self.plot_widget.update_legend()
 
-    def toggle_sensor_dataline(self, receiver_index, sensor_index, checkbox):
+    def toggle_sensor_dataline_decoder(self, receiver_index, sensor_index, checkbox):
         """
         Shows/hides a single dataline.
         :param receiver_index: Receiver index of the dataline.
@@ -511,15 +615,37 @@ class PlotView(QWidget):
         :param checkbox: Checkbox object.
         """
         state = checkbox.checkState()
-        self.settings['datalines_active'][receiver_index][sensor_index] = state
+        self.settings_decoder['datalines_active'][receiver_index][sensor_index] = state
+
         # Deactivated
         if not state:
-            self.plot_widget.clear_dataline(receiver_index, sensor_index)
+            self.plot_widget.clear_dataline_receiver(receiver_index, sensor_index)
 
         # If necessary, update the receiver checkbox
-        all_, any_ = all(self.settings['datalines_active'][receiver_index]), any(self.settings['datalines_active'][receiver_index])
+        all_, any_ = all(self.settings_decoder['datalines_active'][receiver_index]), any(self.settings_decoder['datalines_active'][receiver_index])
         state = 2 if all_ else (1 if any_ else 0)
-        self.plot_settings_dialog.checkboxes_receivers_active[receiver_index].setCheckState(Qt.CheckState(state))
+        self.plot_settings_dialog.checkboxes_decoders_active[receiver_index].setCheckState(Qt.CheckState(state))
+
+        self.plot_widget.update_legend()
+
+    def toggle_sensor_dataline_encoder(self, encoder_index, channel_index, checkbox):
+        """
+        Shows/hides a single dataline.
+        :param encoder_index: Transmitter index of the dataline.
+        :param channel_index: Channel index of the dataline.
+        :param checkbox: Checkbox object.
+        """
+        state = checkbox.checkState()
+        self.settings_encoder['datalines_active'][encoder_index][channel_index] = state
+
+        # Deactivated
+        if not state:
+            self.plot_widget.clear_dataline_transmitter(encoder_index, channel_index)
+
+        # If necessary, update the receiver checkbox
+        all_, any_ = all(self.settings_encoder['datalines_active'][encoder_index]), any(self.settings_encoder['datalines_active'][encoder_index])
+        state = 2 if all_ else (1 if any_ else 0)
+        self.plot_settings_dialog.checkboxes_encoders_active[encoder_index].setCheckState(Qt.CheckState(state))
 
         self.plot_widget.update_legend()
 
@@ -528,7 +654,7 @@ class PlotView(QWidget):
         Shows/hides symbol intervals (vertical lines).
         :param state: True -> Show; False -> Hide.
         """
-        self.settings['symbol_intervals'] = state
+        self.settings_decoder['symbol_intervals'] = state
         if not state:
             self.plot_widget.clear_symbol_intervals()
 
@@ -537,32 +663,39 @@ class PlotView(QWidget):
         Shows/hides symbol values.
         :param state: True -> Show; False -> Hide.
         """
-        self.settings['symbol_values'] = state
+        self.settings_decoder['symbol_values'] = state
         if not state:
             self.plot_widget.clear_symbol_values()
 
-    def update_(self, decoded):
+    def update_(self, decoded, encoded):
         """
         Updates this widget with new information from the decoder.
         :param decoded: Decoder value updates.
+        :param encoded: Encoder value updates.
         """
-        self.update_scroll_bar(decoded)
-        self.plot_widget.update_(decoded)
+        self.update_scroll_bar(decoded, encoded)
+        self.plot_widget.update_(decoded, encoded)
 
-        # If autoscroll is enabled, set the X range accordingly
-        if self.plot_widget.autoscroll:
-            x_range = self.settings['x_range_value']
-            self.plot_widget.plotItem.setLimits(maxXRange=x_range, xMin=decoded['max_timestamp'] - x_range)
-
-    def update_scroll_bar(self, decoded):
+    def update_scroll_bar(self, decoded, encoded):
         """
         Updates the length of the scrollbar accordingly.
         The value of the scrollbar always indicates the left value of the current range.
         :param decoded: Decoder value updates.
+        :param encoded: Encoder value updates.
         """
-        min_timestamp, max_timestamp = decoded['min_timestamp'], decoded['max_timestamp']
-        if self.settings['x_range_active']:
-            interval = max_timestamp - min_timestamp - self.settings['x_range_value']
+        min_timestamp, max_timestamp = 0, 0
+        if decoded is not None:
+            min_timestamp, max_timestamp = decoded['min_timestamp'], decoded['max_timestamp']
+
+            if encoded is not None:
+                min_timestamp = min(min_timestamp, encoded['min_timestamp'])
+                max_timestamp = max(max_timestamp, encoded['max_timestamp'])
+        else:
+            min_timestamp, max_timestamp = encoded['min_timestamp'], encoded['max_timestamp']
+
+        x_range_active, x_value = self.settings_general['x_range_active'], self.settings_general['x_range_value']
+        if x_range_active:
+            interval = max_timestamp - min_timestamp - x_value
             # Clip negative values
             interval = interval if interval > 0 else 0
             self.scrollbar.setRange(0, int(interval * SettingsStore.settings['SCROLLBAR_GRANULARITY']))

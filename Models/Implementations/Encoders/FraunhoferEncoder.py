@@ -25,6 +25,7 @@ class FraunhoferEncoder(EncoderInterface):
         - determine current runtime
         """
         super().__init__(parameters, parameter_values)
+        self.transmitter_names = ["Fraunhofer"]
 
         # update settings
         self.parameters_edited()

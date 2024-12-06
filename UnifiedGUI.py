@@ -3,6 +3,7 @@ import Controller
 
 def main():
     controller = Controller.Controller()
+    controller.start()
     return 0
 
 

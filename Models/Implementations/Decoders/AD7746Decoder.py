@@ -1,11 +1,10 @@
-
-
 import numpy as np
 import serial
 import serial.tools.list_ports
 
 from Models.Interfaces.DecoderInterface import DecoderInterface
 from Models.Implementations.Receivers.AD7746Receiver import AD7746Receiver
+from Utils import Logging
 
 NEGATIVE_DETECTION_THRESHOLD = True
 
@@ -206,6 +205,10 @@ class AD7746Decoder(DecoderInterface):
 
     def available_ports():
         ports = serial.tools.list_ports.comports()
+
+        if len(ports) == 0:
+            Logging.error("No COM ports detected!")
+            return
     
         suggested_port = ports[0].name
         for port in sorted(ports):

@@ -105,6 +105,16 @@ class Model:
             parameters = None
         return parameters
 
+    def get_encoded(self):
+        """
+        Gets value updates from the encoder.
+        :return: Encoder value updates if it is available, else None.
+        """
+        if self.encoder is not None:
+            return self.encoder.get_encoded()
+        else:
+            return None
+
     @staticmethod
     def get_encoder_parameters(encoder_type):
         """
@@ -138,12 +148,12 @@ class Model:
         """
         return self.decoder is not None and self.decoder.active
 
-    def is_encoder_active(self):
+    def is_encoder_recording(self):
         """
         Checks whether an encoder is available.
         :return: Whether an encoder is defined.
         """
-        return self.encoder is not None and self.encoder.active
+        return self.encoder is not None and self.encoder.is_recording()
 
     def remove_encoder(self):
         """

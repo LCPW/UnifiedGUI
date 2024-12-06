@@ -39,6 +39,7 @@ class ReceiverInterface:
         """
         Runs an infinite loop of calling listen_step to check for new measurement values.
         """
+        self.running = True
         while self.running:
             self.listen_step()
             time.sleep(self.sleep_time)
@@ -87,3 +88,9 @@ class ReceiverInterface:
     def shutdown(self):
         #Allow for any closing stuff
         pass
+
+    def stop_listen(self):
+        """
+        Terminates the infinite loop of calling listen_step to check for new measurement values.
+        """
+        self.running = False

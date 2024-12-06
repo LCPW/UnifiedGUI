@@ -53,10 +53,34 @@ class DataView(QWidget):
         self.tab_tables.decoder_removed()
         self.tab_plot.decoder_removed()
 
-    def update_(self, decoded):
+    def encoder_added(self, encoder_info):
+        """
+        Do stuff when a encoder is added.
+        :param encoder_info: Information about encoder.
+        """
+        # self.tab_tables.encoder_added(encoder_info)
+        self.tab_plot.encoder_added(encoder_info)
+
+    def encoder_clear(self):
+        """
+        Clears elements from the plot and tables.
+        """
+        self.tab_plot.encoder_clear()
+        # self.tab_tables.encoder_clear()
+
+    def encoder_removed(self):
+        """
+        Do stuff when the encoder is removed.
+        """
+        # self.tab_tables.encoder_removed()
+        self.tab_plot.encoder_removed()
+
+    def update_(self, decoded, encoded):
         """
         Updates this widget with new information from the decoder.
         :param decoded: Decoder value updates.
+        :param encoded: Encoder value updates.
         """
-        self.tab_plot.update_(decoded)
-        self.tab_tables.update_(decoded)
+        self.tab_plot.update_(decoded, encoded)
+        if decoded is not None:
+            self.tab_tables.update_(decoded)

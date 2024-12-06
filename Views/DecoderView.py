@@ -97,7 +97,10 @@ class DecoderView(QWidget):
         Clear decoder data.
         """
         if ViewUtils.message_box_warning(self.style(), "Clear decoder data?", "Are you sure you clear all decoder data?", "All data that has not been exported yet, cannot be recovered."):
-            self.view.controller.decoder_clear()
+            self.view.controller.clear_decoder()
+
+            self.text_edit_symbol_values.setPlainText("")
+            self.text_edit_sequence.setPlainText("")
 
     def decoder_added(self, decoder_info):
         """
@@ -203,10 +206,6 @@ class DecoderView(QWidget):
         self.button_remove_decoder.setEnabled(True)
         self.button_start_decoder.setEnabled(True)
         self.button_stop_decoder.setEnabled(False)
-
-    def decoder_clear(self):
-        self.text_edit_symbol_values.setPlainText("")
-        self.text_edit_sequence.setPlainText("")
 
     def decoder_removed(self):
         """

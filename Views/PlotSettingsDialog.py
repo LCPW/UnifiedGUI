@@ -21,16 +21,24 @@ class PlotSettingsDialog(QDialog):
         self.tabs = QTabWidget()
         self.layout = QVBoxLayout()
 
+        self.checkboxes_decoders_active = []
         self.checkboxes_receivers_active = []
-        self.checkboxes_active = []
-        self.buttons_color = []
-        self.comboboxes_style = []
+        self.buttons_color_receivers = []
+        self.comboboxes_style_receivers = []
         self.checkboxes_additional_datalines_active = []
         self.buttons_additional_datalines_color = []
         self.comboboxes_additional_datalines_style = []
         self.checkboxes_landmarks = []
         self.comboboxes_landmarks_symbol = []
         self.buttons_landmarks_color = []
+
+        self.checkboxes_encoders_active = []
+        self.checkboxes_transmitters_active = []
+        self.buttons_color_transmitters = []
+        self.comboboxes_style_transmitters = []
+
+        self.widget_datalines_decoder = None
+        self.widget_datalines_encoder = None
 
         # General
         self.widget_general = QWidget()
@@ -201,7 +209,7 @@ class PlotSettingsDialog(QDialog):
         def generate_lambda_combobox(i, o):
             return lambda: self.plot_view.set_additional_dataline_style(i, o)
 
-        all_, any_ = all(self.plot_view.settings['additional_datalines_active']), any(self.plot_view.settings['additional_datalines_active'])
+        all_, any_ = all(self.plot_view.settings_decoder['additional_datalines_active']), any(self.plot_view.settings_decoder['additional_datalines_active'])
         state = 2 if all_ else (1 if any_ else 0)
         self.checkbox_all_additional_datalines.setCheckState(Qt.CheckState(state))
 
@@ -212,21 +220,21 @@ class PlotSettingsDialog(QDialog):
 
             # Checkbox for toggling datalines
             checkbox = QCheckBox(names[dataline_index])
-            checkbox.setChecked(self.plot_view.settings['additional_datalines_active'][dataline_index])
+            checkbox.setChecked(self.plot_view.settings_decoder['additional_datalines_active'][dataline_index])
             checkbox.clicked.connect(generate_lambda_checkbox(dataline_index, checkbox))
             self.checkboxes_additional_datalines_active.append(checkbox)
 
             # Button for selecting color of the datalines
             button_color = QPushButton()
             button_color.setStyleSheet(
-                "background-color: " + self.plot_view.settings['additional_datalines_color'][dataline_index])
+                "background-color: " + self.plot_view.settings_decoder['additional_datalines_color'][dataline_index])
             button_color.clicked.connect(generate_lambda_button(dataline_index))
             self.buttons_additional_datalines_color.append(button_color)
 
             # Combobox for selecting style of the datalines
             combobox = QComboBox()
             combobox.addItems(["SolidLine", "DashLine", "DotLine", "DashDotLine", "DashDotDotLine"])
-            combobox.setCurrentText(self.plot_view.settings['additional_datalines_style'][dataline_index])
+            combobox.setCurrentText(self.plot_view.settings_decoder['additional_datalines_style'][dataline_index])
             combobox.activated.connect(generate_lambda_combobox(dataline_index, combobox))
             self.comboboxes_additional_datalines_style.append(combobox)
 
@@ -240,75 +248,112 @@ class PlotSettingsDialog(QDialog):
         if num > 0:
             self.layout_additional_datalines.addRow(QLabel("Individual"), self.checkboxes_additional_datalines_widget)
 
-    def add_datalines(self, receiver_info):
+    def add_datalines(self, is_decoder, object_info):
         """
         Add settings for datalines.
-        :param receiver_info: Information about receiver.
+        :param is_decoder: Define whether the object is a decoder (True) or encoder (False).
+        :param object_info: Information about the decoder/encoder.
         """
         # Helper functions necessary for connecting multiple widgets to the same function
-        def generate_lambda_checkbox(i, j, o):
-            return lambda: self.plot_view.toggle_sensor_dataline(i, j, o)
+        def generate_lambda_checkbox(is_decoder, i, j, o):
+            if is_decoder:
+                return lambda: self.plot_view.toggle_sensor_dataline_decoder(i, j, o)
+            else:
+                return lambda: self.plot_view.toggle_sensor_dataline_encoder(i, j, o)
 
-        def generate_lambda_receiver_checkbox(i, o):
-            return lambda: self.plot_view.toggle_all_sensor_datalines(i, o)
+        def generate_lambda_receiver_checkbox(is_decoder, i, o):
+            if is_decoder:
+                return lambda: self.plot_view.toggle_all_sensor_datalines_decoder(i, o)
+            else:
+                return lambda: self.plot_view.toggle_all_sensor_datalines_encoder(i, o)
 
-        def generate_lambda_button(i, j):
-            return lambda: self.plot_view.set_color(i, j)
+        def generate_lambda_button(is_decoder, i, j):
+            if is_decoder:
+                return lambda: self.plot_view.set_color_decoder(i, j)
+            else:
+                return lambda: self.plot_view.set_color_encoder(i, j)
 
-        def generate_lambda_combobox(i, j, o):
-            return lambda: self.plot_view.set_style(i, j, o)
+        def generate_lambda_combobox(is_decoder, i, j, o):
+            if is_decoder:
+                return lambda: self.plot_view.set_style_decoder(i, j, o)
+            else:
+                return lambda: self.plot_view.set_style_encoder(i, j, o)
 
-        for receiver_index in range(receiver_info['num']):
-            name, sensor_names = receiver_info['names'][receiver_index], receiver_info['sensor_names'][receiver_index]
-            receiver_widget = QWidget()
-            receiver_layout = QHBoxLayout()
-            checkbox_receiver = QCheckBox(name)
-            checkbox_receiver.setTristate(True)
-            all_, any_ = all(self.plot_view.settings['datalines_active'][receiver_index]), any(self.plot_view.settings['datalines_active'][receiver_index])
+        settings = self.plot_view.settings_decoder
+        if is_decoder:
+            channel_names_list = object_info['sensor_names']
+        else:
+            settings = self.plot_view.settings_encoder
+            channel_names_list = object_info['channel_names']
+
+        for object_index in range(object_info['num']):
+            name = object_info['names'][object_index]
+            channel_names = channel_names_list[object_index]
+
+            object_widget = QWidget()
+            object_layout = QHBoxLayout()
+            checkbox_object = QCheckBox(name)
+            checkbox_object.setTristate(True)
+            all_, any_ = all(settings['datalines_active'][object_index]), any(settings['datalines_active'][object_index])
             state = 2 if all_ else (1 if any_ else 0)
-            checkbox_receiver.setCheckState(Qt.CheckState(state))
-            checkbox_receiver.clicked.connect(generate_lambda_receiver_checkbox(receiver_index, checkbox_receiver))
-            self.checkboxes_receivers_active.append(checkbox_receiver)
-            receiver_layout.addWidget(checkbox_receiver)
+            checkbox_object.setCheckState(Qt.CheckState(state))
+            checkbox_object.clicked.connect(generate_lambda_receiver_checkbox(is_decoder, object_index, checkbox_object))
+            object_layout.addWidget(checkbox_object)
+
+            if is_decoder:
+                self.checkboxes_decoders_active.append(checkbox_object)
+            else:
+                self.checkboxes_encoders_active.append(checkbox_object)
 
             _checkboxes_active = []
             _buttons_color = []
             _comboboxes_style = []
-            for sensor_index in range(len(sensor_names)):
-                widget_sensor = QWidget()
-                layout_sensor = QVBoxLayout()
+            for channel_index in range(len(channel_names)):
+                widget_channel = QWidget()
+                layout_channel = QVBoxLayout()
 
                 # Checkbox for toggling datalines
-                checkbox = QCheckBox(sensor_names[sensor_index])
-                checkbox.setChecked(self.plot_view.settings['datalines_active'][receiver_index][sensor_index])
-                checkbox.clicked.connect(generate_lambda_checkbox(receiver_index, sensor_index, checkbox))
+                checkbox = QCheckBox(channel_names[channel_index])
+                checkbox.setChecked(settings['datalines_active'][object_index][channel_index])
+                checkbox.clicked.connect(generate_lambda_checkbox(is_decoder, object_index, channel_index, checkbox))
                 _checkboxes_active.append(checkbox)
 
                 # Button for selecting color of the datalines
                 button_color = QPushButton()
-                button_color.setStyleSheet("background-color: " + self.plot_view.settings['datalines_color'][receiver_index][sensor_index])
-                button_color.clicked.connect(generate_lambda_button(receiver_index, sensor_index))
+                button_color.setStyleSheet("background-color: " + settings['datalines_color'][object_index][channel_index])
+                button_color.clicked.connect(generate_lambda_button(is_decoder, object_index, channel_index))
                 _buttons_color.append(button_color)
 
                 # Combobox for selecting style of the datalines
                 combobox = QComboBox()
                 combobox.addItems(["SolidLine", "DashLine", "DotLine", "DashDotLine", "DashDotDotLine"])
-                combobox.setCurrentText(self.plot_view.settings['datalines_style'][receiver_index][sensor_index])
-                combobox.activated.connect(generate_lambda_combobox(receiver_index, sensor_index, combobox))
+                combobox.setCurrentText(settings['datalines_style'][object_index][channel_index])
+                combobox.activated.connect(generate_lambda_combobox(is_decoder, object_index, channel_index, combobox))
                 _comboboxes_style.append(combobox)
 
-                layout_sensor.addWidget(checkbox)
-                layout_sensor.addWidget(button_color)
-                layout_sensor.addWidget(combobox)
-                widget_sensor.setLayout(layout_sensor)
+                layout_channel.addWidget(checkbox)
+                layout_channel.addWidget(button_color)
+                layout_channel.addWidget(combobox)
+                widget_channel.setLayout(layout_channel)
 
-                receiver_layout.addWidget(widget_sensor)
-            self.checkboxes_active.append(_checkboxes_active)
-            self.buttons_color.append(_buttons_color)
-            self.comboboxes_style.append(_comboboxes_style)
+                object_layout.addWidget(widget_channel)
 
-            receiver_widget.setLayout(receiver_layout)
-            self.checkboxes_datalines_layout.addWidget(receiver_widget)
+            if is_decoder:
+                self.checkboxes_receivers_active.append(_checkboxes_active)
+                self.buttons_color_receivers.append(_buttons_color)
+                self.comboboxes_style_receivers.append(_comboboxes_style)
+            else:
+                self.checkboxes_transmitters_active.append(_checkboxes_active)
+                self.buttons_color_transmitters.append(_buttons_color)
+                self.comboboxes_style_transmitters.append(_comboboxes_style)
+
+
+            object_widget.setLayout(object_layout)
+            if is_decoder:
+                self.widget_datalines_decoder = object_widget
+            else:
+                self.widget_datalines_encoder = object_widget
+            self.checkboxes_datalines_layout.addWidget(object_widget)
 
         self.checkboxes_datalines_layout.addStretch(1)
 
@@ -326,7 +371,7 @@ class PlotSettingsDialog(QDialog):
         def generate_lambda_button(i):
             return lambda: self.plot_view.set_landmark_color(i)
 
-        all_, any_ = all(self.plot_view.settings['landmarks_active']), any(self.plot_view.settings['landmarks_active'])
+        all_, any_ = all(self.plot_view.settings_decoder['landmarks_active']), any(self.plot_view.settings_decoder['landmarks_active'])
         state = 2 if all_ else (1 if any_ else 0)
         self.checkbox_all_landmarks.setCheckState(Qt.CheckState(state))
 
@@ -337,20 +382,20 @@ class PlotSettingsDialog(QDialog):
 
             # Checkbox to toggle landmark
             checkbox = QCheckBox(landmark_info['names'][landmark_index])
-            checkbox.setChecked(self.plot_view.settings['landmarks_active'][landmark_index])
+            checkbox.setChecked(self.plot_view.settings_decoder['landmarks_active'][landmark_index])
             checkbox.clicked.connect(generate_lambda_landmark_toggle(landmark_index, checkbox))
             self.checkboxes_landmarks.append(checkbox)
 
             # Combobox to select symbol
             combobox = QComboBox()
             combobox.addItems(PlotView.SYMBOLS.keys())
-            combobox.setCurrentIndex(list(PlotView.SYMBOLS.values()).index(self.plot_view.settings['landmarks_symbols'][landmark_index]))
+            combobox.setCurrentIndex(list(PlotView.SYMBOLS.values()).index(self.plot_view.settings_decoder['landmarks_symbols'][landmark_index]))
             combobox.activated.connect(generate_lambda_landmark_symbol(landmark_index, combobox))
             self.comboboxes_landmarks_symbol.append(combobox)
 
             # Button for selecting color of the landmark
             button_color = QPushButton()
-            button_color.setStyleSheet("background-color: " + self.plot_view.settings['landmarks_color'][landmark_index])
+            button_color.setStyleSheet("background-color: " + self.plot_view.settings_decoder['landmarks_color'][landmark_index])
             button_color.clicked.connect(generate_lambda_button(landmark_index))
             self.buttons_landmarks_color.append(button_color)
 
@@ -369,29 +414,28 @@ class PlotSettingsDialog(QDialog):
         Edit settings dialog entries accordingly when a decoder is added.
         """
         # General
-        self.combobox_show_grid.setCurrentText(self.plot_view.settings['show_grid'])
-
+        self.combobox_show_grid.setCurrentText(self.plot_view.settings_general['show_grid'])
         # Datalines
-        self.spinbox_step_size.setValue(self.plot_view.settings['step_size'])
-        self.spinbox_datalines_width.setValue(self.plot_view.settings['datalines_width'])
+        self.spinbox_step_size.setValue(self.plot_view.settings_general['step_size'])
+        self.spinbox_datalines_width.setValue(self.plot_view.settings_general['datalines_width'])
 
         # Additional datalines
-        self.spinbox_additional_datalines_width.setValue(self.plot_view.settings['additional_datalines_width'])
+        self.spinbox_additional_datalines_width.setValue(self.plot_view.settings_decoder['additional_datalines_width'])
 
         # Landmarks
-        self.spinbox_landmarks_size.setValue(self.plot_view.settings['landmarks_size'])
+        self.spinbox_landmarks_size.setValue(self.plot_view.settings_decoder['landmarks_size'])
 
         # Symbol intervals
-        self.checkbox_symbol_intervals.setChecked(self.plot_view.settings['symbol_intervals'])
-        self.spinbox_symbol_intervals_width.setValue(self.plot_view.settings['symbol_intervals_width'])
-        self.button_symbol_intervals_color.setStyleSheet("background-color: " + self.plot_view.settings['symbol_intervals_color'])
+        self.checkbox_symbol_intervals.setChecked(self.plot_view.settings_decoder['symbol_intervals'])
+        self.spinbox_symbol_intervals_width.setValue(self.plot_view.settings_decoder['symbol_intervals_width'])
+        self.button_symbol_intervals_color.setStyleSheet("background-color: " + self.plot_view.settings_decoder['symbol_intervals_color'])
 
         # Symbol values
-        self.checkbox_symbol_values.setChecked(self.plot_view.settings['symbol_values'])
-        self.combobox_symbol_values_position.setCurrentText(self.plot_view.settings['symbol_values_position'])
-        self.spinbox_symbol_values_size.setValue(self.plot_view.settings['symbol_values_size'])
-        self.spinbox_symbol_values_fixed_height.setValue(self.plot_view.settings['symbol_values_fixed_height'])
-        if self.plot_view.settings['symbol_values_position'] == "Fixed":
+        self.checkbox_symbol_values.setChecked(self.plot_view.settings_decoder['symbol_values'])
+        self.combobox_symbol_values_position.setCurrentText(self.plot_view.settings_decoder['symbol_values_position'])
+        self.spinbox_symbol_values_size.setValue(self.plot_view.settings_decoder['symbol_values_size'])
+        self.spinbox_symbol_values_fixed_height.setValue(self.plot_view.settings_decoder['symbol_values_fixed_height'])
+        if self.plot_view.settings_decoder['symbol_values_position'] == "Fixed":
             self.spinbox_symbol_values_fixed_height.setEnabled(True)
         else:
             self.spinbox_symbol_values_fixed_height.setEnabled(False)
@@ -400,14 +444,16 @@ class PlotSettingsDialog(QDialog):
         """
         Reset everything after decoder has been removed.
         """
+        self.checkboxes_decoders_active = []
         self.checkboxes_receivers_active = []
-        self.checkboxes_active = []
-        self.buttons_color = []
-        self.comboboxes_style = []
+        self.buttons_color_receivers = []
+        self.comboboxes_style_receivers = []
 
-        # https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
-        for i in reversed(range(self.checkboxes_datalines_layout.count())):
-            self.checkboxes_datalines_layout.removeWidget(self.checkboxes_datalines_layout.itemAt(i).widget())
+        # # https://stackoverflow.com/questions/4528347/clear-all-widgets-in-a-layout-in-pyqt
+        # for i in reversed(range(self.checkboxes_datalines_layout.count())):
+        #     self.checkboxes_datalines_layout.removeWidget(self.checkboxes_datalines_layout.itemAt(i).widget())
+        self.checkboxes_datalines_layout.removeWidget(self.widget_datalines_decoder)
+        self.widget_datalines_decoder = None
 
         self.checkboxes_landmarks = []
         self.comboboxes_landmarks_symbol = []
@@ -416,6 +462,28 @@ class PlotSettingsDialog(QDialog):
             self.checkboxes_landmarks_layout.removeWidget(self.checkboxes_landmarks_layout.itemAt(i).widget())
 
         self.hide()
+
+    def encoder_added(self):
+        """
+        Edit settings dialog entries accordingly when a decoder is added.
+        """
+        # General
+        self.combobox_show_grid.setCurrentText(self.plot_view.settings_general['show_grid'])
+        # Datalines
+        self.spinbox_step_size.setValue(self.plot_view.settings_general['step_size'])
+        self.spinbox_datalines_width.setValue(self.plot_view.settings_general['datalines_width'])
+
+    def encoder_removed(self):
+        """
+        Reset everything after encoder has been removed.
+        """
+        self.checkboxes_encoders_active = []
+        self.checkboxes_transmitters_active = []
+        self.buttons_color_transmitters = []
+        self.comboboxes_style_transmitters = []
+
+        self.checkboxes_datalines_layout.removeWidget(self.widget_datalines_encoder)
+        self.widget_datalines_encoder = None
 
     def set_all_additional_datalines_checkboxes(self, state):
         """
@@ -439,5 +507,14 @@ class PlotSettingsDialog(QDialog):
         :param receiver_index: Index of the receiver.
         :param state: New state of the checkboxes.
         """
-        for sensor_index in range(len(self.checkboxes_active[receiver_index])):
-            self.checkboxes_active[receiver_index][sensor_index].setChecked(state)
+        for sensor_index in range(len(self.checkboxes_receivers_active[receiver_index])):
+            self.checkboxes_receivers_active[receiver_index][sensor_index].setChecked(state)
+
+    def set_all_channel_checkboxes(self, encoder_index, state):
+        """
+        Sets all sensor datalines checkboxes for a given encoder to the given state.
+        :param encoder_index: Index of the encoder.
+        :param state: New state of the checkboxes.
+        """
+        for channel_index in range(len(self.checkboxes_transmitters_active[encoder_index])):
+            self.checkboxes_transmitters_active[encoder_index][channel_index].setChecked(state)
