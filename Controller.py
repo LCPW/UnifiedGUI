@@ -44,32 +44,40 @@ class Controller:
 
         self.shutdown()
 
-    def add_decoder(self, decoder_type):
+    def add_decoder(self, decoder_type=None, decoder=None):
         """
         Adds a new decoder.
         :param decoder_type: Decoder type.
+        :param decoder: decoder object (default: None)
         """
-        parameters = self.model.get_decoder_parameters(decoder_type)
-        # No parameters defined -> No parameter values obviously
-        if parameters is None:
-            parameter_values = None
-        # Parameters defined -> Execute ParameterDialog
-        else:
-            ok, values = ViewUtils.get_parameter_values(parameters)
-            # User clicked Ok Button -> Everything is fine, get the values and continue
-            if ok:
-                parameter_values = values
-            # User clicked Cancel -> Do not add decoder
-            else:
-                return
 
-        try:
-            decoder_info = self.model.add_decoder(decoder_type, parameters, parameter_values)
-            decoder_info.update({'parameter_values': parameter_values})
+        if decoder_type is not None:
+            parameters = self.model.get_decoder_parameters(decoder_type)
+            # No parameters defined -> No parameter values obviously
+            if parameters is None:
+                parameter_values = None
+            # Parameters defined -> Execute ParameterDialog
+            else:
+                ok, values = ViewUtils.get_parameter_values(parameters)
+                # User clicked Ok Button -> Everything is fine, get the values and continue
+                if ok:
+                    parameter_values = values
+                # User clicked Cancel -> Do not add decoder
+                else:
+                    return
+
+            # try:
+                decoder_info = self.model.add_decoder(decoder_type, parameters, parameter_values)
+                decoder_info.update({'parameter_values': parameter_values})
+                self.view.decoder_added(decoder_info)
+            # except Exception as e:
+            #     Logging.error(e.args[0])
+            #     Logging.error("Failed to add decoder. Make sure device is connected and not used by other applications.")
+
+        elif decoder is not None:
+            decoder_info = self.model.add_decoder_object(decoder)
+            decoder_info.update({'parameter_values': decoder.parameter_values})
             self.view.decoder_added(decoder_info)
-        except Exception as e:
-            Logging.error(e.args[0])
-            Logging.error("Failed to add decoder. Make sure device is connected and not used by other applications.")
 
     def add_encoder(self, encoder_type):
         """
@@ -90,13 +98,13 @@ class Controller:
             else:
                 return
 
-        # try:
+        try:
             encoder_info = self.model.add_encoder(encoder_type, parameters, parameter_values)
             encoder_info.update({'parameter_values': parameter_values})
             self.view.encoder_added(encoder_info)
-        # except Exception as e:
-        #     Logging.error(e.args[0])
-        #     Logging.error("Failed to add encoder. Make sure device is connected and not used by other applications.")
+        except Exception as e:
+            Logging.error(e.args[0])
+            Logging.error("Failed to add encoder. Make sure device is connected and not used by other applications.")
 
     def cancel_transmission(self):
         """
@@ -129,7 +137,7 @@ class Controller:
 
     def edit_decoder_parameters(self):
         """
-        Let the user edit the decoder parameters by execu+ting a dialog.
+        Let the user edit the decoder parameters by executing a dialog.
         """
         parameters = self.model.decoder.parameters
         current_values = list(self.model.decoder.parameter_values.values())
@@ -137,9 +145,11 @@ class Controller:
         ok, parameter_values = ViewUtils.get_parameter_values(parameters, current_values)
         # User clicked Ok Button -> Everything is fine, get the values and continue
         if ok:
-            self.model.decoder.parameter_values = parameter_values
-            self.model.decoder.parameters_edited()
-            self.view.decoder_view.parameters_edited(parameter_values)
+            decoder = self.model.decoder
+            self.remove_decoder()
+            decoder.parameters_edited(parameter_values)
+            self.add_decoder(decoder=decoder)
+            # self.view.decoder_view.parameters_edited(parameter_values)
 
     def edit_encoder_parameters(self):
         """

@@ -11,13 +11,11 @@ NEGATIVE_DETECTION_THRESHOLD = True
 class AD7746Decoder(DecoderInterface):
     def __init__(self, parameters, parameter_values):
         super().__init__(parameters, parameter_values)
-
-        self.parameter_values = parameter_values
-        self.parameters_edited()
-
         super().setup()
 
-    def parameters_edited(self):
+    def parameters_edited(self, parameter_values):
+        super().parameters_edited(parameter_values)
+
         self.port = self.parameter_values["port"]
         conv_time_str = self.parameter_values["conversion time"]
 

@@ -25,17 +25,18 @@ class PlotWidgetView(pg.PlotWidget):
 
         # Embed additional plot for right axis
         # Source: https://github.com/mtikekar/plotcsv/blob/master/pg/examples/MultiplePlotAxes.py
-        self.p_right = pg.ViewBox()  # TODO improve scrollbar smoothness
+        self.p_right = pg.ViewBox()
         self.plotItem.showAxis('right')
         self.plotItem.scene().addItem(self.p_right)
         self.plotItem.getAxis('right').linkToView(self.p_right)
         self.p_right.setXLink(self.plotItem)
         self.plotItem.getAxis('right').setLabel('Value - Encoder')
-        self.plotItem.vb.sigResized.connect(self.update_views)
+        self.plotItem.getViewBox().sigResized.connect(self.update_views)
         self.update_views()
 
         #self.setMouseEnabled(x=True, y=False)
         self.setMouseEnabled(x=False, y=True)
+        self.auto_scroll_enabled = False
 
         # Legend
         self.legend = pg.LegendItem(offset=(50, 5))
@@ -48,9 +49,9 @@ class PlotWidgetView(pg.PlotWidget):
         self.text_items = []
         self.vertical_lines = []
 
-    @property
-    def autoscroll(self):
-        return self.getViewBox().getState()['autoRange'][0]
+    def is_autoscroll_enabled(self):
+        # return self.getViewBox().getState()['autoRange'][0] or self.p_right.getState()['autoRange'][0]
+        return self.auto_scroll_enabled
 
     def add_additional_datalines(self, dataline_info):
         """
@@ -195,12 +196,14 @@ class PlotWidgetView(pg.PlotWidget):
         Do stuff when decoder is (re-)started.
         """
         self.enableAutoRange()
+        self.auto_scroll_enabled = True
 
     def encoder_started_recording(self):
         """
         Do stuff when encoder recording is (re-)started.
         """
-        self.enableAutoRange()
+        self.p_right.enableAutoRange()
+        self.auto_scroll_enabled = True
 
     def export_plot(self):
         """
@@ -345,6 +348,13 @@ class PlotWidgetView(pg.PlotWidget):
         self.set_symbol_intervals_pen()
         self.update_legend()
 
+    def set_xrange_limits(self, maxXRange=None, xMin=None):
+        """
+        Updates the x-range of the scrollbar.
+        """
+        self.plotItem.setLimits(maxXRange=maxXRange, xMin=xMin)
+        self.p_right.setLimits(maxXRange=maxXRange, xMin=xMin)
+
     def update_(self, decoded, encoded):
         """
         Updates this widget with new information from the decoder and encoder.
@@ -352,7 +362,7 @@ class PlotWidgetView(pg.PlotWidget):
         :param encoded: Encoder value updates.
         """
         # If autoscroll is enabled, set the X range accordingly
-        if self.autoscroll:
+        if self.is_autoscroll_enabled():
             min_timestamp, max_timestamp = 0, 0
             if decoded is not None:
                 min_timestamp, max_timestamp = decoded['min_timestamp'], decoded['max_timestamp']
@@ -364,10 +374,13 @@ class PlotWidgetView(pg.PlotWidget):
                 min_timestamp, max_timestamp = encoded['min_timestamp'], encoded['max_timestamp']
 
             x_range = self.plot_view.settings_general['x_range_value']
-            self.plotItem.setLimits(maxXRange=x_range, xMin=max_timestamp - x_range)
+            left_time = max_timestamp - x_range
+            self.set_xrange_limits(maxXRange=x_range, xMin=left_time)
+            self.setXRange(min=left_time, max=left_time + x_range)
+            self.p_right.setXRange(min=left_time, max=left_time + x_range)
 
-            diff = max_timestamp - min_timestamp - self.plot_view.settings_general['x_range_value']
-            pos = int(round(SettingsStore.settings['SCROLLBAR_GRANULARITY'] * diff))
+            diff = max_timestamp - min_timestamp - x_range
+            pos = max(int(round(SettingsStore.settings['SCROLLBAR_GRANULARITY'] * diff)), 0)
             self.plot_view.scrollbar.setSliderPosition(pos)
 
         # Encoded data
@@ -533,8 +546,12 @@ class PlotWidgetView(pg.PlotWidget):
         """
         Callback function to handle the resizing of the view for the right plot axis.
         """
-        ## view has resized; update auxiliary views to match
-        self.p_right.setGeometry(self.plotItem.vb.sceneBoundingRect())
+        # view has resized, update auxiliary views to match
+        self.p_right.setGeometry(self.plotItem.getViewBox().sceneBoundingRect())
+        # update the linked axes
+        self.p_right.linkedViewChanged(self.plotItem.getViewBox(), self.p_right.XAxis)
+
+        self.p_right.enableAutoRange()
 
     def update_x_range(self, scrollbar_value, enable_autoscroll):
         """
@@ -547,7 +564,7 @@ class PlotWidgetView(pg.PlotWidget):
         encoded = self.plot_view.data_view.view.controller.get_encoded()
         # decoded/encoded may be None if there is no decoder/encoder yet or the objects are not initialized yet
         min_timestamp = 0
-        if decoded is not None:
+        if decoded is not None :
             min_timestamp = decoded['min_timestamp']
             if encoded is not None:
                 min_timestamp = min(min_timestamp, encoded['min_timestamp'])
@@ -556,11 +573,16 @@ class PlotWidgetView(pg.PlotWidget):
                 min_timestamp = encoded['min_timestamp']
 
         # Disable the x range (which might still be active because of autoscroll)
-        self.plotItem.setLimits(maxXRange=None, xMin=None)
+        self.set_xrange_limits(maxXRange=None, xMin=None)
         val = scrollbar_value / SettingsStore.settings['SCROLLBAR_GRANULARITY']
+        x_range = self.plot_view.settings_general['x_range_value']
         left_ = min_timestamp + val
-        self.setXRange(left_, left_ + self.plot_view.settings_general['x_range_value'])
+        self.setXRange(min=left_, max=left_ + x_range)
+        self.p_right.setXRange(min=left_, max=left_ + x_range)
         if enable_autoscroll:
             self.enableAutoRange()
+            self.p_right.enableAutoRange()
         else:
             self.disableAutoRange()
+            self.p_right.disableAutoRange()
+            self.auto_scroll_enabled = False

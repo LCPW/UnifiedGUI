@@ -444,6 +444,7 @@ class PlotSettingsDialog(QDialog):
         """
         Reset everything after decoder has been removed.
         """
+        # Datalines
         self.checkboxes_decoders_active = []
         self.checkboxes_receivers_active = []
         self.buttons_color_receivers = []
@@ -455,6 +456,18 @@ class PlotSettingsDialog(QDialog):
         self.checkboxes_datalines_layout.removeWidget(self.widget_datalines_decoder)
         self.widget_datalines_decoder = None
 
+        # Additional datalines
+        self.layout_additional_datalines.removeRow(self.checkboxes_additional_datalines_widget)
+        self.checkboxes_additional_datalines_layout = QHBoxLayout()
+        self.checkboxes_additional_datalines_widget = QWidget()
+        self.checkboxes_additional_datalines_layout = QHBoxLayout()
+        self.checkboxes_additional_datalines_widget.setLayout(self.checkboxes_additional_datalines_layout)
+
+        self.checkboxes_additional_datalines_active.clear()
+        self.buttons_additional_datalines_color.clear()
+        self.comboboxes_additional_datalines_style.clear()
+
+        # Others
         self.checkboxes_landmarks = []
         self.comboboxes_landmarks_symbol = []
 

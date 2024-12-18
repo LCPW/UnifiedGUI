@@ -31,6 +31,15 @@ class Model:
         self.decoder = module(parameters, parameter_values)
         return self.decoder.info
 
+    def add_decoder_object(self, decoder):
+        """
+        Adds a new ready decoder object.
+        :param decoder: Decoder object.
+        :return: Information about decoder.
+        """
+        self.decoder = decoder
+        return self.decoder.info
+
     def add_encoder(self, encoder_type, parameters, parameter_values):
         """
         Adds a new encoder.

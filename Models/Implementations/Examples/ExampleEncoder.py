@@ -8,10 +8,22 @@ class ExampleEncoder(EncoderInterface):
     def __init__(self, parameters, parameter_values):
         super().__init__(parameters, parameter_values)
         self.transmitters = [ExampleTransmitter(0)]
+        self.transmitter_names = ["ExampleTransmitter"]
+
         self.allowed_sequence_values = [chr(i) for i in range(0, 128)]
         self.sleep_time = parameter_values['Sleep time [s]']
 
         super().setup()
+
+    def get_transmitter_current_symbols(self):
+        """
+        Returns a list of currently transmitted symbols by the transmitters. (for example: active/inactive=1/0)
+        :return: A list of symbols, with a length equal to the amount of transmitters present.
+        """
+        data_list = []
+        for idx in range(self.num_transmitters):
+            data_list.append([1])
+        return data_list
 
     def encode(self, sequence):
         symbol_values = ""
@@ -45,20 +57,23 @@ class ExampleEncoder(EncoderInterface):
 
     def parameters_edited(self):
         self.sleep_time = self.parameter_values['Sleep time [s]']
+        self.plot_settings = {
+            'datalines_active': [[True]],
+            'datalines_width': 3
+        }
 
     def transmit_single_symbol_value(self, symbol_value):
         self.transmitters[0].value = int(symbol_value)
 
-
-def get_parameters():
-    parameters = [
-        {
-            'description': "Sleep time [s]",
-            'decimals': 3,
-            'dtype': 'float',
-            'min': 0,
-            'max': 100,
-            'default': 0.1,
-        }
-    ]
-    return parameters
+    def get_parameters():
+        parameters = [
+            {
+                'description': "Sleep time [s]",
+                'decimals': 3,
+                'dtype': 'float',
+                'min': 0,
+                'max': 100,
+                'default': 0.1,
+            }
+        ]
+        return parameters

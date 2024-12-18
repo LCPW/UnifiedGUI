@@ -1,6 +1,7 @@
 # Install 'pyserial' for module 'serial'
 import serial
 import crcmod.predefined
+import numpy as np
 
 from Models.Interfaces.ReceiverInterface import ReceiverInterface
 from Utils import Logging
@@ -16,6 +17,7 @@ CLOCK_DIVIDER = ['14', '15', '16', '17']
 SETTLE_COUNT = ['10', '11', '12', '13']
 REFERENCE_COUNT = ['08', '09', '0A', '0B']
 DRIVE_CURRENT = ['1E', '1F', '20', '21']
+ACTIVE_SINGLE_CHANNEL = [0b00, 0b01, 0b10, 0b11]  # CH0, CH1, CH2, CH3
 
 DEVICE_ID = '7F'
 CONFIG = '1A'
@@ -53,11 +55,11 @@ class LDC1614EVMReceiver(ReceiverInterface):
     BAUDRATE = 115200
     TIMEOUT = 0.1  # s
 
-    def __init__(self, num_channels, clk_in_mhz, com_port, deglitch_filter, settle_count, reference_count):
+    def __init__(self, active_channels, clk_in_mhz, com_port, deglitch_filter, settle_count, reference_count):
         super().__init__()
 
         self.num_sensors = 4
-        self.active_channels = num_channels
+        self.active_channels = active_channels
         self.clk_in_mhz = clk_in_mhz
         self.sensor_names = ["CH" + str(i) for i in range(4)]
         self.drop_first_measurements = 10
@@ -76,12 +78,12 @@ class LDC1614EVMReceiver(ReceiverInterface):
                 return
 
         self.set_error_config()
-        self.set_mux_config(deglitch_filter, num_channels)
+        self.set_mux_config(deglitch_filter)
         self.set_settle_count(settle_count)
         self.set_reference_count(reference_count)
         self.set_config()
 
-    def set_mux_config(self, deglitch_filter_value, channel_count):
+    def set_mux_config(self, deglitch_filter_value):
         filter_set = 0
         if deglitch_filter_value == "1.0":
             filter_set = 0b001
@@ -93,9 +95,15 @@ class LDC1614EVMReceiver(ReceiverInterface):
             filter_set = 0b111  # DATASHEET IS ambiguous, either b011 or b111, experiments indicate that b111 is correct
 
         # We can set single channel or auto channel using CH0 & 1, CH0 & 1 & 2 or CH0 & 1 & 2 & 3
-        autoscan_enable = 0
-        rr_sequence = 0
-        if channel_count > 1:
+        channel_count = self.active_channels.count(True)
+        if channel_count == 1:  # single channel mode
+            autoscan_enable = 0
+            rr_sequence = 0
+        else:  # multi channel mode
+            for idx in range(self.num_sensors):
+                if self.active_channels[idx]:
+                    channel_count = idx + 1  # set to the highest active channel
+
             autoscan_enable = 1
             rr_sequence = channel_count - 2
 
@@ -116,10 +124,15 @@ class LDC1614EVMReceiver(ReceiverInterface):
 
     def set_config(self):
         # Default config
+
+        # Find selected single channel
+        first_active_idx = np.where(self.active_channels)[0][0]
+        single_ch = ACTIVE_SINGLE_CHANNEL[first_active_idx]
+
         # CH0 when in single mode, sleep off, no I override, full current sensor activation
         # auto amplitude correction, external clk, res, use interrupt pin, normal current, resx6
         config = 0b0
-        config |= 0b00 << 14  # CH0 selected in single mode, CH0 = 0b00, CH1 = 0b01, CH2 = 0b10, CH3 = 0b11
+        config |= single_ch << 14  # CH0 selected in single mode, CH0 = 0b00, CH1 = 0b01, CH2 = 0b10, CH3 = 0b11
         config |= 0b0 << 13  # Sleep Mode, b0 = active, b1 = sleep mode
         config |= 0b0 << 12  # Rp override enable, b0 = override off - autom. determine current, b1 = override on
         config |= 0b0 << 11  # sensor activation mode, b0 = full current, b1 = low power
@@ -152,15 +165,13 @@ class LDC1614EVMReceiver(ReceiverInterface):
         """
 
         if self.serial_port.in_waiting >= 32:
-            ch0, ch1, ch2, ch3 = self.read_stream_line()
+            #ch0, ch1, ch2, ch3 = self.read_stream_line()
+            ch_vals = self.read_stream_line()
 
-            values = [ch0]
-            if self.active_channels > 1:
-                values.append(ch1)
-            if self.active_channels > 2:
-                values.append(ch2)
-            if self.active_channels > 3:
-                values.append(ch3)
+            values = [0,0,0,0]
+            for idx in range(self.num_sensors):
+                if self.active_channels[idx]:
+                    values[idx] = ch_vals[idx]
 
             self.append_values(values)
 
@@ -192,14 +203,13 @@ class LDC1614EVMReceiver(ReceiverInterface):
     def calculate_frequency(self, data_msb, data_lsb, channel):
         # The leading 4 bits of the MSB are error bits and not part of the actual data
 
-        tes = data_msb & (1 << 15)
-        if data_msb & (1 << 15) > 0 and channel < self.active_channels:
+        if data_msb & (1 << 15) > 0 and self.active_channels[channel]:
             Logging.warning(f"ERR_UR{channel}: Channel {channel} Conversion Under-range Error", repeat=False)
-        if data_msb & (1 << 14) > 0 and channel < self.active_channels:
+        if data_msb & (1 << 14) > 0 and self.active_channels[channel]:
             Logging.warning(f"ERR_OR{channel}: Channel {channel} Conversion Over-range Error", repeat=False)
-        if data_msb & (1 << 13) > 0 and channel < self.active_channels:
+        if data_msb & (1 << 13) > 0 and self.active_channels[channel]:
             Logging.warning(f"ERR_WD{channel}: Channel {channel} Conversion Watchdog Timeout Error", repeat=False)
-        if data_msb & (1 << 12) > 0 and channel < self.active_channels:
+        if data_msb & (1 << 12) > 0 and self.active_channels[channel]:
             Logging.warning(f"ERR_AE{channel}: Channel {channel} Conversion Amplitude Error", repeat=False)
 
         # Clear error bits for value calculation
@@ -232,6 +242,7 @@ class LDC1614EVMReceiver(ReceiverInterface):
         return self.calculate_frequency(data_msb, data_lsb, channel)
 
     def shutdown(self):
+        self.stop_listen()
         self.serial_port.close()
 
     def send_command(self, command, append_crc=True):

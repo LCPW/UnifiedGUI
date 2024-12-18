@@ -81,6 +81,6 @@ class DataView(QWidget):
         :param decoded: Decoder value updates.
         :param encoded: Encoder value updates.
         """
-        self.tab_plot.update_(decoded, encoded)
+        self.tab_plot.update_(decoded, encoded=encoded)
         if decoded is not None:
             self.tab_tables.update_(decoded)

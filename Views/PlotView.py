@@ -228,7 +228,7 @@ class PlotView(QWidget):
         self.spinbox_range.setRange(self.settings_general['x_range_min'], self.settings_general['x_range_max'])
         self.spinbox_range.setValue(self.settings_general['x_range_value'])
         # Actually set the x range
-        self.plot_widget.plotItem.setLimits(maxXRange=self.settings_general['x_range_value'])
+        #self.plot_widget.set_xrange_limits(maxXRange=self.settings_general['x_range_value'])
         self.slider_range.setEnabled(True)
         self.spinbox_range.setEnabled(True)
         if self.settings_general['x_range_active']:
@@ -435,21 +435,21 @@ class PlotView(QWidget):
         Example: X range = 5 means that only the last 5 seconds are shown before the plot moves to the right.
         :param widget: The widget responsible for the X range change.
         """
-        auto_scroll_enabled = self.plot_widget.autoscroll
+        auto_scroll_enabled = self.plot_widget.is_autoscroll_enabled()
         if widget == 'button':
-            self.plot_widget.plotItem.setLimits(maxXRange=None, xMin=None)
+            self.plot_widget.set_xrange_limits(maxXRange=None, xMin=None)
             self.settings_general['x_range_active'] = False
             self.button_range.setEnabled(False)
         elif widget == 'slider':
             x_range = self.slider_range.value()
-            self.plot_widget.plotItem.setLimits(maxXRange=x_range)
+            self.plot_widget.set_xrange_limits(maxXRange=x_range)
             self.settings_general['x_range_value'] = x_range
             self.settings_general['x_range_active'] = True
             self.spinbox_range.setValue(x_range)
             self.button_range.setEnabled(True)
         elif widget == 'spinbox':
             x_range = self.spinbox_range.value()
-            self.plot_widget.plotItem.setLimits(maxXRange=x_range)
+            self.plot_widget.set_xrange_limits(maxXRange=x_range)
             self.settings_general['x_range_value'] = x_range
             self.settings_general['x_range_active'] = True
             self.slider_range.setValue(int(round(x_range)))
@@ -696,8 +696,7 @@ class PlotView(QWidget):
         x_range_active, x_value = self.settings_general['x_range_active'], self.settings_general['x_range_value']
         if x_range_active:
             interval = max_timestamp - min_timestamp - x_value
-            # Clip negative values
-            interval = interval if interval > 0 else 0
+            interval = max(interval, 0)  # Clip negative values
             self.scrollbar.setRange(0, int(interval * SettingsStore.settings['SCROLLBAR_GRANULARITY']))
         else:
             self.scrollbar.setRange(0, 0)

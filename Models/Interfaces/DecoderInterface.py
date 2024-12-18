@@ -23,7 +23,7 @@ class DecoderInterface:
         :param parameter_values: User-defined parameter values.
         """
         self.parameters = parameters
-        self.parameter_values = parameter_values
+        self.parameter_values = None
 
         self.active = False
         self.additional_datalines = []
@@ -47,6 +47,8 @@ class DecoderInterface:
         self.symbol_intervals = []
         self.symbol_values = []
         self.timestamps = []
+
+        self.parameters_edited(parameter_values)
 
     def setup(self):
         """
@@ -86,6 +88,8 @@ class DecoderInterface:
                 'sensor_names': []
             }
         }
+
+        self.clear()
 
         for receiver_index in range(self.num_receivers):
             self.timestamps.append(None)
@@ -399,11 +403,12 @@ class DecoderInterface:
             return None
         return values[receiver_index][:lengths[receiver_index], :] if sensor_index == -1 else values[receiver_index][:lengths[receiver_index], sensor_index]
 
-    def parameters_edited(self):
+    def parameters_edited(self, parameter_values):
         """
         Do stuff when the parameters are edited by the user.
         May be overriden in the concrete implementation.
         """
+        self.parameter_values = parameter_values
         pass
 
     def pre_processing(self):

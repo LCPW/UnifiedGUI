@@ -165,8 +165,8 @@ class View(QMainWindow):
         """
         decoded = self.controller.get_decoded()
         encoded = self.controller.get_encoded()
-        if decoded is not None or encoded is not None:
-            self.data_view.update_(decoded, encoded)
+        if (decoded is not None) or (encoded is not None):
+            self.data_view.update_(decoded=decoded, encoded=encoded)
 
         if decoded is not None:
             self.decoder_view.update_(decoded)

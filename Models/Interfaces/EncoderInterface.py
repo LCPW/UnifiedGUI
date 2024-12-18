@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 import threading
 import time, datetime
@@ -68,37 +69,39 @@ class EncoderInterface:
         :param timestamp: New timestamp.
         :param values: New measurement values.
         """
-        if self.lengths[transmitter_index] == 0:
-            self.timestamps[transmitter_index] = np.empty((SettingsStore.settings['DECODER_ARRAY_LENGTH'],))
+        dataset_length = self.lengths[transmitter_index]
+        if dataset_length == 0:
+            self.timestamps[transmitter_index] = np.empty((SettingsStore.settings['ENCODER_ARRAY_LENGTH'],))
             self.timestamps[transmitter_index][0] = timestamp
             self.transmitted[transmitter_index] = np.empty(
                 (SettingsStore.settings['ENCODER_ARRAY_LENGTH'], len(values)))
             self.transmitted[transmitter_index][0] = np.array(values)
         else:
-            if self.lengths[transmitter_index] == len(self.timestamps[transmitter_index]):
+            if dataset_length == len(self.timestamps[transmitter_index]):  # maximum size reached -> allocate more
                 self.timestamps[transmitter_index] = np.concatenate((self.timestamps[transmitter_index], np.empty(
                     (SettingsStore.settings['ENCODER_ARRAY_LENGTH'],))))
                 self.transmitted[transmitter_index] = np.vstack((self.transmitted[transmitter_index], np.empty(
                     (SettingsStore.settings['ENCODER_ARRAY_LENGTH'], len(values)))))
 
-            self.timestamps[transmitter_index][self.lengths[transmitter_index]] = timestamp
-            self.transmitted[transmitter_index][self.lengths[transmitter_index]] = values
+            self.timestamps[transmitter_index][dataset_length] = timestamp
+            self.transmitted[transmitter_index][dataset_length] = values
 
         self.lengths[transmitter_index] += 1
 
-        min_timestamp = None
-        max_timestamp = None
-        for i in range(len(self.timestamps)):
-            if self.lengths[i] > 0:
-                min_tmp = np.min(self.timestamps[i][:self.lengths[i]])
-                max_tmp = np.max(self.timestamps[i][:self.lengths[i]])
-                if min_timestamp is None or min_tmp < min_timestamp:
+        min_timestamp = sys.float_info.max  # init with maximum value
+        max_timestamp = 0  # init with minimum value
+        for t_idx in range(len(self.timestamps)):
+            if self.lengths[t_idx] > 0:
+                min_tmp = np.min(self.timestamps[t_idx][:self.lengths[t_idx]])
+                max_tmp = np.max(self.timestamps[t_idx][:self.lengths[t_idx]])
+                if min_tmp < min_timestamp:
                     min_timestamp = min_tmp
-                if max_timestamp is None or max_tmp > max_timestamp:
+                if max_tmp > max_timestamp:
                     max_timestamp = max_tmp
 
-        self.min_timestamp = min_timestamp if min_timestamp is not None else time.time()
-        self.max_timestamp = max_timestamp if max_timestamp is not None else time.time()
+        now = time.time()
+        self.min_timestamp = min(min_timestamp, now)
+        self.max_timestamp = min(max_timestamp, now)
 
     def append_transmission_transmitter_values(self, timestamp, values):
         if self.recording:
@@ -181,7 +184,7 @@ class EncoderInterface:
         :return: A list of symbols, with a length equal to the amount of transmitters present.
         """
         Logging.warning("get_transmitter_current_symbols is not implemented in your encoder!", repeat=True)
-        return ""
+        return None
 
     def is_recording(self):
         """

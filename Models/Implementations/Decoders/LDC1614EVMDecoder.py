@@ -22,31 +22,12 @@ class LDC1614EVMDecoder(DecoderInterface):
     def __init__(self, parameters, parameter_values):
         super().__init__(parameters, parameter_values)
 
-        self.parameter_values = parameter_values
-        self.parameters_edited()
+    def parameters_edited(self, parameter_values):
+        super().parameters_edited(parameter_values)
 
-        super().setup()
-
-    def calculate_additional_datalines(self):
-        """
-        Generates Gaussian filtered version of the datalines.
-        Note: Can be optimized by avoiding re-calculating old values every time.
-        """
-        received = self.decoded['received']
-        lengths, timestamps = received['lengths'], received['timestamps']
-        for i in range(self.active_channels):
-            sensor_values = self.get_received(0, i)
-            # No values available
-            if sensor_values is None:
-                return
-            sensor_filtered = scipy.ndimage.gaussian_filter1d(sensor_values, self.sigma)
-            dataline = {'length': lengths[0], 'timestamps': timestamps[0][:lengths[0]], 'values': sensor_filtered}
-            self.additional_datalines[i] = dataline
-
-    def parameters_edited(self):
         self.sigma = self.parameter_values['Sigma']
         
-        port = self.parameter_values['port']
+        port = self.parameter_values['Port']
         deglitch_filter = self.parameter_values["Input Deglitch Filter Bandwidth (MHz)"]
 
         settle_count = self.parameter_values["Settle Count"]
@@ -61,36 +42,58 @@ class LDC1614EVMDecoder(DecoderInterface):
         # t_count = 1/f_sample - t_settle - t_switchdelay ---> trade-off between sample rate (f_sample) and sensitivity
         # t_switchdelay = 629ns + 5/40MHz = 754ns
 
-        self.active_channels = self.parameter_values["active channels"]
+        self.active_channels = [self.parameter_values['Activate channel 0'], self.parameter_values['Activate channel 1'],
+                                self.parameter_values['Activate channel 2'], self.parameter_values['Activate channel 3']]
+        self.active_channel_count = self.active_channels.count(True)
+
         self.additional_datalines_names = ["CH" + str(i) + " Filtered (MHz)" for i in range(4)]
 
-        self.threshold_factor = self.parameter_values["detection threshold factor"]
-        self.symbol_duration = self.parameter_values["symbol duration [s]"]
+        self.threshold_factor = self.parameter_values["Detection threshold factor"]
+        self.symbol_duration = self.parameter_values["Symbol duration [s]"]
 
         t_conversion = (reference_count*16 + 4) / (CLK_IN_MHZ*1000000)
         t_settle = settle_count*16/(CLK_IN_MHZ*1000000)
         t_switchdelay = 0.000000629 + (5/(CLK_IN_MHZ*1e6))
-        t_sample = (t_conversion + t_settle + t_switchdelay)*self.active_channels
+        t_sample = (t_conversion + t_settle + t_switchdelay)*self.active_channel_count + np.finfo(float).eps
         Logging.info(f"Approximate sample rate: {1/t_sample:2.2f} Sa/s")
 
-
         self.plot_settings = {
-            'additional_datalines_active': [True, self.active_channels>1, self.active_channels>2, self.active_channels>3],
+            'additional_datalines_active': self.active_channels,
             'additional_datalines_width': 3,
-            'datalines_active': [[True, self.active_channels>1, self.active_channels>2, self.active_channels>3]],
+            'datalines_active': [self.active_channels],
             'datalines_width': 3
         }
 
-        #Clean up
+        # Clean up
         self.shutdown()
 
         self.abs_detection_threshold = 0
         self.first_symbol_edge = 0
 
         # Define receivers list
-        receiver = LDC1614EVMReceiver(self.active_channels, CLK_IN_MHZ, port, deglitch_filter, settle_count, reference_count)
-        self.receivers = [receiver]
-        self.receiver_names = ["LDC1614"]
+        if any(active for active in self.active_channels):
+            receiver = LDC1614EVMReceiver(self.active_channels, CLK_IN_MHZ, port, deglitch_filter, settle_count, reference_count)
+            self.receivers = [receiver]
+            self.receiver_names = ["LDC1614"]
+
+        super().setup()
+
+    def calculate_additional_datalines(self):
+        """
+        Generates Gaussian filtered version of the datalines.
+        Note: Can be optimized by avoiding re-calculating old values every time.
+        """
+        received = self.decoded['received']
+        lengths, timestamps = received['lengths'], received['timestamps']
+        for idx in range(len(self.active_channels)):
+            if self.active_channels[idx]:
+                sensor_values = self.get_received(0, idx)
+                # No values available
+                if sensor_values is None:
+                    return
+                sensor_filtered = scipy.ndimage.gaussian_filter1d(sensor_values, self.sigma)
+                dataline = {'length': lengths[0], 'timestamps': timestamps[0][:lengths[0]], 'values': sensor_filtered}
+                self.additional_datalines[idx] = dataline
 
     def clear(self):
         self.abs_detection_threshold = 0
@@ -157,6 +160,7 @@ class LDC1614EVMDecoder(DecoderInterface):
         if self.receivers is not None:
             for rx in self.receivers:
                 try:
+                    rx.set_streaming(False)
                     rx.shutdown()
                 except:
                     pass
@@ -182,18 +186,30 @@ class LDC1614EVMDecoder(DecoderInterface):
 
         parameters = [
             {
-                'description': "port",
+                'description': "Port",
                 'dtype': 'item',
                 'default': suggested_port,
                 'items': [port.name for port in ports],
             },
             {
-                'description': "active channels",
-                'dtype': 'int',
-                'min': 1,
-                'max': 4,
-                'default': 1,
-                'editable': True
+                'description': "Activate channel 0",
+                'dtype': 'bool',
+                'default': True
+            },
+            {
+                'description': "Activate channel 1",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "Activate channel 2",
+                'dtype': 'bool',
+                'default': False
+            },
+            {
+                'description': "Activate channel 3",
+                'dtype': 'bool',
+                'default': False
             },
             {
                 'description': "Input Deglitch Filter Bandwidth (MHz)",
@@ -221,7 +237,7 @@ class LDC1614EVMDecoder(DecoderInterface):
                 'conversion_function': lambda x: str((x*16)/CLK_IN_MHZ) + "us"
             },
             {
-                'description': "detection threshold factor",
+                'description': "Detection threshold factor",
                 'decimals': 2,
                 'dtype': 'float',
                 'min': 1,
@@ -229,14 +245,13 @@ class LDC1614EVMDecoder(DecoderInterface):
                 'default': 5.0
             },
             {
-                'description': "symbol duration [s]",
+                'description': "Symbol duration [s]",
                 'decimals': 3,
                 'dtype': 'float',
                 'min': 0.010,
                 'max': 20,
                 'default': 1
             }]
-
 
         parameters.append({
                 # Sigma value for Gaussian filter

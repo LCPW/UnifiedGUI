@@ -90,7 +90,7 @@ class DecoderView(QWidget):
 
         decoder_type, ok = QInputDialog.getItem(self, "Add Decoder", "Decoder type", names, 0, False)
         if ok:
-            self.view.controller.add_decoder(decoder_type)
+            self.view.controller.add_decoder(decoder_type=decoder_type)
 
     def clear_decoder(self):
         """
