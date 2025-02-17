@@ -56,6 +56,7 @@ class MenuBarView(QMenuBar):
             directory = QFileDialog.getExistingDirectory(self, "Select Directory")
             if directory is not None:
                 self.view.controller.export_custom(directory, export_dialog.get_data_name(),
+                                                   export_dialog.has_selected_system_timestamps(),
                                                    export_dialog.has_selected_encoder_activation(),
                                                    export_dialog.get_additional_data_name())
 

@@ -278,11 +278,12 @@ class DecoderInterface:
                 self.append(receiver_index, timestamp, values)
                 self.lengths[receiver_index] += 1
 
-    def export_custom(self, workbook, directory, dataset_additional_name=None):
+    def export_custom(self, workbook, directory, time_format_system=True, dataset_additional_name=None):
         """
         Exports received data by creating a new table for every receiver and all additional datalines.
         :param workbook: .xlsx workbook object
         :param directory: Directory for the data files to be stored.
+        :param time_format_system: True if the system time (seconds since epoch) should be used, otherwise false.
         :param dataset_additional_name: File name prefix for additional data .csv files. If not wanted, set to None
         """
         bold = workbook.add_format({'bold': True})  # Add a bold format to use to highlight cells.
@@ -302,6 +303,10 @@ class DecoderInterface:
                 continue
 
             worksheet = workbook.add_worksheet(self.receiver_names[receiver_idx])
+
+            # Adjust the timestamps if necessary
+            if not time_format_system:
+                dataset_timestamp = dataset_timestamp - dataset_timestamp[0]
 
             # Iterate through the value-pairs, usually one value array per sensor channel present
             for value_idx in range(dataset_values.shape[1]):
@@ -333,6 +338,10 @@ class DecoderInterface:
                     continue
 
                 dataset_length, dataset_timestamps, dataset_values = dataline['length'], dataline['timestamps'], dataline['values']
+
+                # Adjust the timestamps if necessary
+                if not time_format_system:
+                    dataset_timestamps = dataset_timestamps - dataset_timestamps[0]
 
                 # Add headers for each time-value pair
                 worksheet.write(0, 2*additional_dataset_idx, 'Time')

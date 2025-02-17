@@ -35,7 +35,7 @@ class Controller:
 
     def start(self):
         with self.lock_view:  # will only start, when self.view has been initialized
-            Logging.info("Starting UnifiedGUI.")
+            Logging.info("Starting UnifiedGUI [Version %s]." % (version.__version__))
 
         # Main program loop
         fps = SettingsStore.settings['FRAMES_PER_SECOND']
@@ -66,13 +66,13 @@ class Controller:
                 else:
                     return
 
-            # try:
+            try:
                 decoder_info = self.model.add_decoder(decoder_type, parameters, parameter_values)
                 decoder_info.update({'parameter_values': parameter_values})
                 self.view.decoder_added(decoder_info)
-            # except Exception as e:
-            #     Logging.error(e.args[0])
-            #     Logging.error("Failed to add decoder. Make sure device is connected and not used by other applications.")
+            except Exception as e:
+                Logging.error(e.args[0])
+                Logging.error("Failed to add decoder. Make sure device is connected and not used by other applications.")
 
         elif decoder is not None:
             decoder_info = self.model.add_decoder_object(decoder)
@@ -168,11 +168,12 @@ class Controller:
     def encode_with_check(self, sequence):
         return self.model.encoder.encode_with_check(sequence)
 
-    def export_custom(self, directory, dataset_name, save_encoder_activation, dataset_additional_name):
+    def export_custom(self, directory, dataset_name, time_format_system, save_encoder_activation, dataset_additional_name):
         """
         ...
         :param directory: Directory for the data files to be stored.
         :param dataset_name: File name prefix of the main dataset file.
+        :param time_format_system: True if the system time (seconds since epoch) should be used, otherwise false.
         :param save_encoder_activation: True or False, whether the encoder activation will be saved as part of the data
         :param dataset_additional_name: File name prefix for additional data .csv files. If not wanted, set to None
         """
@@ -184,10 +185,10 @@ class Controller:
             workbook = xlsxwriter.Workbook(filename)
 
             if self.model.decoder is not None:
-                self.model.decoder.export_custom(workbook, directory, dataset_additional_name)
+                self.model.decoder.export_custom(workbook, directory, time_format_system, dataset_additional_name)
 
             if save_encoder_activation and self.model.encoder is not None:
-                self.model.encoder.export_custom(workbook)
+                self.model.encoder.export_custom(workbook, time_format_system)
 
             # Save the metadata of the current software
             worksheet_metadata = workbook.add_worksheet('Metadata')

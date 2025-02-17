@@ -58,9 +58,9 @@ class LDC1614EVMDecoder(DecoderInterface):
         Logging.info(f"Approximate sample rate: {1/t_sample:2.2f} Sa/s")
 
         self.plot_settings = {
-            'additional_datalines_active': self.active_channels,
+            'additional_datalines_active': self.active_channels.copy(),
             'additional_datalines_width': 3,
-            'datalines_active': [self.active_channels],
+            'datalines_active': [self.active_channels.copy()],
             'datalines_width': 3
         }
 

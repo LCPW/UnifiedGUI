@@ -146,10 +146,11 @@ class EncoderInterface:
         Logging.warning("encode is not implemented in your encoder!", repeat=True)
         return ""
 
-    def export_custom(self, workbook):
+    def export_custom(self, workbook, time_format_system=True):
         """
         Exports transmitted data by creating a new table for every transmitter.
         :param workbook: .xlsx workbook object
+        :param time_format_system: True if the system time (seconds since epoch) should be used, otherwise false.
         """
         bold = workbook.add_format({'bold': True})  # Add a bold format to use to highlight cells.
 
@@ -166,6 +167,10 @@ class EncoderInterface:
                 continue
 
             worksheet = workbook.add_worksheet(self.transmitter_names[transmitter_idx])
+
+            # Adjust the timestamps if necessary
+            if not time_format_system:
+                dataset_timestamp = dataset_timestamp - dataset_timestamp[0]
 
             # Iterate through the value-pairs, usually one value array per channel present
             for value_idx in range(dataset_values.shape[1]):

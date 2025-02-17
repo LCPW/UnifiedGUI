@@ -157,10 +157,17 @@ class Model:
         """
         return self.decoder is not None and self.decoder.active
 
+    def is_encoder_present(self):
+        """
+        Checks whether an encoder is defined.
+        :return: Whether an encoder is defined.
+        """
+        return self.encoder is not None
+
     def is_encoder_recording(self):
         """
-        Checks whether an encoder is available.
-        :return: Whether an encoder is defined.
+        Checks whether an encoder is defined and recording.
+        :return: Whether an encoder is defined and recording.
         """
         return self.encoder is not None and self.encoder.is_recording()
 
